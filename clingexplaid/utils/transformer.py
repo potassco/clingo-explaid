@@ -4,17 +4,10 @@ from clingo import ast as _ast
 from typing import List, Tuple, Optional
 from dataclasses import dataclass
 
+from clingexplaid.utils import match_ast_symbolic_atom_signature
+
 
 RULE_ID_SIGNATURE = "_rule"
-
-
-@dataclass
-class Signature:
-    """
-    Defines a signature of an atom in clingo.
-    """
-    name: str
-    arity: int
 
 
 @dataclass
@@ -89,65 +82,53 @@ class SignatureToAssumptionTransformer(Transformer):
     simply add a choice rule for each fact by default.
     """
 
-    def __init__(self, program_string: str, signatures: List[Signature]):
+    def __init__(self, program_string: str, signatures: List[Tuple[str, int]]):
         self.signatures = signatures
         self.program_string = program_string
-        self.facts = self.get_facts()
+        self.fact_rules = []
 
-    def get_facts(self, ctl) -> List[clingo.Symbol]:
+    def visit_Rule(self, node):
+        skip = False
+        if node.head.ast_type != ASTType.Literal:
+            return node
+        if node.body:
+            return node
+        has_matching_signature = any([match_ast_symbolic_atom_signature(node.head.atom, (name, arity)) for (name, arity) in self.signatures])
+        if not has_matching_signature:
+            return node
+
+        self.fact_rules.append(str(node.head))
+
+        return _ast.Rule(
+            location=node.location,
+            head=_ast.Aggregate(
+                location=node.location,
+                left_guard=None,
+                elements=[node.head],
+                right_guard=None
+            ),
+            body=[]
+        )
+
+    def get_facts(self) -> List[clingo.Symbol]:
+        if len(self.fact_rules) < 1:
+            return []
+        simplified_fact_program = ".\n".join(self.fact_rules) + "."
         ctl = clingo.Control()
-        ctl.add("base", [], self.program_string)
+        ctl.add("base", [], simplified_fact_program)
         ctl.ground([("base", [])])
         return [sym.symbol for sym in ctl.symbolic_atoms if sym.is_fact]
 
-    def visit_Rule(self, node):
-        print(node.head, node.head.ast_type)
-        if node.head.ast_type == ASTType.Literal and not node.body:
-            # TODO: Match the head symbol to the looked for signatures here. But how can I match AST Symbols?
-            print("---", node.head.atom.symbol)
-            return None  # TODO: How do I return nothing (like None)
-        return node
-
-    def get_transformed(self) -> TransformerResult:
-        out = [f"{{{str(fact)}}}." for fact in self.facts]
+    def get_transformer_result(self) -> TransformerResult:
+        out = []
         parse_string(self.program_string, lambda stm: out.append((str(self(stm)))))
-
-        result = TransformerResult(
-            output_string="\n".join(out),
-            output_assumptions=None
-        )
-        return result
+        facts = self.get_facts()
+        assumptions = [(fact, True) for fact in facts]
+        return TransformerResult("\n".join(out), assumptions)
 
 
-prg = """
-cat(1).
-cat(2).
-{dog(1..10)}.
-mantis(1). mantis(2).
-axolotl(X) :- X=1..5. 
-
-something_true.
-bike(1); snake(1) :- something_true.
-"""
-
-
-rt = RuleIDTransformer()
-res = rt.get_transformer_result(prg)
-print(res.output_string)
-print(res.output_assumptions)
-
-print("-" * 50)
-
-at = SignatureToAssumptionTransformer(
-    program_string=prg,
-    signatures=[
-        Signature(name='cat', arity=1),
-        Signature(name='dog', arity=1),
-        Signature(name='mantis', arity=1),
-        Signature(name='axolotl', arity=1),
-        Signature(name='something_true', arity=0),
-        Signature(name='snake', arity=1),
-    ]
+__all__ = (
+    RuleIDTransformer,
+    SignatureToAssumptionTransformer,
+    TransformerResult,
 )
-res = at.get_transformed()
-print(res.output_string)
