@@ -9,6 +9,15 @@ RULE_ID_SIGNATURE = "_rule"
 
 
 @dataclass
+class Signature:
+    """
+    Defines a signature of an atom in clingo.
+    """
+    name: str
+    arity: int
+
+
+@dataclass
 class TransformerResult:
     """
     Returned by transformers. Is a python dataclass that encapsulates the transformed program-string and output
@@ -65,3 +74,75 @@ class RuleIDTransformer(Transformer):
 
     def _get_assumptions(self, n_rules) -> List[Tuple[clingo.Symbol, bool]]:
         return [(clingo.parse_term(f"{self.rule_id_signature}({rule_id})"), True) for rule_id in range(1, n_rules)]
+
+
+class SignatureToAssumptionTransformer(Transformer):
+    """
+    A Transformer to select a set of signatures of a program and convert all facts that match this signature into
+    assumptions. This also makes it necessary to make them available in a choice rule, which, if not already present,
+    has to be added. Since it's hard to check if a certain fact is covered by a choice rule in the program we just
+    simply add a choice rule for each fact by default.
+    """
+
+    def __init__(self, program_string: str, signatures: List[Signature]):
+        self.signatures = signatures
+        self.program_string = program_string
+        self.facts = self.get_facts()
+
+    def get_facts(self, ctl) -> List[clingo.Symbol]:
+        ctl = clingo.Control()
+        ctl.add("base", [], self.program_string)
+        ctl.ground([("base", [])])
+        return [sym.symbol for sym in ctl.symbolic_atoms if sym.is_fact]
+
+    def visit_Rule(self, node):
+        print(node.head, node.head.ast_type)
+        if node.head.ast_type == ASTType.Literal and not node.body:
+            # TODO: Match the head symbol to the looked for signatures here. But how can I match AST Symbols?
+            print("---", node.head.atom.symbol)
+            return None  # TODO: How do I return nothing (like None)
+        return node
+
+    def get_transformed(self) -> TransformerResult:
+        out = [f"{{{str(fact)}}}." for fact in self.facts]
+        parse_string(self.program_string, lambda stm: out.append((str(self(stm)))))
+
+        result = TransformerResult(
+            output_string="\n".join(out),
+            output_assumptions=None
+        )
+        return result
+
+
+prg = """
+cat(1).
+cat(2).
+{dog(1..10)}.
+mantis(1). mantis(2).
+axolotl(X) :- X=1..5. 
+
+something_true.
+bike(1); snake(1) :- something_true.
+"""
+
+
+rt = RuleIDTransformer()
+res = rt.get_transformed(prg)
+print(res.output_string)
+print(res.output_assumptions)
+
+print("-" * 50)
+
+at = SignatureToAssumptionTransformer(
+    program_string=prg,
+    signatures=[
+        Signature(name='cat', arity=1),
+        Signature(name='dog', arity=1),
+        Signature(name='mantis', arity=1),
+        Signature(name='axolotl', arity=1),
+        Signature(name='something_true', arity=0),
+        Signature(name='snake', arity=1),
+    ]
+)
+res = at.get_transformed()
+print(res.output_string)
