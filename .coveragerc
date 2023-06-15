@@ -1,7 +1,7 @@
 [run]
-source = fillname
+source = clingexplaid
        tests
-omit = */fillname/__main__.py
+omit = */clingexplaid/__main__.py
 [report]
 exclude_lines =
     assert

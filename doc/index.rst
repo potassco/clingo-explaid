@@ -1,4 +1,4 @@
-The fillname project
+The clingexplaid project
 ====================
 
 An example project template.
@@ -7,4 +7,4 @@ An example project template.
    :toctree: _autosummary
    :recursive:
 
-    fillname
+    clingexplaid

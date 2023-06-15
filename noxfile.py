@@ -18,7 +18,7 @@ def format(session):
 
     autoflake_args = [
         "--in-place",
-        "--imports=fillname",
+        "--imports=clingexplaid",
         "--ignore-init-module-imports",
         "--remove-unused-variables",
         "-r",
@@ -64,13 +64,13 @@ def lint_flake8(session):
 @nox.session
 def lint_pylint(session):
     session.install("-e", ".[lint_pylint]")
-    session.run("pylint", "fillname", "tests")
+    session.run("pylint", "clingexplaid", "tests")
 
 
 @nox.session
 def typecheck(session):
     session.install("-e", ".[typecheck]")
-    session.run("mypy", "-p", "fillname", "-p", "tests")
+    session.run("mypy", "-p", "clingexplaid", "-p", "tests")
 
 
 @nox.session(python=PYTHON_VERSIONS)

@@ -1,4 +1,4 @@
-# fillname
+# clingexplaid
 
 This project template is configured to ease collaboration. Linters, formatters,
 and actions are already configured and ready to use.
@@ -10,13 +10,13 @@ name and some metadata. The script can then be removed afterward and the
 ## Installation
 
 ```shell
-pip install fillname
+pip install clingexplaid
 ```
 
 ## Usage
 
 ```shell
-fillname -h
+clingexplaid -h
 ```
 
 ## Development
