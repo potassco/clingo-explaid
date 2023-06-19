@@ -81,3 +81,8 @@ class CoreComputer:
         return f"<CoreComputer: {len(self.assumption_set)} assumptions>"
 
     __repr__ = __str__
+
+
+__all__ = [
+    CoreComputer.__name__,
+]
