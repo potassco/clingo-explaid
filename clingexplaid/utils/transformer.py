@@ -167,9 +167,9 @@ class ConstraintTransformer(Transformer):
         return result
 
 
-__all__ = (
-    RuleIDTransformer,
-    SignatureToAssumptionTransformer,
-    ConstraintTransformer,
-    TransformerResult,
-)
+__all__ = [
+    RuleIDTransformer.__name__,
+    SignatureToAssumptionTransformer.__name__,
+    ConstraintTransformer.__name__,
+    TransformerResult.__name__,
+]
