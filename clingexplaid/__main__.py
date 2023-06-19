@@ -1,4 +1,4 @@
-from clingexplaid.utils.transformer import RuleIDTransformer, SignatureToAssumptionTransformer
+from clingexplaid.utils.transformer import RuleIDTransformer, SignatureToAssumptionTransformer, ConstraintTransformer
 
 
 prg = """
@@ -10,6 +10,7 @@ axolotl(X) :- X=1..5.
 
 something_true.
 bike(1); snake(1) :- something_true.
+:- test.
 """
 
 
@@ -34,3 +35,7 @@ at = SignatureToAssumptionTransformer(
 res = at.get_transformer_result()
 print(res.output_string)
 print([str(a) for a, _ in res.output_assumptions])
+
+ct = ConstraintTransformer(constraint_head_symbol="unsat")
+res = ct.get_transformer_result(prg)
+print(res.output_string)

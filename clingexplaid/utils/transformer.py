@@ -127,8 +127,49 @@ class SignatureToAssumptionTransformer(Transformer):
         return TransformerResult("\n".join(out), assumptions)
 
 
+class ConstraintTransformer(Transformer):
+    """
+    A Transformer that takes all constraint rules and adds an atom to their head to avoid deriving false through them.
+    """
+
+    def __init__(self, constraint_head_symbol: str):
+        self.constraint_head_symbol = constraint_head_symbol
+
+    def visit_Rule(self, node):
+        if node.head.ast_type != ASTType.Literal:
+            return node
+        if node.head.atom.ast_type != ASTType.BooleanConstant:
+            return node
+        if node.head.atom.value != 0:
+            return node
+        
+        head_symbol = _ast.Function(
+            location=node.location,
+            name=self.constraint_head_symbol,
+            arguments=[],
+            external=0)
+
+        # insert id symbol into body of rule
+        node.head = head_symbol
+        return node.update(**self.visit_children(node))
+
+    def get_transformed_string(self, program_string: str) -> str:
+        out = []
+        parse_string(program_string, lambda stm: out.append((str(self(stm)))))
+
+        return "\n".join(out)
+
+    def get_transformer_result(self, program_string: str) -> TransformerResult:
+        result = TransformerResult(
+            output_string=self.get_transformed_string(program_string=program_string),
+            output_assumptions=[]
+        )
+        return result
+
+
 __all__ = (
     RuleIDTransformer,
     SignatureToAssumptionTransformer,
+    ConstraintTransformer,
     TransformerResult,
 )
