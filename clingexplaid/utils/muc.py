@@ -2,11 +2,7 @@ from typing import Set, Tuple, Optional
 
 import clingo
 
-from . import get_solver_literal_lookup
-
-
-SymbolSet = Set[clingo.Symbol]
-LiteralSet = Set[Tuple[clingo.Symbol, bool]]
+from . import get_solver_literal_lookup, LiteralSet, SymbolSet
 
 
 class CoreComputer:
