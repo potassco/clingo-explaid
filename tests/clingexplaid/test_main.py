@@ -13,8 +13,21 @@ class TestMain(TestCase):
 
     def test_assumption_transformer_parse_string(self):
         program = """
-            fact.
+            a(1).
+            a(2) :- x.
+            a(3); a(4) :- x.
+            a(10..15).
+            a(16).
+            a(17); a(18) :- a(16).
         """
-        at = AssumptionTransformer(signatures=[('fact', 0)])
+        program_transformed = """
+            {a(1)}.
+            a(2) :- x.
+            a(3); a(4) :- x.
+            {a(10..15)}.
+            {a(16)}.
+            a(17); a(18) :- a(16).
+        """
+        at = AssumptionTransformer(signatures=[('a', 1)])
         result = at.parse_string(program)
-        self.assertEqual(result, "{fact}.")
+        self.assertEqual(result, program_transformed)
