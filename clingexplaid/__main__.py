@@ -1,51 +1,38 @@
 import clingo
 
-from clingexplaid.utils.transformer import RuleIDTransformer, SignatureToAssumptionTransformer, ConstraintTransformer
-from clingexplaid.utils.muc import CoreComputer
+from clingexplaid.utils import get_solver_literal_lookup
+from clingexplaid.utils.transformer import AssumptionTransformer
 
-prg = """
-cat(1).
-cat(2).
-{dog(1..10)}.
-mantis(1). mantis(2).
-axolotl(X) :- X=1..5.
 
-something_true.
-bike(1); snake(1) :- something_true.
+sig = [
+    ('dog', 1),
+    ('mantis', 1),
+    ('axolotl', 1),
+    ('something_true', 0),
+    ('snake', 1),
+]
 
-{test}.
-:- test.
-"""
+at = AssumptionTransformer(sig)
 
-# rt = RuleIDTransformer()
-# res = rt.get_transformer_result(prg)
-# print(res.output_string)
-# print(res.output_assumptions)
+files = ["test/instance.lp", "test/encoding.lp"]
+
+ctl = clingo.Control()
+
+transformed_program = ""
+
+for f in files:
+    transformed_program += at.parse_file(f) + "\n"
+
+ctl.add("base", [], transformed_program)
+
+ctl.ground([("base", [])])
+
+literal_lookup = get_solver_literal_lookup(ctl)
+
+assumptions = at.get_assumptions(ctl)
+print(assumptions, [str(literal_lookup[a]) for a in assumptions])
+
+# uncore_shirker = UCORE(ctl, assumtions)
 #
-# print("-" * 50)
-#
-# at = SignatureToAssumptionTransformer(
-#     program_string=prg,
-#     signatures=[
-#         ('cat', 1),
-#         ('dog', 1),
-#         ('mantis', 1),
-#         ('axolotl', 1),
-#         ('something_true', 0),
-#         ('snake', 1),
-#     ]
-# )
-# res = at.get_transformer_result()
-# print(res.output_string)
-# print([str(a) for a, _ in res.output_assumptions])
-#
-# ct = ConstraintTransformer(constraint_head_symbol="unsat")
-# res = ct.get_transformer_result(prg)
-# print(res.output_string)
-
-cc = CoreComputer(
-    program_string=prg,
-    assumption_set={(clingo.parse_term('test'), True)}
-)
-print(cc)
-print(cc.get_minimal())
+# ctl.solve(assumptions=assumtions,on_core=uncore_shirker.get_minimal)
+# m_core = uncore_shirker.minimal
