@@ -1,7 +1,10 @@
+import time
+
 import clingo
 
 from clingexplaid.utils import get_solver_literal_lookup
 from clingexplaid.utils.transformer import AssumptionTransformer
+from clingexplaid.utils.muc import CoreComputer
 
 
 sig = [
@@ -10,6 +13,7 @@ sig = [
     ('axolotl', 1),
     ('something_true', 0),
     ('snake', 1),
+    ('test', 0)
 ]
 
 at = AssumptionTransformer(sig)
@@ -32,7 +36,7 @@ literal_lookup = get_solver_literal_lookup(ctl)
 assumptions = at.get_assumptions(ctl)
 print(assumptions, [str(literal_lookup[a]) for a in assumptions])
 
-# uncore_shirker = UCORE(ctl, assumtions)
-#
-# ctl.solve(assumptions=assumtions,on_core=uncore_shirker.get_minimal)
-# m_core = uncore_shirker.minimal
+cc = CoreComputer(ctl, assumptions)
+
+ctl.solve(assumptions=list(assumptions), on_core=cc.shrink)
+print(cc.minimal)

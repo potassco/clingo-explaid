@@ -1,10 +1,12 @@
 import clingo
 from clingo.ast import ASTType
-from typing import Tuple, Dict, Set
+from typing import Tuple, Dict, Set, Union
 
 
 SymbolSet = Set[clingo.Symbol]
 LiteralSet = Set[Tuple[clingo.Symbol, bool]]
+AssumptionSet = Set[Union[LiteralSet, int]]
+
 
 def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signature: Tuple[str, int]):
     """
