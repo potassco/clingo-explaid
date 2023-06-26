@@ -1,13 +1,20 @@
 import clingo
 from clingo.ast import Transformer, parse_string, ASTType
 from clingo import ast as _ast
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union, Set
 from dataclasses import dataclass
+from pathlib import Path
 
 from clingexplaid.utils import match_ast_symbolic_atom_signature
 
 
 RULE_ID_SIGNATURE = "_rule"
+
+
+class UntransformedException(Exception):
+    """Exception raised if the get_assumptions method of an AssumptionTransformer is called before it is used to
+    transform a program.
+    """
 
 
 @dataclass
@@ -74,30 +81,23 @@ class RuleIDTransformer(Transformer):
         return result
 
 
-class SignatureToAssumptionTransformer(Transformer):
-    """
-    A Transformer to select a set of signatures of a program and convert all facts that match this signature into
-    assumptions. This also makes it necessary to make them available in a choice rule, which, if not already present,
-    has to be added. Since it's hard to check if a certain fact is covered by a choice rule in the program we just
-    simply add a choice rule for each fact by default.
-    """
+class AssumptionTransformer(Transformer):
 
-    def __init__(self, program_string: str, signatures: List[Tuple[str, int]]):
+    def __init__(self, signatures: List[Tuple[str, int]]):
         self.signatures = signatures
-        self.program_string = program_string
         self.fact_rules = []
 
     def visit_Rule(self, node):
-        skip = False
         if node.head.ast_type != ASTType.Literal:
             return node
         if node.body:
             return node
-        has_matching_signature = any([match_ast_symbolic_atom_signature(node.head.atom, (name, arity)) for (name, arity) in self.signatures])
+        has_matching_signature = any(
+            [match_ast_symbolic_atom_signature(node.head.atom, (name, arity)) for (name, arity) in self.signatures])
         if not has_matching_signature:
             return node
 
-        self.fact_rules.append(str(node.head))
+        self.fact_rules.append(str(node))
 
         return _ast.Rule(
             location=node.location,
@@ -110,21 +110,31 @@ class SignatureToAssumptionTransformer(Transformer):
             body=[]
         )
 
-    def get_facts(self) -> List[clingo.Symbol]:
-        if len(self.fact_rules) < 1:
-            return []
-        simplified_fact_program = ".\n".join(self.fact_rules) + "."
-        ctl = clingo.Control()
-        ctl.add("base", [], simplified_fact_program)
-        ctl.ground([("base", [])])
-        return [sym.symbol for sym in ctl.symbolic_atoms if sym.is_fact]
-
-    def get_transformer_result(self) -> TransformerResult:
+    def parse_string(self, string: str) -> str:
         out = []
-        parse_string(self.program_string, lambda stm: out.append((str(self(stm)))))
-        facts = self.get_facts()
-        assumptions = [(fact, True) for fact in facts]
-        return TransformerResult("\n".join(out), assumptions)
+        parse_string(string, lambda stm: out.append((str(self(stm)))))
+        return "\n".join(out)
+
+    def parse_file(self, path: Union[str, Path]) -> str:
+        with open(path, "r") as f:
+            return self.parse_string(f.read())
+
+    def get_assumptions(self, control: clingo.Control) -> Set[int]:
+        # TODO : Just taking the fact symbolic atoms of the control given doesn't work here since we anticipate that
+        #  this control is ground on the already transformed program. This means that all facts are now choice rules
+        #  which means we cannot detect them like this anymore.
+        # TODO : raise error if fact_rules is empty
+        if not self.fact_rules:
+            raise UntransformedException("The get_assumptions method cannot be called before a program has been "
+                                         "transformed")
+        fact_control = clingo.Control()
+        fact_control.add("base", [], "\n".join(self.fact_rules))
+        fact_control.ground([("base", [])])
+        fact_symbols = [sym.symbol for sym in fact_control.symbolic_atoms if sym.is_fact]
+        print("FACT SYMBOLS:", [str(s) for s in fact_symbols])
+
+        symbol_to_literal_lookup = {sym.symbol: sym.literal for sym in control.symbolic_atoms}
+        return {symbol_to_literal_lookup.get(sym) for sym in fact_symbols}
 
 
 class ConstraintTransformer(Transformer):
@@ -169,7 +179,7 @@ class ConstraintTransformer(Transformer):
 
 __all__ = [
     RuleIDTransformer.__name__,
-    SignatureToAssumptionTransformer.__name__,
+    AssumptionTransformer.__name__,
     ConstraintTransformer.__name__,
     TransformerResult.__name__,
 ]
