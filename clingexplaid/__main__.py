@@ -18,7 +18,7 @@ sig = [
 
 at = AssumptionTransformer(sig)
 
-files = ["test/instance.lp", "test/encoding.lp"]
+files = ["temp/instance.lp", "temp/encoding.lp"]
 
 ctl = clingo.Control()
 
