@@ -103,10 +103,9 @@ class AssumptionTransformer(Transformer):
             return self.parse_string(f.read())
 
     def get_assumptions(self, control: clingo.Control) -> Set[int]:
-        # TODO : Just taking the fact symbolic atoms of the control given doesn't work here since we anticipate that
+        #  Just taking the fact symbolic atoms of the control given doesn't work here since we anticipate that
         #  this control is ground on the already transformed program. This means that all facts are now choice rules
         #  which means we cannot detect them like this anymore.
-        # TODO : raise error if fact_rules is empty
         if not self.fact_rules:
             raise UntransformedException("The get_assumptions method cannot be called before a program has been "
                                          "transformed")
@@ -114,7 +113,6 @@ class AssumptionTransformer(Transformer):
         fact_control.add("base", [], "\n".join(self.fact_rules))
         fact_control.ground([("base", [])])
         fact_symbols = [sym.symbol for sym in fact_control.symbolic_atoms if sym.is_fact]
-        print("FACT SYMBOLS:", [str(s) for s in fact_symbols])
 
         symbol_to_literal_lookup = {sym.symbol: sym.literal for sym in control.symbolic_atoms}
         return {symbol_to_literal_lookup.get(sym) for sym in fact_symbols}
