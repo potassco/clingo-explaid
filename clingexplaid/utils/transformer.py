@@ -17,16 +17,6 @@ class UntransformedException(Exception):
     """
 
 
-@dataclass
-class TransformerResult:
-    """
-    Returned by transformers. Is a python dataclass that encapsulates the transformed program-string and output
-    assumptions if there are any.
-    """
-    output_string: str
-    output_assumptions: Optional[List[Tuple[clingo.Symbol, bool]]]
-
-
 class RuleIDTransformer(Transformer):
     """
     A Transformer that takes all the rules of a program and adds an atom with `self.rule_id_signature` in their bodys,
@@ -72,13 +62,6 @@ class RuleIDTransformer(Transformer):
         if n_rules is None:
             n_rules = self.rule_id
         return [(clingo.parse_term(f"{self.rule_id_signature}({rule_id})"), True) for rule_id in range(1, n_rules)]
-
-    def get_transformer_result(self, program_string: str) -> TransformerResult:
-        result = TransformerResult(
-            output_string=self.get_transformed_string(program_string=program_string),
-            output_assumptions=self.get_transformed_assumptions()
-        )
-        return result
 
 
 class AssumptionTransformer(Transformer):
@@ -169,17 +152,9 @@ class ConstraintTransformer(Transformer):
 
         return "\n".join(out)
 
-    def get_transformer_result(self, program_string: str) -> TransformerResult:
-        result = TransformerResult(
-            output_string=self.get_transformed_string(program_string=program_string),
-            output_assumptions=[]
-        )
-        return result
-
 
 __all__ = [
     RuleIDTransformer.__name__,
     AssumptionTransformer.__name__,
     ConstraintTransformer.__name__,
-    TransformerResult.__name__,
 ]
