@@ -66,7 +66,7 @@ class RuleIDTransformer(Transformer):
 
 class AssumptionTransformer(Transformer):
 
-    def __init__(self, signatures: List[Tuple[str, int]]):
+    def __init__(self, signatures: Set[Tuple[str, int]]):
         self.signatures = signatures
         self.fact_rules = []
 
