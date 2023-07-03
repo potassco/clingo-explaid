@@ -58,7 +58,7 @@ class CoreComputer:
             # remove the current assumption from the working set
             working_set.remove(assumption)
 
-            satisfiable, _, _ = self._solve(assumptions=working_set)
+            satisfiable, _, _ = self._solve(assumptions=working_set.union(muc_members))
             # if the working set now becomes satisfiable without the assumption it is added to the muc_members
             if satisfiable:
                 muc_members.add(assumption)
