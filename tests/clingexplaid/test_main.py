@@ -52,7 +52,10 @@ class TestMain(TestCase):
         cc = CoreComputer(ctl, assumptions)
         ctl.solve(assumptions=list(assumptions), on_core=cc.shrink)
 
-        return cc.minimal
+        # if the instance was satisfiable and the on_core function wasn't called an empty set is returned, else the muc.
+        result = cc.minimal if cc.minimal is not None else set()
+
+        return result
 
     def assertMUC(self, muc: Set[Tuple[clingo.Symbol, bool]], valid_mucs_string_lists: List[Set[str]]):
         valid_mucs = [{clingo.parse_term(s) for s in lit_strings} for lit_strings in valid_mucs_string_lists]
@@ -216,3 +219,42 @@ class TestMain(TestCase):
         self.assertMUC({literal_lookup[a] for a in muc}, [
             {f"a({i})" for i in random_core}
         ])
+
+    def test_core_computer_shrink_satisfiable(self):
+        ctl = clingo.Control()
+
+        program = """
+        a(1..5).
+        """
+        signatures = {("a", 1)}
+
+        muc = self.get_muc_of_program(
+            program_string=program,
+            assumption_signatures=signatures,
+            control=ctl
+        )
+
+        self.assertEqual(muc, set())
+
+    # --- INTERNAL
+
+    def test_core_computer_internal_solve_no_assumptions(self):
+        control = clingo.Control()
+        cc = CoreComputer(control, set())
+        satisfiable, model, core = cc._solve()
+        self.assertTrue(satisfiable)
+
+    def test_core_computer_internal_compute_single_minimal_satisfiable(self):
+        control = clingo.Control()
+        program = "a.b.c."
+        control.add("base", [], program)
+        control.ground([("base", [])])
+        assumptions = {(clingo.parse_term(c), True) for c in "abc"}
+        cc = CoreComputer(control, assumptions)
+        muc = cc._compute_single_minimal()
+        self.assertEqual(muc, set())
+
+    def test_core_computer_internal_compute_single_minimal_no_assumptions(self):
+        control = clingo.Control()
+        cc = CoreComputer(control, set())
+        self.assertRaises(ValueError, lambda: cc._compute_single_minimal())
