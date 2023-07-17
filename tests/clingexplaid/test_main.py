@@ -3,11 +3,17 @@ Test cases for main application functionality.
 """
 
 from unittest import TestCase
-from clingexplaid.utils import get_solver_literal_lookup, AssumptionSet
-from clingexplaid.utils.transformer import AssumptionTransformer, RuleIDTransformer, UntransformedException
-from clingexplaid.utils.muc import CoreComputer
 from typing import Set, Tuple, List, Optional, Union
 from pathlib import Path
+
+from clingexplaid.utils import get_solver_literal_lookup, AssumptionSet
+from clingexplaid.utils.muc import CoreComputer
+from clingexplaid.utils.transformer import (
+    AssumptionTransformer,
+    RuleIDTransformer,
+    UntransformedException,
+    ConstraintTransformer,
+)
 
 import random
 import clingo
@@ -92,6 +98,15 @@ class TestMain(TestCase):
             "_rule(7)",
         ]}
         self.assertEqual(assumptions, rt.get_assumptions())
+
+    # --- CONSTRAINT TRANSFORMER
+
+    def test_constraint_transformer(self):
+        program_path = TEST_DIR.joinpath("res/test_program_constraints.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_constraints.lp")
+        ct = ConstraintTransformer(constraint_head_symbol='unsat')
+        result = ct.parse_file(program_path)
+        self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
     # MUC
 
