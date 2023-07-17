@@ -55,14 +55,14 @@ class TestMain(TestCase):
     # TRANSFORMERS
     # --- ASSUMPTION TRANSFORMER
 
-    def test_assumption_transformer_parse_string(self):
+    def test_assumption_transformer_parse_file(self):
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_certain_signatures.lp")
         at = AssumptionTransformer(signatures={(c, 1) for c in "abcdef"})
         result = at.parse_file(program_path)
         self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
-    def test_assumption_transformer_parse_string_no_signatures(self):
+    def test_assumption_transformer_parse_file_no_signatures(self):
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_all.lp")
         at = AssumptionTransformer()
