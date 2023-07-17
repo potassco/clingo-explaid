@@ -195,7 +195,3 @@ class TestMain(TestCase):
         self.assertMUC({literal_lookup[a] for a in muc}, [
             {f"a({i})" for i in random_core}
         ])
-
-
-if __name__ == "__main__":
-    unittest.main()
