@@ -142,7 +142,7 @@ class ConstraintTransformer(Transformer):
             return node
         if node.head.atom.value != 0:
             return node
-        
+
         head_symbol = _ast.Function(
             location=node.location,
             name=self.constraint_head_symbol,
@@ -153,11 +153,15 @@ class ConstraintTransformer(Transformer):
         node.head = head_symbol
         return node.update(**self.visit_children(node))
 
-    def get_transformed_string(self, program_string: str) -> str:
+    def parse_string(self, string: str) -> str:
         out = []
-        parse_string(program_string, lambda stm: out.append((str(self(stm)))))
+        parse_string(string, lambda stm: out.append((str(self(stm)))))
 
         return "\n".join(out)
+
+    def parse_file(self, path: Union[str, Path]) -> str:
+        with open(path, "r") as f:
+            return self.parse_string(f.read())
 
 
 __all__ = [
