@@ -72,11 +72,6 @@ class CoreComputer:
     def shrink(self, assumptions: Optional[AssumptionSet] = None) -> None:
         self.minimal = self._compute_single_minimal(assumptions=assumptions)
 
-    def __str__(self):
-        return f"<CoreComputer: {len(self.assumption_set)} assumptions>"
-
-    __repr__ = __str__
-
 
 __all__ = [
     CoreComputer.__name__,
