@@ -4,7 +4,7 @@ Test cases for main application functionality.
 
 from unittest import TestCase
 from clingexplaid.utils import get_solver_literal_lookup, AssumptionSet
-from clingexplaid.utils.transformer import AssumptionTransformer, RuleIDTransformer
+from clingexplaid.utils.transformer import AssumptionTransformer, RuleIDTransformer, UntransformedException
 from clingexplaid.utils.muc import CoreComputer
 from typing import Set, Tuple, List, Optional, Union
 from pathlib import Path
@@ -68,6 +68,11 @@ class TestMain(TestCase):
         at = AssumptionTransformer()
         result = at.parse_file(program_path)
         self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
+
+    def test_assumption_transformer_get_assumptions_before_transformation(self):
+        at = AssumptionTransformer()
+        control = clingo.Control()
+        self.assertRaises(UntransformedException, lambda: at.get_assumptions(control))
 
     # --- RULE ID TRANSFORMER
 
