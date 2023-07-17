@@ -73,6 +73,30 @@ class TestMain(TestCase):
         #        way of doing this?
         self.assertEqual(self.remove_whitespace(result), self.remove_whitespace(program_transformed))
 
+    def test_assumption_transformer_parse_string_no_signatures(self):
+        program = """
+            a(1).
+            b(2) :- x.
+            c(3); c(4) :- x.
+            d(10..15).
+            e(16).
+            f(17); f(18) :- e(16).
+        """
+        program_transformed = """
+            #program base.
+            { a(1) }.
+            b(2) :- x.
+            c(3); c(4) :- x.
+            { d((10..15)) }.
+            { e(16) }.
+            f(17); f(18) :- e(16).
+        """
+        at = AssumptionTransformer()
+        result = at.parse_string(program)
+        # TODO : This may not neccessary yield the same program since I'm removing whitespace. Maybe there is a better
+        #        way of doing this?
+        self.assertEqual(self.remove_whitespace(result), self.remove_whitespace(program_transformed))
+
     # MUC
 
     def test_core_computer_shrink_single_muc(self):

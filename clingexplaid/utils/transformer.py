@@ -66,8 +66,8 @@ class RuleIDTransformer(Transformer):
 
 class AssumptionTransformer(Transformer):
 
-    def __init__(self, signatures: Set[Tuple[str, int]]):
-        self.signatures = signatures
+    def __init__(self, signatures: Set[Tuple[str, int]] = None):
+        self.signatures = signatures if signatures is not None else set()
         self.fact_rules = []
 
     def visit_Rule(self, node):
@@ -77,7 +77,8 @@ class AssumptionTransformer(Transformer):
             return node
         has_matching_signature = any(
             [match_ast_symbolic_atom_signature(node.head.atom, (name, arity)) for (name, arity) in self.signatures])
-        if not has_matching_signature:
+        # if signatures are defined only transform facts that match them, else transform all facts
+        if self.signatures and not has_matching_signature:
             return node
 
         self.fact_rules.append(str(node))
