@@ -13,14 +13,30 @@ import clingo
 import unittest
 
 
+ASP_PROGRAM_STRING = """
+a(1).
+b(2) :- x.
+c(3); c(4) :- x.
+d(10..15).
+e(16).
+f(17); f(18) :- e(16).
+"""
+
+ASP_PROGRAM_STRING_TRANSFORMED = """
+#program base.
+{ a(1) }.
+b(2) :- x.
+c(3); c(4) :- x.
+{ d((10..15)) }.
+{ e(16) }.
+f(17); f(18) :- e(16).
+"""
+
+
 class TestMain(TestCase):
     """
     Test cases for clingexplaid.
     """
-
-    @staticmethod
-    def remove_whitespace(string: str) -> str:
-        return string.replace(" ", "").replace("\n", "")
 
     @staticmethod
     def get_muc_of_program(
@@ -50,52 +66,18 @@ class TestMain(TestCase):
     # TRANSFORMERS
 
     def test_assumption_transformer_parse_string(self):
-        program = """
-            a(1).
-            a(2) :- x.
-            a(3); a(4) :- x.
-            a(10..15).
-            a(16).
-            a(17); a(18) :- a(16).
-        """
-        program_transformed = """
-            #program base.
-            { a(1) }.
-            a(2) :- x.
-            a(3); a(4) :- x.
-            { a((10..15)) }.
-            { a(16) }.
-            a(17); a(18) :- a(16).
-        """
-        at = AssumptionTransformer(signatures={('a', 1)})
+        program = ASP_PROGRAM_STRING
+        program_transformed = ASP_PROGRAM_STRING_TRANSFORMED
+        at = AssumptionTransformer(signatures={(c, 1) for c in "abcdef"})
         result = at.parse_string(program)
-        # TODO : This may not neccessary yield the same program since I'm removing whitespace. Maybe there is a better
-        #        way of doing this?
-        self.assertEqual(self.remove_whitespace(result), self.remove_whitespace(program_transformed))
+        self.assertEqual(result.strip(), program_transformed.strip())
 
     def test_assumption_transformer_parse_string_no_signatures(self):
-        program = """
-            a(1).
-            b(2) :- x.
-            c(3); c(4) :- x.
-            d(10..15).
-            e(16).
-            f(17); f(18) :- e(16).
-        """
-        program_transformed = """
-            #program base.
-            { a(1) }.
-            b(2) :- x.
-            c(3); c(4) :- x.
-            { d((10..15)) }.
-            { e(16) }.
-            f(17); f(18) :- e(16).
-        """
+        program = ASP_PROGRAM_STRING
+        program_transformed = ASP_PROGRAM_STRING_TRANSFORMED
         at = AssumptionTransformer()
         result = at.parse_string(program)
-        # TODO : This may not neccessary yield the same program since I'm removing whitespace. Maybe there is a better
-        #        way of doing this?
-        self.assertEqual(self.remove_whitespace(result), self.remove_whitespace(program_transformed))
+        self.assertEqual(result.strip(), program_transformed.strip())
 
     # MUC
 
