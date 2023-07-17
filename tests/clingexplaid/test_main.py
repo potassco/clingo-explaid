@@ -4,7 +4,7 @@ Test cases for main application functionality.
 
 from unittest import TestCase
 from clingexplaid.utils import get_solver_literal_lookup, AssumptionSet
-from clingexplaid.utils.transformer import AssumptionTransformer
+from clingexplaid.utils.transformer import AssumptionTransformer, RuleIDTransformer
 from clingexplaid.utils.muc import CoreComputer
 from typing import Set, Tuple, List, Optional
 
@@ -22,7 +22,7 @@ e(16).
 f(17); f(18) :- e(16).
 """
 
-ASP_PROGRAM_STRING_TRANSFORMED = """
+ASP_PROGRAM_STRING_TRANSFORMED_ASSUMPTIONS = """
 #program base.
 { a(1) }.
 b(2) :- x.
@@ -30,6 +30,18 @@ c(3); c(4) :- x.
 { d((10..15)) }.
 { e(16) }.
 f(17); f(18) :- e(16).
+"""
+
+
+ASP_PROGRAM_STRING_TRANSFORMED_RULE_ID = """
+#program base.
+a(1) :- _rule(1).
+b(2) :- x; _rule(2).
+c(3); c(4) :- x; _rule(3).
+d((10..15)) :- _rule(4).
+e(16) :- _rule(5).
+f(17); f(18) :- e(16); _rule(6).
+{_rule(1..7)} % Choice rule to allow all _rule atoms to become assumptions
 """
 
 
@@ -64,20 +76,39 @@ class TestMain(TestCase):
         self.assertIn(muc, valid_mucs)
 
     # TRANSFORMERS
+    # --- ASSUMPTION TRANSFORMER
 
     def test_assumption_transformer_parse_string(self):
         program = ASP_PROGRAM_STRING
-        program_transformed = ASP_PROGRAM_STRING_TRANSFORMED
+        program_transformed = ASP_PROGRAM_STRING_TRANSFORMED_ASSUMPTIONS
         at = AssumptionTransformer(signatures={(c, 1) for c in "abcdef"})
         result = at.parse_string(program)
         self.assertEqual(result.strip(), program_transformed.strip())
 
     def test_assumption_transformer_parse_string_no_signatures(self):
         program = ASP_PROGRAM_STRING
-        program_transformed = ASP_PROGRAM_STRING_TRANSFORMED
+        program_transformed = ASP_PROGRAM_STRING_TRANSFORMED_ASSUMPTIONS
         at = AssumptionTransformer()
         result = at.parse_string(program)
         self.assertEqual(result.strip(), program_transformed.strip())
+
+    # --- RULE ID TRANSFORMER
+
+    def test_rule_id_transformer(self):
+        program = ASP_PROGRAM_STRING
+        program_transformed = ASP_PROGRAM_STRING_TRANSFORMED_RULE_ID
+        rt = RuleIDTransformer()
+        result = rt.parse_string(program)
+        self.assertEqual(result.strip(), program_transformed.strip())
+        assumptions = {(clingo.parse_term(s), True) for s in [
+            "_rule(1)",
+            "_rule(2)",
+            "_rule(3)",
+            "_rule(4)",
+            "_rule(5)",
+            "_rule(6)",
+        ]}
+        self.assertEqual(assumptions, rt.get_assumptions())
 
     # MUC
 
