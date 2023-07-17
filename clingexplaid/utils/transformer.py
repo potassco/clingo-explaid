@@ -45,6 +45,9 @@ class RuleIDTransformer(Transformer):
         node.body.insert(len(node.body), symbol)
         return node.update(**self.visit_children(node))
 
+    def _get_number_of_rules(self):
+        return self.rule_id - 1 if self.rule_id > 1 else self.rule_id
+
     def parse_string(self, string: str) -> str:
         """
         Function that applies the transformation on the `program_string` it's called with and returns a
@@ -54,7 +57,8 @@ class RuleIDTransformer(Transformer):
         self.rule_id = 1
         out = []
         parse_string(string, lambda stm: out.append((str(self(stm)))))
-        out.append(f"{{_rule(1..{self.rule_id})}} % Choice rule to allow all _rule atoms to become assumptions")
+        out.append(f"{{_rule(1..{self._get_number_of_rules()})}}"
+                   f" % Choice rule to allow all _rule atoms to become assumptions")
 
         return "\n".join(out)
 
@@ -64,8 +68,8 @@ class RuleIDTransformer(Transformer):
 
     def get_assumptions(self, n_rules: Optional[int] = None) -> Set[Tuple[clingo.Symbol, bool]]:
         if n_rules is None:
-            n_rules = self.rule_id
-        return {(clingo.parse_term(f"{self.rule_id_signature}({rule_id})"), True) for rule_id in range(1, n_rules)}
+            n_rules = self._get_number_of_rules()
+        return {(clingo.parse_term(f"{self.rule_id_signature}({rule_id})"), True) for rule_id in range(1, n_rules + 1)}
 
 
 class AssumptionTransformer(Transformer):
