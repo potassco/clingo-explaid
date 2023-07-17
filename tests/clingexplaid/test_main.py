@@ -6,49 +6,26 @@ from unittest import TestCase
 from clingexplaid.utils import get_solver_literal_lookup, AssumptionSet
 from clingexplaid.utils.transformer import AssumptionTransformer, RuleIDTransformer
 from clingexplaid.utils.muc import CoreComputer
-from typing import Set, Tuple, List, Optional
+from typing import Set, Tuple, List, Optional, Union
+from pathlib import Path
 
 import random
 import clingo
 import unittest
 
 
-ASP_PROGRAM_STRING = """
-a(1).
-b(2) :- x.
-c(3); c(4) :- x.
-d(10..15).
-e(16).
-f(17); f(18) :- e(16).
-"""
-
-ASP_PROGRAM_STRING_TRANSFORMED_ASSUMPTIONS = """
-#program base.
-{ a(1) }.
-b(2) :- x.
-c(3); c(4) :- x.
-{ d((10..15)) }.
-{ e(16) }.
-f(17); f(18) :- e(16).
-"""
-
-
-ASP_PROGRAM_STRING_TRANSFORMED_RULE_ID = """
-#program base.
-a(1) :- _rule(1).
-b(2) :- x; _rule(2).
-c(3); c(4) :- x; _rule(3).
-d((10..15)) :- _rule(4).
-e(16) :- _rule(5).
-f(17); f(18) :- e(16); _rule(6).
-{_rule(1..7)} % Choice rule to allow all _rule atoms to become assumptions
-"""
+TEST_DIR = parent = Path(__file__).resolve().parent
 
 
 class TestMain(TestCase):
     """
     Test cases for clingexplaid.
     """
+
+    @staticmethod
+    def read_file(path: Union[str, Path]) -> str:
+        with open(path, "r") as f:
+            return f.read()
 
     @staticmethod
     def get_muc_of_program(
@@ -79,27 +56,27 @@ class TestMain(TestCase):
     # --- ASSUMPTION TRANSFORMER
 
     def test_assumption_transformer_parse_string(self):
-        program = ASP_PROGRAM_STRING
-        program_transformed = ASP_PROGRAM_STRING_TRANSFORMED_ASSUMPTIONS
+        program_path = TEST_DIR.joinpath("res/test_program.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions.lp")
         at = AssumptionTransformer(signatures={(c, 1) for c in "abcdef"})
-        result = at.parse_string(program)
-        self.assertEqual(result.strip(), program_transformed.strip())
+        result = at.parse_file(program_path)
+        self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
     def test_assumption_transformer_parse_string_no_signatures(self):
-        program = ASP_PROGRAM_STRING
-        program_transformed = ASP_PROGRAM_STRING_TRANSFORMED_ASSUMPTIONS
+        program_path = TEST_DIR.joinpath("res/test_program.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions.lp")
         at = AssumptionTransformer()
-        result = at.parse_string(program)
-        self.assertEqual(result.strip(), program_transformed.strip())
+        result = at.parse_file(program_path)
+        self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
     # --- RULE ID TRANSFORMER
 
     def test_rule_id_transformer(self):
-        program = ASP_PROGRAM_STRING
-        program_transformed = ASP_PROGRAM_STRING_TRANSFORMED_RULE_ID
+        program_path = TEST_DIR.joinpath("res/test_program.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_rule_ids.lp")
         rt = RuleIDTransformer()
-        result = rt.parse_string(program)
-        self.assertEqual(result.strip(), program_transformed.strip())
+        result = rt.parse_file(program_path)
+        self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
         assumptions = {(clingo.parse_term(s), True) for s in [
             "_rule(1)",
             "_rule(2)",
