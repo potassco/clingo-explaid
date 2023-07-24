@@ -1,11 +1,19 @@
+"""
+Utilities
+"""
+
+from typing import Tuple, Dict, Set, Union
+from collections.abc import Iterable
+
 import clingo
 from clingo.ast import ASTType
-from typing import Tuple, Dict, Set, Union
 
 
 SymbolSet = Set[clingo.Symbol]
-LiteralSet = Set[Tuple[clingo.Symbol, bool]]
-AssumptionSet = Set[Union[LiteralSet, int]]
+Literal = Tuple[clingo.Symbol, bool]
+LiteralSet = Set[Literal]
+Assumption = Union[Literal, int]
+AssumptionSet = Iterable[Assumption]
 
 
 def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signature: Tuple[str, int]):
@@ -15,7 +23,7 @@ def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signatur
     """
 
     symbol = str(ast_symbol.symbol)
-    name = symbol.split('(')[0]
+    name = symbol.split('(', maxsplit=1)[0]
     arity = len(ast_symbol.symbol.arguments)
 
     return all((signature[0] == name, signature[1] == arity))
@@ -26,7 +34,7 @@ def get_solver_literal_lookup(control: clingo.Control) -> Dict[int, clingo.Symbo
     This function can be used to get a lookup dictionary to associate literal ids with their respective symbols for all
     symbolic atoms of the program
     """
-    lookup = dict()
+    lookup = {}
     for atom in control.symbolic_atoms:
         lookup[atom.literal] = atom.symbol
     return lookup

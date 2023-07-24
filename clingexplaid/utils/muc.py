@@ -1,8 +1,12 @@
-from typing import Set, Tuple, Optional
+"""
+Unsatisfiable Core Utilities
+"""
+
+from typing import Tuple, Optional, Set
 
 import clingo
 
-from . import get_solver_literal_lookup, AssumptionSet, SymbolSet
+from . import get_solver_literal_lookup, AssumptionSet, SymbolSet, Assumption
 
 
 class CoreComputer:
@@ -15,17 +19,17 @@ class CoreComputer:
         self.control = control
         self.assumption_set = assumption_set
         self.literal_lookup = get_solver_literal_lookup(control=self.control)
-        self.minimal = None
+        self.minimal: Optional[AssumptionSet] = None
 
-    def _solve(self, assumptions: Optional[AssumptionSet] = None) -> Tuple[bool, SymbolSet, AssumptionSet]:
+    def _solve(self, assumptions: Optional[AssumptionSet] = None) -> Tuple[bool, SymbolSet, SymbolSet]:
         """
         Internal function that is used to make the single solver calls for finding the minimal unsatisfiable core.
         """
         if assumptions is None:
             assumptions = self.assumption_set
 
-        with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
-            satisfiable = solve_handle.get().satisfiable
+        with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:  # type: ignore[union-attr]
+            satisfiable = bool(solve_handle.get().satisfiable)
             model = solve_handle.model().symbols(atoms=True) if solve_handle.model() is not None else []
             core = {self.literal_lookup[literal_id] for literal_id in solve_handle.core()}
 
@@ -51,7 +55,7 @@ class CoreComputer:
         if satisfiable:
             return set()
 
-        muc_members = set()
+        muc_members: Set[Assumption] = set()
         working_set = set(assumptions)
 
         for assumption in self.assumption_set:
@@ -70,6 +74,10 @@ class CoreComputer:
         return muc_members
 
     def shrink(self, assumptions: Optional[AssumptionSet] = None) -> None:
+        """
+        This function applies the unsatisfiable core minimization (`self._compute_single_minimal`) on the assumptions
+        set `assumptions` and stores the resulting MUC inside `self.minimal`.
+        """
         self.minimal = self._compute_single_minimal(assumptions=assumptions)
 
 

@@ -1,9 +1,13 @@
-import clingo
-from clingo.ast import Transformer, parse_string, ASTType
-from clingo import ast as _ast
-from typing import List, Tuple, Optional, Union, Set
-from dataclasses import dataclass
+"""
+Transformers for Explanation
+"""
+
 from pathlib import Path
+from typing import Tuple, Optional, Union, Set, List
+
+import clingo
+
+from clingo import ast as _ast
 
 from clingexplaid.utils import match_ast_symbolic_atom_signature
 
@@ -17,7 +21,7 @@ class UntransformedException(Exception):
     """
 
 
-class RuleIDTransformer(Transformer):
+class RuleIDTransformer(_ast.Transformer):
     """
     A Transformer that takes all the rules of a program and adds an atom with `self.rule_id_signature` in their bodys,
     to make the original rule the generated them identifiable even after grounding. Additionally, a choice rule
@@ -30,7 +34,10 @@ class RuleIDTransformer(Transformer):
         self.rule_id = 0
         self.rule_id_signature = rule_id_signature
 
-    def visit_Rule(self, node):
+    def visit_Rule(self, node):  # pylint: disable=C0103
+        """
+        Adds a rule_id_signature(id) atom to the body of every rule that is visited.
+        """
         # add for each rule a theory atom (self.rule_id_signature) with the id as an argument
         symbol = _ast.Function(
             location=node.location,
@@ -50,41 +57,54 @@ class RuleIDTransformer(Transformer):
 
     def parse_string(self, string: str) -> str:
         """
-        Function that applies the transformation on the `program_string` it's called with and returns a
-        TransformerResult with the transformed program-string and the necessary assumptions for the
-        `self.rule_id_signature` atoms.
+        Function that applies the transformation to the `program_string` it's called with and returns the transformed
+        program string.
         """
         self.rule_id = 1
         out = []
-        parse_string(string, lambda stm: out.append((str(self(stm)))))
+        _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
         out.append(f"{{_rule(1..{self._get_number_of_rules()})}}"
                    f" % Choice rule to allow all _rule atoms to become assumptions")
 
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path]) -> str:
-        with open(path, "r") as f:
+    def parse_file(self, path: Union[str, Path], encoding: str = "utf-8") -> str:
+        """
+        Parses the file at path and returns a string with the transformed program.
+        """
+        with open(path, "r", encoding=encoding) as f:
             return self.parse_string(f.read())
 
     def get_assumptions(self, n_rules: Optional[int] = None) -> Set[Tuple[clingo.Symbol, bool]]:
+        """
+        Returns the rule_id_signature assumptions depending on the number of rules contained in the transformed
+        program. Can only be called after parse_file has been executed before.
+        """
         if n_rules is None:
             n_rules = self._get_number_of_rules()
         return {(clingo.parse_term(f"{self.rule_id_signature}({rule_id})"), True) for rule_id in range(1, n_rules + 1)}
 
 
-class AssumptionTransformer(Transformer):
+class AssumptionTransformer(_ast.Transformer):
+    """
+    A transformer that transforms facts that match with one of the signatures provided (no signatures means all facts)
+    into choice rules and also provides the according assumptions for them.
+    """
 
-    def __init__(self, signatures: Set[Tuple[str, int]] = None):
+    def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None):
         self.signatures = signatures if signatures is not None else set()
-        self.fact_rules = []
+        self.fact_rules: List[str] = []
 
-    def visit_Rule(self, node):
-        if node.head.ast_type != ASTType.Literal:
+    def visit_Rule(self, node):  # pylint: disable=C0103
+        """
+        Transforms head of a rule into a choice rule if it is a fact and adheres to the given signatures.
+        """
+        if node.head.ast_type != _ast.ASTType.Literal:
             return node
         if node.body:
             return node
         has_matching_signature = any(
-            [match_ast_symbolic_atom_signature(node.head.atom, (name, arity)) for (name, arity) in self.signatures])
+            match_ast_symbolic_atom_signature(node.head.atom, (name, arity)) for (name, arity) in self.signatures)
         # if signatures are defined only transform facts that match them, else transform all facts
         if self.signatures and not has_matching_signature:
             return node
@@ -103,15 +123,26 @@ class AssumptionTransformer(Transformer):
         )
 
     def parse_string(self, string: str) -> str:
+        """
+        Function that applies the transformation to the `program_string` it's called with and returns the transformed
+        program string.
+        """
         out = []
-        parse_string(string, lambda stm: out.append((str(self(stm)))))
+        _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path]) -> str:
-        with open(path, "r") as f:
+    def parse_file(self, path: Union[str, Path], encoding:str = "utf-8") -> str:
+        """
+        Parses the file at path and returns a string with the transformed program.
+        """
+        with open(path, "r", encoding=encoding) as f:
             return self.parse_string(f.read())
 
     def get_assumptions(self, control: clingo.Control) -> Set[int]:
+        """
+        Returns the assumptions which were gathered during the transformation of the program. Has to be called after
+        a program has already been transformed.
+        """
         #  Just taking the fact symbolic atoms of the control given doesn't work here since we anticipate that
         #  this control is ground on the already transformed program. This means that all facts are now choice rules
         #  which means we cannot detect them like this anymore.
@@ -124,10 +155,10 @@ class AssumptionTransformer(Transformer):
         fact_symbols = [sym.symbol for sym in fact_control.symbolic_atoms if sym.is_fact]
 
         symbol_to_literal_lookup = {sym.symbol: sym.literal for sym in control.symbolic_atoms}
-        return {symbol_to_literal_lookup.get(sym) for sym in fact_symbols}
+        return {symbol_to_literal_lookup[sym] for sym in fact_symbols if sym in symbol_to_literal_lookup}
 
 
-class ConstraintTransformer(Transformer):
+class ConstraintTransformer(_ast.Transformer):
     """
     A Transformer that takes all constraint rules and adds an atom to their head to avoid deriving false through them.
     """
@@ -135,10 +166,13 @@ class ConstraintTransformer(Transformer):
     def __init__(self, constraint_head_symbol: str):
         self.constraint_head_symbol = constraint_head_symbol
 
-    def visit_Rule(self, node):
-        if node.head.ast_type != ASTType.Literal:
+    def visit_Rule(self, node):  # pylint: disable=C0103
+        """
+        Adds a constraint_head_symbol atom to the head of every constraint.
+        """
+        if node.head.ast_type != _ast.ASTType.Literal:
             return node
-        if node.head.atom.ast_type != ASTType.BooleanConstant:
+        if node.head.atom.ast_type != _ast.ASTType.BooleanConstant:
             return node
         if node.head.atom.value != 0:
             return node
@@ -154,13 +188,20 @@ class ConstraintTransformer(Transformer):
         return node.update(**self.visit_children(node))
 
     def parse_string(self, string: str) -> str:
+        """
+        Function that applies the transformation to the `program_string` it's called with and returns the transformed
+        program string.
+        """
         out = []
-        parse_string(string, lambda stm: out.append((str(self(stm)))))
+        _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
 
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path]) -> str:
-        with open(path, "r") as f:
+    def parse_file(self, path: Union[str, Path], encoding:str = "utf-8") -> str:
+        """
+        Parses the file at path and returns a string with the transformed program.
+        """
+        with open(path, "r", encoding=encoding) as f:
             return self.parse_string(f.read())
 
 
