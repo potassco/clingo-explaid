@@ -2,8 +2,7 @@
 Utilities
 """
 
-from typing import Tuple, Dict, Set, Union
-from collections.abc import Iterable
+from typing import Tuple, Dict, Set, Union, Iterable
 
 import clingo
 from clingo.ast import ASTType
