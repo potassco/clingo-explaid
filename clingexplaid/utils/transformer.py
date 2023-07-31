@@ -94,6 +94,7 @@ class AssumptionTransformer(_ast.Transformer):
     def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None):
         self.signatures = signatures if signatures is not None else set()
         self.fact_rules: List[str] = []
+        self.transformed: bool = False
 
     def visit_Rule(self, node):  # pylint: disable=C0103
         """
@@ -129,6 +130,8 @@ class AssumptionTransformer(_ast.Transformer):
         """
         out = []
         _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
+        if not self.transformed:
+            self.transformed = True
         return "\n".join(out)
 
     def parse_file(self, path: Union[str, Path], encoding:str = "utf-8") -> str:
@@ -146,7 +149,7 @@ class AssumptionTransformer(_ast.Transformer):
         #  Just taking the fact symbolic atoms of the control given doesn't work here since we anticipate that
         #  this control is ground on the already transformed program. This means that all facts are now choice rules
         #  which means we cannot detect them like this anymore.
-        if not self.fact_rules:
+        if not self.transformed:
             raise UntransformedException("The get_assumptions method cannot be called before a program has been "
                                          "transformed")
         fact_control = clingo.Control()

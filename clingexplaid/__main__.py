@@ -1,3 +1,9 @@
+import sys
+
+from clingo.application import clingo_main
+
+from clingexplaid.utils.cli import CoreComputerApp
+
 # import time
 #
 # import clingo
@@ -40,3 +46,5 @@
 #
 # ctl.solve(assumptions=list(assumptions), on_core=cc.shrink)
 # print(cc.minimal)
+
+clingo_main(CoreComputerApp(sys.argv[0]), sys.argv[1:])
