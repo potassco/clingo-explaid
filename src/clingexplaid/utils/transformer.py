@@ -122,7 +122,7 @@ class AssumptionTransformer(_ast.Transformer):
             ),
             body=[]
         )
-
+    
     def parse_string(self, string: str) -> str:
         """
         Function that applies the transformation to the `program_string` it's called with and returns the transformed
@@ -130,16 +130,19 @@ class AssumptionTransformer(_ast.Transformer):
         """
         out = []
         _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
-        if not self.transformed:
-            self.transformed = True
+        self.transformed = True
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path], encoding:str = "utf-8") -> str:
+    def parse_files(self, paths: List[Union[str, Path]]) -> str:
         """
-        Parses the file at path and returns a string with the transformed program.
+        Parses the files and returns a string with the transformed program.
         """
-        with open(path, "r", encoding=encoding) as f:
-            return self.parse_string(f.read())
+        # with open(path, "r", encoding=encoding) as f:
+        out = []
+        _ast.parse_files(paths, lambda stm: out.append((str(self(stm)))))
+        self.transformed = True
+        return "\n".join(out)
+        
 
     def get_assumptions(self, control: clingo.Control) -> Set[int]:
         """

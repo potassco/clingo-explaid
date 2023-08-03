@@ -3,19 +3,18 @@ The command line parser for the project.
 """
 
 import logging
-import sys
 from argparse import ArgumentParser
 from textwrap import dedent
 from typing import Any, cast
 
+from pkg_resources import DistributionNotFound, require
+
 __all__ = ["get_parser"]
 
-if sys.version_info[1] < 8:
-    import importlib_metadata as metadata  # nocoverage
-else:
-    from importlib import metadata  # nocoverage
-
-VERSION = metadata.version("clingexplaid")
+try:
+    VERSION = require("fillname")[0].version
+except DistributionNotFound:  # nocoverage
+    VERSION = "local"  # nocoverage
 
 
 def get_parser() -> ArgumentParser:
@@ -23,10 +22,10 @@ def get_parser() -> ArgumentParser:
     Return the parser for command line options.
     """
     parser = ArgumentParser(
-        prog="clingexplaid",
+        prog="fillname",
         description=dedent(
             """\
-            clingexplaid
+            fillname
             filldescription
             """
         ),

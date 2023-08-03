@@ -87,7 +87,7 @@ class TestMain(TestCase):
             "res/transformed_program_assumptions_certain_signatures.lp"
         )
         at = AssumptionTransformer(signatures={(c, 1) for c in "abcdef"})
-        result = at.parse_file(program_path)
+        result = at.parse_files([program_path])
         self.assertEqual(
             result.strip(), self.read_file(program_path_transformed).strip()
         )
@@ -101,7 +101,7 @@ class TestMain(TestCase):
             "res/transformed_program_assumptions_all.lp"
         )
         at = AssumptionTransformer()
-        result = at.parse_file(program_path)
+        result = at.parse_files([program_path])
         self.assertEqual(
             result.strip(), self.read_file(program_path_transformed).strip()
         )

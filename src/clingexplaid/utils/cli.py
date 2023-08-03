@@ -8,7 +8,7 @@ from clingo.application import Application, clingo_main
 from clingexplaid.utils.transformer import AssumptionTransformer
 from clingexplaid.utils.muc import CoreComputer
 from clingexplaid.utils import get_solver_literal_lookup
-
+from clingexplaid.utils.logger import COLORS
 
 def read_file(path: Union[Path, str]) -> str:
     with open(path, "r", encoding="utf-8") as f:
@@ -23,25 +23,18 @@ class CoreComputerApp(Application):
         self.signatures = {}
         pass
 
-    @staticmethod
-    def _parse_option(input_string: str) -> bool:
-        print("OPTION", input_string)
+    def _parse_assumption_signature(self, input_string: str) -> bool:
+        # signature_strings = input_string.strip().split(",")
+        signature_list = input_string.split("/")
+        if len(signature_list) != 2:
+            print("Not valid format for signature, expected name/arity")
+            return False
+        self.signatures[signature_list[0]]= int(signature_list[1])
         return True
 
-    def _parse_assumption_signature(self, input_string: str) -> bool:
-        signature_strings = input_string.strip().split(",")
-        signatures = {}
-        for sig_string in signature_strings:
-            if not sig_string:
-                continue
-            if "/" in sig_string:
-                signature, arity = sig_string.split("/")[:2]
-                signatures[signature] = arity
-            else:
-                signatures[sig_string] = 0
-        print("ASSUMPTION SIGNATURE", input_string, signature_strings, signatures)
-        self.signatures = signatures
-        return True
+    def print_model(self, model,_):
+        return
+
 
     def register_options(self, options):
         """
@@ -52,27 +45,22 @@ class CoreComputerApp(Application):
 
         options.add(
             group,
-            "assumption-signatures",
+            "assumption-signatures,a",
             "All facts matching with this signature will be converted to assumptions for finding a MUC "
             "(default: all facts)",
-            self._parse_assumption_signature
+            self._parse_assumption_signature,
+            multi=True
         )
 
     def main(self, ctl, files):
-        program_strings = []
-        for f in files:
-            program_strings.append(read_file(f))
-        program_string_full = "\n".join(program_strings)
-        program_string_full = """
-        hallo(1,2).
-        hallo(1,3).
-        :- hallo(1,_).
-        """
-
         signature_set = set(self.signatures.items()) if self.signatures else None
         at = AssumptionTransformer(signatures=signature_set)
-        program_transformed = at.parse_string(program_string_full)
+        if not files:
+            program_transformed = at.parse_files("-")
+        else:
+            program_transformed = at.parse_files(files)
 
+        
         ctl.add("base", [], program_transformed)
         ctl.ground([("base", [])])
 
@@ -90,5 +78,6 @@ class CoreComputerApp(Application):
         result = " ".join([str(literal_lookup[a]) for a in cc.minimal])
 
         muc_id = 1
-        print(f"MUC: {muc_id}")
+        print(f"{COLORS['BLUE']}MUC: {muc_id}")
         print(result)
+        print(COLORS['NORMAL'])
