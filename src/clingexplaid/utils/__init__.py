@@ -2,11 +2,10 @@
 Utilities
 """
 
-from typing import Tuple, Dict, Set, Union, Iterable
+from typing import Dict, Iterable, Set, Tuple, Union
 
 import clingo
 from clingo.ast import ASTType
-
 
 SymbolSet = Set[clingo.Symbol]
 Literal = Tuple[clingo.Symbol, bool]
@@ -15,14 +14,16 @@ Assumption = Union[Literal, int]
 AssumptionSet = Iterable[Assumption]
 
 
-def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signature: Tuple[str, int]):
+def match_ast_symbolic_atom_signature(
+    ast_symbol: ASTType.SymbolicAtom, signature: Tuple[str, int]
+):
     """
     Function to match the signature of an AST SymbolicAtom to a tuple containing a string and int value, representing a
     matching signature.
     """
 
     symbol = str(ast_symbol.symbol)
-    name = symbol.split('(', maxsplit=1)[0]
+    name = symbol.split("(", maxsplit=1)[0]
     arity = len(ast_symbol.symbol.arguments)
 
     return all((signature[0] == name, signature[1] == arity))

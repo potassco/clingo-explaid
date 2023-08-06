@@ -2,11 +2,11 @@
 Unsatisfiable Core Utilities
 """
 
-from typing import Tuple, Optional, Set
+from typing import Optional, Set, Tuple
 
 import clingo
 
-from . import get_solver_literal_lookup, AssumptionSet, SymbolSet, Assumption
+from . import Assumption, AssumptionSet, SymbolSet, get_solver_literal_lookup
 
 
 class CoreComputer:
@@ -21,7 +21,9 @@ class CoreComputer:
         self.literal_lookup = get_solver_literal_lookup(control=self.control)
         self.minimal: Optional[AssumptionSet] = None
 
-    def _solve(self, assumptions: Optional[AssumptionSet] = None) -> Tuple[bool, SymbolSet, SymbolSet]:
+    def _solve(
+        self, assumptions: Optional[AssumptionSet] = None
+    ) -> Tuple[bool, SymbolSet, SymbolSet]:
         """
         Internal function that is used to make the single solver calls for finding the minimal unsatisfiable core.
         """
@@ -30,12 +32,20 @@ class CoreComputer:
 
         with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:  # type: ignore[union-attr]
             satisfiable = bool(solve_handle.get().satisfiable)
-            model = solve_handle.model().symbols(atoms=True) if solve_handle.model() is not None else []
-            core = {self.literal_lookup[literal_id] for literal_id in solve_handle.core()}
+            model = (
+                solve_handle.model().symbols(atoms=True)
+                if solve_handle.model() is not None
+                else []
+            )
+            core = {
+                self.literal_lookup[literal_id] for literal_id in solve_handle.core()
+            }
 
         return satisfiable, set(model), core
 
-    def _compute_single_minimal(self, assumptions: Optional[AssumptionSet] = None) -> AssumptionSet:
+    def _compute_single_minimal(
+        self, assumptions: Optional[AssumptionSet] = None
+    ) -> AssumptionSet:
         """
         Function to compute a single minimal unsatisfiable core from the passed set of assumptions and the program of
         the CoreComputer. If there is not minimal unsatisfiable core, since for example the program with assumptions
@@ -47,7 +57,9 @@ class CoreComputer:
 
         # check that the assumption set isn't empty
         if not assumptions:
-            raise ValueError("A minimal unsatisfiable core cannot be computed on an empty assumption set")
+            raise ValueError(
+                "A minimal unsatisfiable core cannot be computed on an empty assumption set"
+            )
 
         # check if the problem with the full assumption set is unsatisfiable in the first place, and if not skip the
         # rest of the algorithm and return an empty set.
