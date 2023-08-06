@@ -8,10 +8,15 @@ import sys
 COLORS = {
     "GREY": "\033[90m",
     "BLUE": "\033[94m",
+    "DARK_BLUE": "\033[34m",
     "GREEN": "\033[92m",
     "YELLOW": "\033[93m",
     "RED": "\033[91m",
     "NORMAL": "\033[0m",
+}
+
+BACKGROUND_COLORS = {
+    "BLUE": "\033[44m",
 }
 
 

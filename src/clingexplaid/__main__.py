@@ -2,22 +2,19 @@
 The main entry point for the application.
 """
 
-from .utils.logger import setup_logger
-from .utils.parser import get_parser
+import sys
+
+from clingo.application import clingo_main
+
+from clingexplaid.utils.cli import CoreComputerApp
 
 
 def main():
     """
-    Run the main function.
+    Main function calling the application class
     """
-    parser = get_parser()
-    args = parser.parse_args()
-    log = setup_logger("main", args.log)
-
-    log.info("info")
-    log.warning("warning")
-    log.debug("debug")
-    log.error("error")
+    clingo_main(CoreComputerApp(sys.argv[0]), sys.argv[1:] + ["-V0"])
+    sys.exit()
 
 
 if __name__ == "__main__":

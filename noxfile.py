@@ -70,7 +70,7 @@ def lint_pylint(session):
 @nox.session
 def typecheck(session):
     session.install("-e", ".[typecheck]")
-    session.run("mypy", "-p", "clingexplaid", "-p", "tests")
+    session.run("mypy", "-p", "src.clingexplaid", "-p", "tests", "--namespace-packages", "--ignore-missing-imports")
 
 
 @nox.session(python=PYTHON_VERSIONS)

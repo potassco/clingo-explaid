@@ -3,14 +3,12 @@ Transformers for Explanation
 """
 
 from pathlib import Path
-from typing import Tuple, Optional, Union, Set, List
+from typing import List, Optional, Sequence, Set, Tuple, Union
 
 import clingo
-
 from clingo import ast as _ast
 
 from clingexplaid.utils import match_ast_symbolic_atom_signature
-
 
 RULE_ID_SIGNATURE = "_rule"
 
@@ -42,8 +40,11 @@ class RuleIDTransformer(_ast.Transformer):
         symbol = _ast.Function(
             location=node.location,
             name=self.rule_id_signature,
-            arguments=[_ast.SymbolicTerm(node.location, clingo.parse_term(str(self.rule_id)))],
-            external=0)
+            arguments=[
+                _ast.SymbolicTerm(node.location, clingo.parse_term(str(self.rule_id)))
+            ],
+            external=0,
+        )
 
         # increase the rule_id by one after every transformed rule
         self.rule_id += 1
@@ -63,8 +64,10 @@ class RuleIDTransformer(_ast.Transformer):
         self.rule_id = 1
         out = []
         _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
-        out.append(f"{{_rule(1..{self._get_number_of_rules()})}}"
-                   f" % Choice rule to allow all _rule atoms to become assumptions")
+        out.append(
+            f"{{_rule(1..{self._get_number_of_rules()})}}"
+            f" % Choice rule to allow all _rule atoms to become assumptions"
+        )
 
         return "\n".join(out)
 
@@ -75,14 +78,19 @@ class RuleIDTransformer(_ast.Transformer):
         with open(path, "r", encoding=encoding) as f:
             return self.parse_string(f.read())
 
-    def get_assumptions(self, n_rules: Optional[int] = None) -> Set[Tuple[clingo.Symbol, bool]]:
+    def get_assumptions(
+        self, n_rules: Optional[int] = None
+    ) -> Set[Tuple[clingo.Symbol, bool]]:
         """
         Returns the rule_id_signature assumptions depending on the number of rules contained in the transformed
         program. Can only be called after parse_file has been executed before.
         """
         if n_rules is None:
             n_rules = self._get_number_of_rules()
-        return {(clingo.parse_term(f"{self.rule_id_signature}({rule_id})"), True) for rule_id in range(1, n_rules + 1)}
+        return {
+            (clingo.parse_term(f"{self.rule_id_signature}({rule_id})"), True)
+            for rule_id in range(1, n_rules + 1)
+        }
 
 
 class AssumptionTransformer(_ast.Transformer):
@@ -94,6 +102,7 @@ class AssumptionTransformer(_ast.Transformer):
     def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None):
         self.signatures = signatures if signatures is not None else set()
         self.fact_rules: List[str] = []
+        self.transformed: bool = False
 
     def visit_Rule(self, node):  # pylint: disable=C0103
         """
@@ -104,7 +113,9 @@ class AssumptionTransformer(_ast.Transformer):
         if node.body:
             return node
         has_matching_signature = any(
-            match_ast_symbolic_atom_signature(node.head.atom, (name, arity)) for (name, arity) in self.signatures)
+            match_ast_symbolic_atom_signature(node.head.atom, (name, arity))
+            for (name, arity) in self.signatures
+        )
         # if signatures are defined only transform facts that match them, else transform all facts
         if self.signatures and not has_matching_signature:
             return node
@@ -117,9 +128,9 @@ class AssumptionTransformer(_ast.Transformer):
                 location=node.location,
                 left_guard=None,
                 elements=[node.head],
-                right_guard=None
+                right_guard=None,
             ),
-            body=[]
+            body=[],
         )
 
     def parse_string(self, string: str) -> str:
@@ -129,14 +140,19 @@ class AssumptionTransformer(_ast.Transformer):
         """
         out = []
         _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
+        self.transformed = True
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path], encoding:str = "utf-8") -> str:
+    def parse_files(self, paths: Sequence[Union[str, Path]]) -> str:
         """
-        Parses the file at path and returns a string with the transformed program.
+        Parses the files and returns a string with the transformed program.
         """
-        with open(path, "r", encoding=encoding) as f:
-            return self.parse_string(f.read())
+        out = []
+        _ast.parse_files(
+            [str(p) for p in paths], lambda stm: out.append((str(self(stm))))
+        )
+        self.transformed = True
+        return "\n".join(out)
 
     def get_assumptions(self, control: clingo.Control) -> Set[int]:
         """
@@ -146,16 +162,26 @@ class AssumptionTransformer(_ast.Transformer):
         #  Just taking the fact symbolic atoms of the control given doesn't work here since we anticipate that
         #  this control is ground on the already transformed program. This means that all facts are now choice rules
         #  which means we cannot detect them like this anymore.
-        if not self.fact_rules:
-            raise UntransformedException("The get_assumptions method cannot be called before a program has been "
-                                         "transformed")
+        if not self.transformed:
+            raise UntransformedException(
+                "The get_assumptions method cannot be called before a program has been "
+                "transformed"
+            )
         fact_control = clingo.Control()
         fact_control.add("base", [], "\n".join(self.fact_rules))
         fact_control.ground([("base", [])])
-        fact_symbols = [sym.symbol for sym in fact_control.symbolic_atoms if sym.is_fact]
+        fact_symbols = [
+            sym.symbol for sym in fact_control.symbolic_atoms if sym.is_fact
+        ]
 
-        symbol_to_literal_lookup = {sym.symbol: sym.literal for sym in control.symbolic_atoms}
-        return {symbol_to_literal_lookup[sym] for sym in fact_symbols if sym in symbol_to_literal_lookup}
+        symbol_to_literal_lookup = {
+            sym.symbol: sym.literal for sym in control.symbolic_atoms
+        }
+        return {
+            symbol_to_literal_lookup[sym]
+            for sym in fact_symbols
+            if sym in symbol_to_literal_lookup
+        }
 
 
 class ConstraintTransformer(_ast.Transformer):
@@ -181,7 +207,8 @@ class ConstraintTransformer(_ast.Transformer):
             location=node.location,
             name=self.constraint_head_symbol,
             arguments=[],
-            external=0)
+            external=0,
+        )
 
         # insert id symbol into body of rule
         node.head = head_symbol
@@ -197,7 +224,7 @@ class ConstraintTransformer(_ast.Transformer):
 
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path], encoding:str = "utf-8") -> str:
+    def parse_file(self, path: Union[str, Path], encoding: str = "utf-8") -> str:
         """
         Parses the file at path and returns a string with the transformed program.
         """
