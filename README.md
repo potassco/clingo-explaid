@@ -19,6 +19,15 @@ pip install clingexplaid
 clingexplaid -h
 ```
 
+Compute Minimal Unsatisfiable Core from unsatisfiable program:
+
+```shell
+clingexplaid <filenames> --assumption-signature signature/arity
+```
+
++ `--assumption-signature` is optional to allow for only specific facts to be transformed to assumptions
+	+ if no such option is given all facts are transformed to assumptions regardless of their signature
+
 ## Development
 
 To improve code quality, we run linters, type checkers, and unit tests. The
