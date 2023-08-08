@@ -2,6 +2,9 @@
 Command Line Interface Utilities
 """
 
+import configparser
+from pathlib import Path
+
 from clingo.application import Application
 
 from clingexplaid.utils import get_solver_literal_lookup
@@ -43,20 +46,27 @@ class CoreComputerApp(Application):
 
         options.add(
             group,
-            "assumption-signatures,a",
-            "All facts matching with this signature will be converted to assumptions for finding a MUC "
+            "assumption-signature,a",
+            "Facts matching with this signature will be converted to assumptions for finding a MUC "
             "(default: all facts)",
             self._parse_assumption_signature,
             multi=True,
         )
 
     def main(self, control, files):
+        setup_file_path = Path(__file__).parent.joinpath("../../../setup.cfg")
+        setup_config = configparser.ConfigParser()
+        setup_config.read(setup_file_path)
+        metadata = setup_config["metadata"]
+        print(metadata["name"], "version", metadata["version"])
         signature_set = set(self.signatures.items()) if self.signatures else None
         at = AssumptionTransformer(signatures=signature_set)
         if not files:
             program_transformed = at.parse_files("-")
+            print("Reading from -")
         else:
             program_transformed = at.parse_files(files)
+            print(f"Reading from {files[0]} {'...' if len(files) > 1 else ''}")
 
         control.add("base", [], program_transformed)
         control.ground([("base", [])])
@@ -66,6 +76,8 @@ class CoreComputerApp(Application):
         assumptions = at.get_assumptions(control)
 
         cc = CoreComputer(control, assumptions)
+
+        print("Solving...")
         control.solve(assumptions=list(assumptions), on_core=cc.shrink)
 
         if cc.minimal is None:
