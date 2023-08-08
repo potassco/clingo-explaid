@@ -43,8 +43,8 @@ class CoreComputerApp(Application):
 
         options.add(
             group,
-            "assumption-signatures,a",
-            "All facts matching with this signature will be converted to assumptions for finding a MUC "
+            "assumption-signature,a",
+            "Facts matching with this signature will be converted to assumptions for finding a MUC "
             "(default: all facts)",
             self._parse_assumption_signature,
             multi=True,
