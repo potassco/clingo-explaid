@@ -1,4 +1,5 @@
-% CLASSIC KRR META ENCODING
+% CLASSIC KRR META ENCODING :
+% 	- Modified for finding all Minimal Unsatisfiable Cores of an unsatisfiable program
 
 conjunction(B) :- literal_tuple(B),
 				  hold(L): literal_tuple(B,L), L>0;
