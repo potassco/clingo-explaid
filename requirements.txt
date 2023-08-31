@@ -1,3 +1,4 @@
 cffi==1.15.1
 clingo==5.6.2
+clingox==1.2.0
 pycparser==2.21
