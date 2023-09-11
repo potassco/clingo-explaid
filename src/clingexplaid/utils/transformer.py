@@ -3,7 +3,7 @@ Transformers for Explanation
 """
 
 from pathlib import Path
-from typing import List, Optional, Sequence, Set, Tuple, Union
+from typing import List, Optional, Sequence, Set, Tuple, Union, Dict
 
 import clingo
 from clingo import ast as _ast
@@ -154,7 +154,7 @@ class AssumptionTransformer(_ast.Transformer):
         self.transformed = True
         return "\n".join(out)
 
-    def get_assumptions(self, control: clingo.Control) -> Set[int]:
+    def get_assumptions(self, control: clingo.Control, constants: Optional[Dict] = None) -> Set[int]:
         """
         Returns the assumptions which were gathered during the transformation of the program. Has to be called after
         a program has already been transformed.
@@ -167,7 +167,8 @@ class AssumptionTransformer(_ast.Transformer):
                 "The get_assumptions method cannot be called before a program has been "
                 "transformed"
             )
-        fact_control = clingo.Control()
+        constant_strings = [f"-c {k}={v}" for k, v in constants.items()] if constants is not None else []
+        fact_control = clingo.Control(constant_strings)
         fact_control.add("base", [], "\n".join(self.fact_rules))
         fact_control.ground([("base", [])])
         fact_symbols = [
