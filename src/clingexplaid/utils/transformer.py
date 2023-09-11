@@ -233,8 +233,87 @@ class ConstraintTransformer(_ast.Transformer):
             return self.parse_string(f.read())
 
 
+class RuleSplitter(_ast.Transformer):
+
+    def __init__(self):
+        pass
+
+    def visit_Rule(self, node):
+        head = node.head
+        body = node.body
+
+        print(f"HEAD={head} BODY={body}")
+
+        if body:
+            # remove MUS literals from rule
+            cleaned_body_literals = [x for x in node.body if x.atom.symbol.name not in ("__mus__",)]
+            cleaned_body = "; ".join([str(l) for l in cleaned_body_literals])
+
+            # get all variables used in body (to later reference in head)
+            variables = set()
+            for lit in cleaned_body_literals:
+                arguments = lit.atom.symbol.arguments
+                if arguments:
+                    for arg in arguments:
+                        variables.add(arg)
+
+            # convert the cleaned body to a base64 string
+            rule_body_string = cleaned_body
+            rule_body_string_bytes = rule_body_string.encode("ascii")
+            rule_body_base64_bytes = base64.b64encode(rule_body_string_bytes)
+            rule_body_base64 = rule_body_base64_bytes.decode("ascii")
+
+            print(cleaned_body, str(node), variables)
+
+            # create a new '_body' head for the original rule
+            new_head_arguments = [
+                _ast.SymbolicTerm(node.location, clingo.parse_term(f'"{rule_body_base64}"')),
+                _ast.Function(
+                    location=node.location,
+                    name="",
+                    arguments=variables,  # TODO: How to create a new ASTSequence
+                    external=0
+                )
+            ]
+            new_head = _ast.Function(
+                location=node.location,
+                name="_body",
+                arguments=new_head_arguments,
+                external=0
+            )
+            node.head = new_head
+
+            # create new second rule that links the head with the '_body' matching predicate
+            new_head_rule = _ast.Rule(
+                location=node.location,
+                head=head,
+                body=[new_head],
+            )
+
+            # TODO: How to return multiple rules? ASTSequence?
+            return _ast.TheorySequence(
+                location=node.location,
+                sequence_type=1,
+                terms=[node, new_head_rule]
+            )
+
+        # default case
+        return node
+
+    def parse_string(self, string: str) -> str:
+        """
+        Function that applies the transformation to the `program_string` it's called with and returns the transformed
+        program string.
+        """
+        out = []
+        _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
+
+        return "\n".join(out)
+
+
 __all__ = [
     RuleIDTransformer.__name__,
     AssumptionTransformer.__name__,
     ConstraintTransformer.__name__,
+    RuleSplitter.__name__,
 ]
