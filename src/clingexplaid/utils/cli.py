@@ -4,8 +4,10 @@ Command Line Interface Utilities
 
 import configparser
 import functools
+import sys
 from pathlib import Path
 from typing import Dict, Callable
+from importlib.metadata import version
 
 import clingo
 from clingo.application import Application
@@ -29,6 +31,7 @@ class CoreComputerApp(Application):
         # pylint: disable = unused-argument
         self.signatures = {}
         self.method = 1
+        self.muc_id = 1
 
     def _parse_assumption_signature(self, input_string: str) -> bool:
         # signature_strings = input_string.strip().split(",")
@@ -121,16 +124,31 @@ class CoreComputerApp(Application):
             program_transformed = at.parse_files(files)
             print(f"Reading from {files[0]} {'...' if len(files) > 1 else ''}")
 
-        # First Grounding for getting the assumptions
-        control.add("base", [], program_transformed)
-        control.ground([("base", [])])
+        # TODO: Ok this is not a nice way to do it but I have no clue how to do it otherwise :)
+        arguments = sys.argv[1:]
+        constant_names = []
+        next_is_const = False
+        for arg in arguments:
+            if next_is_const:
+                constant_name = arg.strip().split("=")[0]
+                constant_names.append(constant_name)
+                next_is_const = False
+            if arg == "-c":
+                next_is_const = True
 
-        literal_lookup = get_solver_literal_lookup(control)
+        constants = {name: control.get_const(name) for name in constant_names}
+
+        # First Grounding for getting the assumptions
+        assumption_control = clingo.Control([f"-c {k}={str(v)}" for k, v in constants.items()])
+        assumption_control.add("base", [], program_transformed)
+        assumption_control.ground([("base", [])])
+
+        literal_lookup = get_solver_literal_lookup(assumption_control)
 
         additional_rules = []
 
         assumption_signatures = set()
-        for assumption_literal in at.get_assumptions(control):
+        for assumption_literal in at.get_assumptions(assumption_control, constants=constants):
             assumption = literal_lookup[assumption_literal]
             assumption_signatures.add((assumption.name, len(assumption.arguments)))
             additional_rules.append(f"_assumption({str(assumption)}).")
@@ -140,50 +158,46 @@ class CoreComputerApp(Application):
             additional_rules.append(f"#show {signature}/{arity}.")
 
         final_program = "\n".join((
+                # add constants like this because clingox reify doesn't support a custom control or other way to
+                # provide constants.
+                "\n".join([f"#const {k}={str(v)}."for k, v in constants.items()]),
                 program_transformed,
                 "#show _muc/1.",
                 "\n".join(additional_rules),
         ))
-
-        # print(final_program)
 
         # Implicit Grounding for reification
 
         symbols = reify_program(final_program)
         reified_program = "\n".join([f"{str(s)}." for s in symbols])
 
-        # print(reified_program)
-
         with open(Path(__file__).resolve().parent.joinpath("logic_programs/asp_approach.lp"), "r") as f:
             meta_encoding = f.read()
 
-        # Second Grounding to get MUCs
+        # Second Grounding to get MUCs with original control
 
-        muc_control = clingo.Control(["--heuristic=Domain", "--enum-mode=domRec"])
-        muc_control.add("base", [], reified_program)
-        muc_control.add("base", [], meta_encoding)
+        control.add("base", [], reified_program)
+        control.add("base", [], meta_encoding)
 
-        # print(meta_encoding)
+        control.configuration.solve.enum_mode = "domRec"
+        control.configuration.solver.heuristic = "Domain"
 
-        muc_control.ground([("base", [])])
+        control.ground([("base", [])])
 
-        with muc_control.solve(yield_=True) as solve_handle:
-            satisfiable = bool(solve_handle.get().satisfiable)
-            model = (
-                solve_handle.model().symbols(shown=True, atoms=True)
-                if solve_handle.model() is not None
-                else []
-            )
+        control.solve(on_model=self.print_found_muc)
 
-        print(satisfiable)
-        print(".\n".join([str(a) for a in model]))
+    def print_found_muc(self, model):
+        result = ".\n".join([str(a) for a in model.symbols(shown=True)])
+        if result:
+            result += "."
+        print(
+            f"{BACKGROUND_COLORS['BLUE']} MUC: {self.muc_id} {COLORS['NORMAL']}{COLORS['DARK_BLUE']}{COLORS['NORMAL']}"
+        )
+        print(f"{COLORS['BLUE']}{result}{COLORS['NORMAL']}")
+        self.muc_id += 1
 
     def main(self, control, files):
-        setup_file_path = Path(__file__).parent.joinpath("../../../setup.cfg")
-        setup_config = configparser.ConfigParser()
-        setup_config.read(setup_file_path)
-        metadata = setup_config["metadata"]
-        print(metadata["name"], "version", metadata["version"])
+        print("clingexplaid", "version", version("clingexplaid"))
 
         if self.method == 1:
             self._find_single_muc(control, files)
