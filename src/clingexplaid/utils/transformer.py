@@ -1,7 +1,7 @@
 """
 Transformers for Explanation
 """
-
+import base64
 from pathlib import Path
 from typing import List, Optional, Sequence, Set, Tuple, Union, Dict
 
@@ -236,13 +236,13 @@ class ConstraintTransformer(_ast.Transformer):
 class RuleSplitter(_ast.Transformer):
 
     def __init__(self):
-        pass
+        self.head_rules = []
 
     def visit_Rule(self, node):
         head = node.head
         body = node.body
 
-        print(f"HEAD={head} BODY={body}")
+        # print(f"HEAD={head} BODY={body}")
 
         if body:
             # remove MUS literals from rule
@@ -263,7 +263,7 @@ class RuleSplitter(_ast.Transformer):
             rule_body_base64_bytes = base64.b64encode(rule_body_string_bytes)
             rule_body_base64 = rule_body_base64_bytes.decode("ascii")
 
-            print(cleaned_body, str(node), variables)
+            # print(cleaned_body, str(node), variables)
 
             # create a new '_body' head for the original rule
             new_head_arguments = [
@@ -271,7 +271,7 @@ class RuleSplitter(_ast.Transformer):
                 _ast.Function(
                     location=node.location,
                     name="",
-                    arguments=variables,  # TODO: How to create a new ASTSequence
+                    arguments=variables,
                     external=0
                 )
             ]
@@ -289,13 +289,9 @@ class RuleSplitter(_ast.Transformer):
                 head=head,
                 body=[new_head],
             )
+            self.head_rules.append(new_head_rule)
 
-            # TODO: How to return multiple rules? ASTSequence?
-            return _ast.TheorySequence(
-                location=node.location,
-                sequence_type=1,
-                terms=[node, new_head_rule]
-            )
+            return node
 
         # default case
         return node
@@ -305,8 +301,10 @@ class RuleSplitter(_ast.Transformer):
         Function that applies the transformation to the `program_string` it's called with and returns the transformed
         program string.
         """
+        self.head_rules = []
         out = []
         _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
+        out += [str(r) for r in self.head_rules]
 
         return "\n".join(out)
 
