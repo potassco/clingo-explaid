@@ -74,7 +74,7 @@ class CoreComputerApp(Application):
         options.add(
             group,
             "muc-method,m",
-            "This sets the method of finding the MUCs. (1) Iterative Deletion [default] (2) Meta Encoding",
+            "This sets the method of finding the MUCs. (1) ASP Meta Encoding [default] (2) Iterative Deletion",
             self._parse_mode,
         )
 
@@ -200,6 +200,6 @@ class CoreComputerApp(Application):
         print("clingexplaid", "version", version("clingexplaid"))
 
         if self.method == 1:
-            self._find_single_muc(control, files)
-        elif self.method == 2:
             self._find_multi_mucs(control, files)
+        elif self.method == 2:
+            self._find_single_muc(control, files)
