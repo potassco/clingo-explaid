@@ -15,6 +15,7 @@ from clingexplaid.utils.transformer import (
     AssumptionTransformer,
     ConstraintTransformer,
     RuleIDTransformer,
+    RuleSplitter,
     UntransformedException,
 )
 
@@ -155,6 +156,23 @@ class TestMain(TestCase):
         )
         ct = ConstraintTransformer(constraint_head_symbol="unsat")
         result = ct.parse_file(program_path)
+        self.assertEqual(
+            result.strip(), self.read_file(program_path_transformed).strip()
+        )
+
+    # --- RULE SPLITTER
+
+    def test_rule_splitter(self):
+        """
+        Test the RuleSplitter's `parse_file` method.
+        """
+
+        program_path = TEST_DIR.joinpath("res/test_program_rules.lp")
+        program_path_transformed = TEST_DIR.joinpath(
+            "res/transformed_program_rules_split.lp"
+        )
+        rs = RuleSplitter()
+        result = rs.parse_file(program_path)
         self.assertEqual(
             result.strip(), self.read_file(program_path_transformed).strip()
         )
