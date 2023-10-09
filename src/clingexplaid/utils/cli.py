@@ -90,6 +90,8 @@ class CoreComputerApp(Application):
         return program_transformed, at
 
     def _print_found_muc(self, model):
+        print("-" * 50)
+        print([str(s) for s in model.symbols(atoms=True) if "unsat" in str(s)])
         result = ".\n".join([str(a) for a in model.symbols(shown=True)])
         if result:
             result += "."
@@ -158,18 +160,23 @@ class CoreComputerApp(Application):
         literal_lookup = get_solver_literal_lookup(assumption_control)
 
         additional_rules = []
+        assumption_strings = set()
 
         assumption_signatures = set()
         for assumption_literal in at.get_assumptions(
             assumption_control, constants=constants
         ):
             assumption = literal_lookup[assumption_literal]
+            print(assumption)
             assumption_signatures.add((assumption.name, len(assumption.arguments)))
+            assumption_strings.add(str(assumption))
             additional_rules.append(f"_assumption({str(assumption)}).")
             additional_rules.append(f"_muc({assumption}) :- {assumption}.")
 
         for signature, arity in assumption_signatures:
             additional_rules.append(f"#show {signature}/{arity}.")
+
+        print("ADDITIONAL RULES:", additional_rules)
 
         final_program = "\n".join(
             (
@@ -183,6 +190,9 @@ class CoreComputerApp(Application):
             )
         )
 
+        print("-"*50)
+        print(final_program)
+
         # Implicit Grounding for reification
         symbols = reify_program(final_program)
         reified_program = "\n".join([f"{str(s)}." for s in symbols])
@@ -193,6 +203,12 @@ class CoreComputerApp(Application):
             encoding="utf-8",
         ) as f:
             meta_encoding = f.read()
+
+        # meta_encoding += "\n:- not " + ", not ".join([f"assumption_hold({a})" for a in assumption_strings]) + "."
+
+        # print(meta_encoding)
+        # print("-"*50)
+        # print(reified_program)
 
         # Second Grounding to get MUCs with original control
         control.add("base", [], reified_program)

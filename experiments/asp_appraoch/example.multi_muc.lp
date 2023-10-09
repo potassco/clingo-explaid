@@ -11,3 +11,5 @@ test(1..k).
 :- c, d.
 
 :- test(1).
+
+test_out(X,Y) :- test(X), test(Y).

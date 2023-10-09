@@ -34,3 +34,5 @@ hold(X) :- choice_hold(X).
 % #show unsat/1.
 % #show choice_hold/2.
 #show muc(T): output(_muc(T),B), conjunction(B).
+
+assumption_hold(T) :- output(_muc(T),B), conjunction(B).

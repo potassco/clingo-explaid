@@ -1,7 +1,7 @@
 % SUDOKU EXAMPLE (4x4)
-
-#include "sudoku_encoding.lp".
 #const subgrid_size=2.
+
+#include "sudoku_encoding_2.lp".
 
 initial(1,1,4).
 initial(4,1,4).
