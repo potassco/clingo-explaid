@@ -70,7 +70,7 @@ class CoreComputer:
         muc_members: Set[Assumption] = set()
         working_set = set(assumptions)
 
-        for assumption in self.assumption_set:
+        for assumption in assumptions:
             # remove the current assumption from the working set
             working_set.remove(assumption)
 

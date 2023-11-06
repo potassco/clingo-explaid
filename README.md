@@ -15,13 +15,13 @@ pip install clingexplaid
 
 ## Usage
 
-```shell
+```bash
 clingexplaid -h
 ```
 
 Compute Minimal Unsatisfiable Core from unsatisfiable program:
 
-```shell
+```bash
 clingexplaid <filenames> --assumption-signature signature/arity
 ```
 
@@ -84,6 +84,33 @@ pre-commit install
 ```
 
 This blackens the source code whenever `git commit` is used.
+
+## Experimental Features
+
+### Meta-encoding based approach (ASP-Approach)
+
+Using the `--muc-method` or `-m` option the approach for finding the MUCs can 
+be switched from the iterative deletion algorithm to the meta encoding based 
+approach.
+
++ `-m 1` [default] Iterative deletion approach
++ `-m 2` Meta-encoding approach
+
+**Important Notes:**
+
++ The Meta-encoding approach as it stands is not fully functional
+
+**Problem:**
+  + In the meta encoding all facts (or a selection matching a certain signature) are
+    transformed into assumptions which are then used as the assumption set for finding
+    the MUC
+  + During the MUC search when subsets of this assumption set are fixed for satisfiability
+    checking it is important that even though they are not fixed, the other assumptions
+    are not assumed as false but as undefined
+  + This is currently not possible with the meta-encoding, since assumptions are chosen
+    through a choice rule and all assumptions that aren't selected are defaulted to false
+  + This doesn't allow for properly checking if such subsets entail unsatisfiability and 
+    thus prevents us from finding the proper MUCs
 
 [doc]: https://potassco.org/clingo/python-api/current/
 [nox]: https://nox.thea.codes/en/stable/index.html
