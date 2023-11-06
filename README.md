@@ -89,12 +89,16 @@ This blackens the source code whenever `git commit` is used.
 
 ### Meta-encoding based approach (ASP-Approach)
 
+<!--
+
 Using the `--muc-method` or `-m` option the approach for finding the MUCs can 
 be switched from the iterative deletion algorithm to the meta encoding based 
 approach.
 
 + `-m 1` [default] Iterative deletion approach
 + `-m 2` Meta-encoding approach
+
+-->
 
 **Important Notes:**
 

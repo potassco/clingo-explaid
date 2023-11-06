@@ -69,12 +69,12 @@ class CoreComputerApp(Application):
             self._parse_assumption_signature,
             multi=True,
         )
-        options.add(
-            group,
-            "muc-method,m",
-            "EXPERIMENTAL: This sets the method of finding the MUCs. (1) Iterative Deletion (2) ASP Meta Encoding [default]",
-            self._parse_mode,
-        )
+        # options.add(
+        #     group,
+        #     "muc-method,m",
+        #     "EXPERIMENTAL: This sets the method of finding the MUCs. (1) Iterative Deletion (2) ASP Meta Encoding [default]",
+        #     self._parse_mode,
+        # )
 
     def _apply_assumption_transformer(
         self, signatures: Dict[str, int], files: List[str]
@@ -130,101 +130,107 @@ class CoreComputerApp(Application):
         )
         print(f"{COLORS['BLUE']}{result}{COLORS['NORMAL']}")
 
-    def _find_multi_mucs(self, control: clingo.Control, files):
-        print("ASP APPROACH")
-
-        program_transformed, at = self._apply_assumption_transformer(
-            signatures=self.signatures, files=files
+    def _find_multi_mucs_asp_approach(self, control: clingo.Control, files):
+        raise NotImplementedError(
+            "The meta encoding approach is faulty in its current state and thus not able to be used"
         )
 
-        arguments = sys.argv[1:]
-        constant_names = []
-        next_is_const = False
-        for arg in arguments:
-            if next_is_const:
-                constant_name = arg.strip().split("=")[0]
-                constant_names.append(constant_name)
-                next_is_const = False
-            if arg == "-c":
-                next_is_const = True
-
-        constants = {name: control.get_const(name) for name in constant_names}
-
-        # First Grounding for getting the assumptions
-        assumption_control = clingo.Control(
-            [f"-c {k}={str(v)}" for k, v in constants.items()]
-        )
-        assumption_control.add("base", [], program_transformed)
-        assumption_control.ground([("base", [])])
-
-        literal_lookup = get_solver_literal_lookup(assumption_control)
-
-        additional_rules = []
-        assumption_strings = set()
-
-        assumption_signatures = set()
-        for assumption_literal in at.get_assumptions(
-            assumption_control, constants=constants
-        ):
-            assumption = literal_lookup[assumption_literal]
-            print(assumption)
-            assumption_signatures.add((assumption.name, len(assumption.arguments)))
-            assumption_strings.add(str(assumption))
-            additional_rules.append(f"_assumption({str(assumption)}).")
-            additional_rules.append(f"_muc({assumption}) :- {assumption}.")
-
-        for signature, arity in assumption_signatures:
-            additional_rules.append(f"#show {signature}/{arity}.")
-
-        print("ADDITIONAL RULES:", additional_rules)
-
-        final_program = "\n".join(
-            (
-                # add constants like this because clingox reify doesn't support a custom control or other way to
-                # provide constants.
-                "\n".join([f"#const {k}={str(v)}." for k, v in constants.items()]),
-                program_transformed,
-                "#show _muc/1.",
-                "#show _assumption/1.",
-                "\n".join(additional_rules),
-            )
-        )
-
-        print("-"*50)
-        print(final_program)
-
-        # Implicit Grounding for reification
-        symbols = reify_program(final_program)
-        reified_program = "\n".join([f"{str(s)}." for s in symbols])
-
-        with open(
-            Path(__file__).resolve().parent.joinpath("logic_programs/asp_approach.lp"),
-            "r",
-            encoding="utf-8",
-        ) as f:
-            meta_encoding = f.read()
-
-        # meta_encoding += "\n:- not " + ", not ".join([f"assumption_hold({a})" for a in assumption_strings]) + "."
-
-        # print(meta_encoding)
-        # print("-"*50)
-        # print(reified_program)
-
-        # Second Grounding to get MUCs with original control
-        control.add("base", [], reified_program)
-        control.add("base", [], meta_encoding)
-
-        control.configuration.solve.enum_mode = "domRec"  # type: ignore
-        control.configuration.solver.heuristic = "Domain"  # type: ignore
-
-        control.ground([("base", [])])
-
-        control.solve(on_model=self._print_found_muc)
+    #     print("ASP APPROACH")
+    #
+    #     program_transformed, at = self._apply_assumption_transformer(
+    #         signatures=self.signatures, files=files
+    #     )
+    #
+    #     arguments = sys.argv[1:]
+    #     constant_names = []
+    #     next_is_const = False
+    #     for arg in arguments:
+    #         if next_is_const:
+    #             constant_name = arg.strip().split("=")[0]
+    #             constant_names.append(constant_name)
+    #             next_is_const = False
+    #         if arg == "-c":
+    #             next_is_const = True
+    #
+    #     constants = {name: control.get_const(name) for name in constant_names}
+    #
+    #     # First Grounding for getting the assumptions
+    #     assumption_control = clingo.Control(
+    #         [f"-c {k}={str(v)}" for k, v in constants.items()]
+    #     )
+    #     assumption_control.add("base", [], program_transformed)
+    #     assumption_control.ground([("base", [])])
+    #
+    #     literal_lookup = get_solver_literal_lookup(assumption_control)
+    #
+    #     additional_rules = []
+    #     assumption_strings = set()
+    #
+    #     assumption_signatures = set()
+    #     for assumption_literal in at.get_assumptions(
+    #         assumption_control, constants=constants
+    #     ):
+    #         assumption = literal_lookup[assumption_literal]
+    #         print(assumption)
+    #         assumption_signatures.add((assumption.name, len(assumption.arguments)))
+    #         assumption_strings.add(str(assumption))
+    #         additional_rules.append(f"_assumption({str(assumption)}).")
+    #         additional_rules.append(f"_muc({assumption}) :- {assumption}.")
+    #
+    #     for signature, arity in assumption_signatures:
+    #         additional_rules.append(f"#show {signature}/{arity}.")
+    #
+    #     print("ADDITIONAL RULES:", additional_rules)
+    #
+    #     final_program = "\n".join(
+    #         (
+    #             # add constants like this because clingox reify doesn't support a custom control or other way to
+    #             # provide constants.
+    #             "\n".join([f"#const {k}={str(v)}." for k, v in constants.items()]),
+    #             program_transformed,
+    #             "#show _muc/1.",
+    #             "#show _assumption/1.",
+    #             "\n".join(additional_rules),
+    #         )
+    #     )
+    #
+    #     print("-"*50)
+    #     print(final_program)
+    #
+    #     # Implicit Grounding for reification
+    #     symbols = reify_program(final_program)
+    #     reified_program = "\n".join([f"{str(s)}." for s in symbols])
+    #
+    #     with open(
+    #         Path(__file__).resolve().parent.joinpath("logic_programs/asp_approach.lp"),
+    #         "r",
+    #         encoding="utf-8",
+    #     ) as f:
+    #         meta_encoding = f.read()
+    #
+    #     # meta_encoding += "\n:- not " + ", not ".join([f"assumption_hold({a})" for a in assumption_strings]) + "."
+    #
+    #     # print(meta_encoding)
+    #     # print("-"*50)
+    #     # print(reified_program)
+    #
+    #     # Second Grounding to get MUCs with original control
+    #     control.add("base", [], reified_program)
+    #     control.add("base", [], meta_encoding)
+    #
+    #     control.configuration.solve.enum_mode = "domRec"  # type: ignore
+    #     control.configuration.solver.heuristic = "Domain"  # type: ignore
+    #
+    #     control.ground([("base", [])])
+    #
+    #     control.solve(on_model=self._print_found_muc)
 
     def main(self, control, files):
         print("clingexplaid", "version", version("clingexplaid"))
 
-        if self.method == 1:
-            self._find_single_muc(control, files)
-        elif self.method == 2:
-            self._find_multi_mucs(control, files)
+        self._find_single_muc(control, files)
+
+        # if self.method == 1:
+        #     self._find_single_muc(control, files)
+        # elif self.method == 2:
+        #     self._find_multi_mucs_asp_approach(control, files)
