@@ -6,14 +6,14 @@ import sys
 
 from clingo.application import clingo_main
 
-from clingexplaid.utils.cli import CoreComputerApp
+from clingexplaid.utils.cli import ClingoExplaidApp
 
 
 def main():
     """
     Main function calling the application class
     """
-    clingo_main(CoreComputerApp(sys.argv[0]), sys.argv[1:] + ["-V0"])
+    clingo_main(ClingoExplaidApp(sys.argv[0]), sys.argv[1:] + ["-V0"])
     sys.exit()
 
 
