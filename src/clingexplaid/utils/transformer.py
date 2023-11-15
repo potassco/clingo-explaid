@@ -196,8 +196,10 @@ class ConstraintTransformer(_ast.Transformer):
     A Transformer that takes all constraint rules and adds an atom to their head to avoid deriving false through them.
     """
 
-    def __init__(self, constraint_head_symbol: str):
+    def __init__(self, constraint_head_symbol: str, include_id: bool = False):
         self.constraint_head_symbol = constraint_head_symbol
+        self.include_id = include_id
+        self.constraint_id = 1
 
     def visit_Rule(self, node):  # pylint: disable=C0103
         """
@@ -210,12 +212,21 @@ class ConstraintTransformer(_ast.Transformer):
         if node.head.atom.value != 0:
             return node
 
+        arguments = []
+        if self.include_id:
+            arguments = [
+                _ast.SymbolicTerm(
+                    node.location, clingo.parse_term(str(self.constraint_id))
+                )
+            ]
+
         head_symbol = _ast.Function(
             location=node.location,
             name=self.constraint_head_symbol,
-            arguments=[],
+            arguments=arguments,
             external=0,
         )
+        self.constraint_id += 1
 
         # insert id symbol into body of rule
         node.head = head_symbol
@@ -231,12 +242,15 @@ class ConstraintTransformer(_ast.Transformer):
 
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path], encoding: str = "utf-8") -> str:
+    def parse_files(self, paths: Sequence[Union[str, Path]]) -> str:
         """
-        Parses the file at path and returns a string with the transformed program.
+        Parses the files and returns a string with the transformed program.
         """
-        with open(path, "r", encoding=encoding) as f:
-            return self.parse_string(f.read())
+        out = []
+        _ast.parse_files(
+            [str(p) for p in paths], lambda stm: out.append((str(self(stm))))
+        )
+        return "\n".join(out)
 
 
 class RuleSplitter(_ast.Transformer):

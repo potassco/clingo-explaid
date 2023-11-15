@@ -12,11 +12,14 @@ COLORS = {
     "GREEN": "\033[92m",
     "YELLOW": "\033[93m",
     "RED": "\033[91m",
+    "DARK_RED": "\033[91m",
     "NORMAL": "\033[0m",
 }
 
 BACKGROUND_COLORS = {
     "BLUE": "\033[44m",
+    "LIGHT_BLUE": "\033[104m",
+    "RED": "\033[41m",
 }
 
 

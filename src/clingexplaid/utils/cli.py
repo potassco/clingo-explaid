@@ -6,7 +6,7 @@ import clingo
 from clingo.application import Application
 
 from .muc import CoreComputer
-from .transformer import AssumptionTransformer
+from .transformer import AssumptionTransformer, ConstraintTransformer
 from ..utils import get_solver_literal_lookup
 from ..utils.logger import BACKGROUND_COLORS, COLORS
 
@@ -110,7 +110,7 @@ class ClingoExplaidApp(Application):
 
     def _print_muc(self, muc) -> None:
         print(
-            f"{BACKGROUND_COLORS['BLUE']} MUC: {self._muc_id} {COLORS['NORMAL']}{COLORS['DARK_BLUE']}{COLORS['NORMAL']}"
+            f"{BACKGROUND_COLORS['BLUE']} MUC {BACKGROUND_COLORS['LIGHT_BLUE']} {self._muc_id} {COLORS['NORMAL']}"
         )
         print(f"{COLORS['BLUE']}{muc}{COLORS['NORMAL']}")
         self._muc_id += 1
@@ -139,11 +139,63 @@ class ClingoExplaidApp(Application):
         muc_string = " ".join([str(literal_lookup[a]) for a in cc.minimal])
         self._print_muc(muc_string)
 
+    def _print_unsat_constraints(self, unsat_constraints) -> None:
+        print(f"{BACKGROUND_COLORS['RED']} Unsat Constraints {COLORS['NORMAL']}")
+        for c in unsat_constraints:
+            print(f"{COLORS['RED']}{c}{COLORS['NORMAL']}")
+
     def _method_unsat_constraints(self, control: clingo.Control, files: List[str]):
         print("method: unsat-constraints")
-        raise NotImplementedError(
-            "The unsat-constraints method has not been implemented yet"
-        )
+
+        unsat_constraint_atom = "__unsat__"
+        ct = ConstraintTransformer(unsat_constraint_atom, include_id=True)
+
+        print(files)
+
+        if not files:
+            program_transformed = ct.parse_files("-")
+        else:
+            program_transformed = ct.parse_files(files)
+
+        minimizer_rule = f"#minimize {{1,X : {unsat_constraint_atom}(X)}}."
+        final_program = program_transformed + "\n" + minimizer_rule
+
+        constraint_lookup = {}
+        for line in final_program.split("\n"):
+            id_re = re.compile(f"{unsat_constraint_atom}\(([1-9][0-9]*)\)")
+            match_result = id_re.match(line)
+            if match_result is None:
+                continue
+            constraint_id = match_result.group(1)
+            constraint_lookup[int(constraint_id)] = (
+                str(line)
+                .replace(f"{unsat_constraint_atom}({constraint_id})", "")
+                .strip()
+            )
+
+        control.add("base", [], final_program)
+        control.ground([("base", [])])
+
+        with control.solve(yield_=True) as solve_handle:
+            model = solve_handle.model()
+            unsat_constraint_atoms = []
+            model_symbols_shown = []
+            while model is not None:
+                unsat_constraint_atoms = [
+                    a
+                    for a in model.symbols(atoms=True)
+                    if a.match(unsat_constraint_atom, 1, True)
+                ]
+                model_symbols_shown = model.symbols(shown=True)
+                solve_handle.resume()
+                model = solve_handle.model()
+            print(" ".join([str(s) for s in model_symbols_shown]))
+            unsat_constraints = []
+            for a in unsat_constraint_atoms:
+                constraint = constraint_lookup.get(a.arguments[0].number)
+                unsat_constraints.append(constraint)
+
+            self._print_unsat_constraints(unsat_constraints)
 
     def print_model(self, model, _):
         return
