@@ -1,8 +1,9 @@
 """
 Unsatisfiable Core Utilities
 """
-
+import time
 from typing import Optional, Set, Tuple
+from itertools import chain, combinations
 
 import clingo
 
@@ -91,6 +92,48 @@ class CoreComputer:
         set `assumptions` and stores the resulting MUC inside `self.minimal`.
         """
         self.minimal = self._compute_single_minimal(assumptions=assumptions)
+
+    def get_multiple_minimal(self, max_mucs: Optional[int] = None):
+        """
+        This function generates all minimal unsatisfiable cores of the provided assumption set. It implements the
+        generator pattern since finding all mucs of an assumption set is exponential in nature and the search might not
+        fully complete in reasonable time. The parameter `max_mucs` can be used to specify the maximum number of
+        mucs that are found before stopping the search.
+        """
+        assumptions = self.assumption_set
+        assumption_powerset = chain.from_iterable(
+            combinations(assumptions, r)
+            for r in reversed(range(len(list(assumptions)) + 1))
+        )
+
+        found_sat = []
+        found_mucs = []
+
+        for current_subset in (set(s) for s in assumption_powerset):
+            # skip if empty subset
+            if len(current_subset) == 0:
+                continue
+            # skip if an already found muc is a subset
+            if any(set(muc).issubset(current_subset) for muc in found_mucs):
+                continue
+            # skip if an already found satisfiable subset is superset
+            if any(set(sat).issuperset(current_subset) for sat in found_sat):
+                continue
+
+            muc = self._compute_single_minimal(assumptions=current_subset)
+
+            # if the current subset wasn't unsatisfiable store this info and continue
+            if len(list(muc)) == 0:
+                found_sat.append(current_subset)
+                continue
+
+            # if iterative deletion finds a muc that wasn't discovered before update sets and yield
+            if muc not in found_mucs:
+                found_mucs.append(muc)
+                yield muc
+                # if the maximum muc amount is found stop search
+                if max_mucs is not None and len(found_mucs) == max_mucs:
+                    break
 
 
 __all__ = [

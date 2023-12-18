@@ -3,7 +3,7 @@ from importlib.metadata import version
 from typing import Dict, List, Tuple
 
 import clingo
-from clingo.application import Application
+from clingo.application import Application, Flag
 
 from .muc import CoreComputer
 from .transformer import AssumptionTransformer, ConstraintTransformer
@@ -16,42 +16,38 @@ class ClingoExplaidApp(Application):
     Application class for executing clingo-explaid functionality on the command line
     """
 
-    CLINGEXPLAID_METHODS = {"muc", "unsat-constraints"}
+    CLINGEXPLAID_METHODS = {
+        "muc": "Description for MUC method",
+        "unsat-constraints": "Description for unsat-constraints method",
+    }
 
     def __init__(self, name):
         # pylint: disable = unused-argument
-        self.method = None
+        self.methods = set()
         self.method_functions = {
             m: getattr(self, f'_method_{m.replace("-", "_")}')
-            for m in self.CLINGEXPLAID_METHODS
+            for m in self.CLINGEXPLAID_METHODS.keys()
         }
+        self.method_flags = {m: Flag() for m in self.CLINGEXPLAID_METHODS.keys()}
 
         # MUC
         self._muc_assumption_signatures = {}
         self._muc_id = 1
 
-    def _check_integrity(self) -> None:
-        if self.method is None:
-            raise ValueError(
-                "No method assigned: A valid clingexplaid method has to be provided with --method,-m"
-            )
+    def _initialize(self) -> None:
+        # add enabled methods to self.methods
+        for method, flag in self.method_flags.items():
+            if flag.flag:
+                self.methods.add(method)
 
-    def _parse_method(self, method: str) -> bool:
-        method_string = method.replace("=", "").strip()
-        if method_string not in self.CLINGEXPLAID_METHODS:
-            method_strings = ", ".join(
-                [f"[{str(k)}]" for k in self.CLINGEXPLAID_METHODS]
+        if len(self.methods) == 0:
+            raise ValueError(
+                f"Clingexplaid was called without any method, pleas select at least one of the following methods: "
+                f"[{', '.join(['--' + str(m) for m in self.CLINGEXPLAID_METHODS.keys()])}]"
             )
-            print(
-                "PARSE ERROR: The clingexplaid method has to be one of the following:",
-                method_strings,
-            )
-            return False
-        self.method = method_string
-        return True
 
     def _parse_assumption_signature(self, assumption_signature: str) -> bool:
-        if self.method != "muc":
+        if "muc" in self.methods:
             print(
                 "PARSE ERROR: The assumption signature option is only available for --mode=muc"
             )
@@ -72,17 +68,15 @@ class ClingoExplaidApp(Application):
         return True
 
     def register_options(self, options):
-        group = "Clingo-Explaid Options"
+        group = "Clingo-Explaid Methods"
 
-        method_string_list = "\n".join([f"\t- {k}" for k in self.CLINGEXPLAID_METHODS])
-        options.add(
-            group,
-            "method,m",
-            "For selecting the mode of clingexplaid. Possible options for <arg> are:\n"
-            + method_string_list,
-            self._parse_method,
-            multi=False,
-        )
+        for method, description in self.CLINGEXPLAID_METHODS.items():
+            options.add_flag(
+                group=group,
+                option=method,
+                description=description,
+                target=self.method_flags[method],
+            )
 
         group = "MUC Options"
 
@@ -116,8 +110,6 @@ class ClingoExplaidApp(Application):
         self._muc_id += 1
 
     def _method_muc(self, control: clingo.Control, files: List[str]):
-        print("method: muc")
-
         program_transformed, at = self._apply_assumption_transformer(
             signatures=self._muc_assumption_signatures, files=files
         )
@@ -129,15 +121,33 @@ class ClingoExplaidApp(Application):
         assumptions = at.get_assumptions(control)
         cc = CoreComputer(control, assumptions)
 
+        max_models = int(control.configuration.solve.models)
         print("Solving...")
-        control.solve(assumptions=list(assumptions), on_core=cc.shrink)
 
-        if cc.minimal is None:
-            print("SATISFIABLE: Instance has no MUCs")
-            return
+        # Case: Finding a single MUC
+        if max_models == -1:
+            control.solve(assumptions=list(assumptions), on_core=cc.shrink)
 
-        muc_string = " ".join([str(literal_lookup[a]) for a in cc.minimal])
-        self._print_muc(muc_string)
+            if cc.minimal is None:
+                print("SATISFIABLE: Instance has no MUCs")
+                return
+
+            muc_string = " ".join([str(literal_lookup[a]) for a in cc.minimal])
+            self._print_muc(muc_string)
+
+        # Case: Finding multiple MUCs
+        if max_models >= 0:
+            program_unsat = False
+            with control.solve(
+                assumptions=list(assumptions), yield_=True
+            ) as solve_handle:
+                if not solve_handle.get().satisfiable:
+                    program_unsat = True
+
+            if program_unsat:
+                for muc in cc.get_multiple_minimal(max_mucs=max_models):
+                    muc_string = " ".join([str(literal_lookup[a]) for a in muc])
+                    self._print_muc(muc_string)
 
     def _print_unsat_constraints(self, unsat_constraints) -> None:
         print(f"{BACKGROUND_COLORS['RED']} Unsat Constraints {COLORS['NORMAL']}")
@@ -145,8 +155,6 @@ class ClingoExplaidApp(Application):
             print(f"{COLORS['RED']}{c}{COLORS['NORMAL']}")
 
     def _method_unsat_constraints(self, control: clingo.Control, files: List[str]):
-        print("method: unsat-constraints")
-
         unsat_constraint_atom = "__unsat__"
         ct = ConstraintTransformer(unsat_constraint_atom, include_id=True)
 
@@ -202,7 +210,7 @@ class ClingoExplaidApp(Application):
 
     def main(self, control, files):
         print("clingexplaid", "version", version("clingexplaid"))
-        self._check_integrity()
+        self._initialize()
 
         # printing the input files
         if not files:
@@ -210,5 +218,14 @@ class ClingoExplaidApp(Application):
         else:
             print(f"Reading from {files[0]} {'...' if len(files) > 1 else ''}")
 
-        method_function = self.method_functions[self.method]
-        method_function(control, files)
+        # standard case: only one method
+        if len(self.methods) == 1:
+            method = list(self.methods)[0]
+            method_function = self.method_functions[method]
+            method_function(control, files)
+        # special cases where specific pipelines have to be configured
+        elif self.methods == {"muc", "unsat-constraints"}:
+            print(
+                "NOT IMPLEMENTED: first find muc -> apply unsat-constraints to find conflicting constraints for"
+                "specific MUC"
+            )
