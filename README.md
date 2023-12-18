@@ -85,6 +85,24 @@ pre-commit install
 
 This blackens the source code whenever `git commit` is used.
 
+## ToDos
+
++ [ ] New CLI structure
+  + different modes:
+    + MUC
+    + UNSAT-CONSTRAINTS
+  + can be enabled through flags
++ [ ] Iterative Deltion for Multiple MUCs
+  + variation of the QuickXplain algorithm
++ [ ] Finish unsat-constraints implementation for the API
++ [ ] Give a warning in Transformer if control is not grounded yet
++ [ ] New option to enable verbose derivation output
++ [ ] Documentation
+  + Proper README
+  + Docstrings for all API functions
+  + CLI documentation with examples
+  + Examples folder
+
 ## Experimental Features
 
 ### Meta-encoding based approach (ASP-Approach)
