@@ -7,6 +7,7 @@ from clingo.application import Application, Flag
 
 from .logger import BACKGROUND_COLORS, COLORS
 from .muc import CoreComputer
+from .propagators import DecisionOrderPropagator
 from .transformer import AssumptionTransformer, ConstraintTransformer, FactTransformer
 from .unsat_constraints import UnsatConstraintComputer
 from ..utils import get_solver_literal_lookup, get_signatures_from_model_string
@@ -30,6 +31,10 @@ class ClingoExplaidApp(Application):
             for m in self.CLINGEXPLAID_METHODS.keys()
         }
         self.method_flags = {m: Flag() for m in self.CLINGEXPLAID_METHODS.keys()}
+        self.flag_show_decisions = Flag()
+
+        # SHOW DECISIONS
+        self._decision_signatures = {}
 
         # MUC
         self._muc_assumption_signatures = {}
@@ -47,25 +52,47 @@ class ClingoExplaidApp(Application):
                 f"[{', '.join(['--' + str(m) for m in self.CLINGEXPLAID_METHODS.keys()])}]"
             )
 
+    @staticmethod
+    def _parse_signature(signature_string: str) -> Tuple[str, int]:
+        match_result = re.match(r"^([a-zA-Z]+)/([1-9][0-9]*)$", signature_string)
+        if match_result is None:
+            raise ValueError("Wrong signature Format")
+        return match_result.group(1), int(match_result.group(2))
+
     def _parse_assumption_signature(self, assumption_signature: str) -> bool:
-        if "muc" in self.methods:
+        if not self.method_flags["muc"]:
             print(
-                "PARSE ERROR: The assumption signature option is only available for --mode=muc"
+                "PARSE ERROR: The assumption signature option is only available if the flag --muc is enabled"
             )
             return False
         assumption_signature_string = assumption_signature.replace("=", "").strip()
-        match_result = re.match(
-            r"^([a-zA-Z]+)/([1-9][0-9]*)$", assumption_signature_string
-        )
-        if match_result is None:
+        try:
+            signature, arity = self._parse_signature(assumption_signature_string)
+        except ValueError:
             print(
                 "PARSE ERROR: Wrong signature format. The assumption signatures have to follow the format "
                 "<assumption-name>/<arity>"
             )
             return False
-        self._muc_assumption_signatures[match_result.group(1)] = int(
-            match_result.group(2)
-        )
+        self._muc_assumption_signatures[signature] = arity
+        return True
+
+    def _parse_decision_signature(self, decision_signature: str) -> bool:
+        if not self.flag_show_decisions:
+            print(
+                "PARSE ERROR: The decision signature option is only available if the flag --show-decisions is enabled"
+            )
+            return False
+        decision_signature_string = decision_signature.replace("=", "").strip()
+        try:
+            signature, arity = self._parse_signature(decision_signature_string)
+        except ValueError:
+            print(
+                "PARSE ERROR: Wrong signature format. The decision signatures have to follow the format "
+                "<assumption-name>/<arity>"
+            )
+            return False
+        self._decision_signatures[signature] = arity
         return True
 
     def register_options(self, options):
@@ -87,6 +114,24 @@ class ClingoExplaidApp(Application):
             "Facts matching with this signature will be converted to assumptions for finding a MUC "
             "(default: all facts)",
             self._parse_assumption_signature,
+            multi=True,
+        )
+
+        group = "General Options"
+
+        options.add_flag(
+            group=group,
+            option="show-decisions",
+            description="Shows a visualization of the decisions made by the solver during the solving process",
+            target=self.flag_show_decisions,
+        )
+
+        options.add(
+            group,
+            "decision-signature",
+            "When --show-decisions is enabled, show only decisions matching with this signature "
+            "(default: show all decisions)",
+            self._parse_decision_signature,
             multi=True,
         )
 
@@ -160,7 +205,8 @@ class ClingoExplaidApp(Application):
                             control=clingo.Control(),
                             files=files,
                             assumption_string=muc_string,
-                            output_prefix=f"{COLORS['RED']}├──{COLORS['NORMAL']}",
+                            output_prefix_active=f"{COLORS['RED']}├──{COLORS['NORMAL']}",
+                            output_prefix_passive=f"{COLORS['RED']}│  {COLORS['NORMAL']}",
                         )
 
     def _print_unsat_constraints(
@@ -179,14 +225,23 @@ class ClingoExplaidApp(Application):
         control: clingo.Control,
         files: List[str],
         assumption_string: Optional[str] = None,
-        output_prefix: Optional[str] = None,
+        output_prefix_active: str = "",
+        output_prefix_passive: str = "",
     ):
+        # register DecisionOrderPropagator if flag is enabled
+        if self.flag_show_decisions:
+            decision_signatures = set(self._decision_signatures.items())
+            dop = DecisionOrderPropagator(
+                signatures=decision_signatures, prefix=output_prefix_passive
+            )
+            control.register_propagator(dop)
+
         ucc = UnsatConstraintComputer(control=control)
         ucc.parse_files(files)
         unsat_constraints = ucc.get_unsat_constraints(
             assumption_string=assumption_string
         )
-        self._print_unsat_constraints(unsat_constraints, prefix=output_prefix)
+        self._print_unsat_constraints(unsat_constraints, prefix=output_prefix_active)
 
     def print_model(self, model, _):
         return
