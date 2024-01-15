@@ -113,11 +113,11 @@ class CoreComputer:
             # skip if empty subset
             if len(current_subset) == 0:
                 continue
-            # skip if an already found muc is a subset
-            if any(set(muc).issubset(current_subset) for muc in found_mucs):
-                continue
             # skip if an already found satisfiable subset is superset
             if any(set(sat).issuperset(current_subset) for sat in found_sat):
+                continue
+            # skip if an already found muc is a subset
+            if any(set(muc).issubset(current_subset) for muc in found_mucs):
                 continue
 
             muc = self._compute_single_minimal(assumptions=current_subset)
