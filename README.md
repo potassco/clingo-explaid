@@ -87,16 +87,17 @@ This blackens the source code whenever `git commit` is used.
 
 ## ToDos
 
-+ [ ] New CLI structure
++ [x] New CLI structure
   + different modes:
     + MUC
     + UNSAT-CONSTRAINTS
   + can be enabled through flags
-+ [ ] Iterative Deltion for Multiple MUCs
-  + variation of the QuickXplain algorithm
-+ [ ] Finish unsat-constraints implementation for the API
++ [x] Iterative Deltion for Multiple MUCs
+  + variation of the QuickXplain algorithm : `SKIPPED`
++ [x] Finish unsat-constraints implementation for the API
 + [ ] Give a warning in Transformer if control is not grounded yet
-+ [ ] New option to enable verbose derivation output
++ [x] New option to enable verbose derivation output
+  + `--show-decisions` with more fine grained `--decision-signature` option
 + [ ] Documentation
   + Proper README
   + Docstrings for all API functions
