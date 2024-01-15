@@ -5,10 +5,11 @@ from typing import Dict, List, Tuple, Optional
 import clingo
 from clingo.application import Application, Flag
 
+from .logger import BACKGROUND_COLORS, COLORS
 from .muc import CoreComputer
 from .transformer import AssumptionTransformer, ConstraintTransformer, FactTransformer
+from .unsat_constraints import UnsatConstraintComputer
 from ..utils import get_solver_literal_lookup, get_signatures_from_model_string
-from ..utils.logger import BACKGROUND_COLORS, COLORS
 
 
 class ClingoExplaidApp(Application):
@@ -180,63 +181,12 @@ class ClingoExplaidApp(Application):
         assumption_string: Optional[str] = None,
         output_prefix: Optional[str] = None,
     ):
-        unsat_constraint_atom = "__unsat__"
-        ct = ConstraintTransformer(unsat_constraint_atom, include_id=True)
-
-        if not files:
-            program_transformed = ct.parse_files("-")
-        else:
-            program_transformed = ct.parse_files(files)
-
-        minimizer_rule = f"#minimize {{1,X : {unsat_constraint_atom}(X)}}."
-        final_program = program_transformed + "\n" + minimizer_rule
-
-        constraint_lookup = {}
-        for line in final_program.split("\n"):
-            id_re = re.compile(f"{unsat_constraint_atom}\(([1-9][0-9]*)\)")
-            match_result = id_re.match(line)
-            if match_result is None:
-                continue
-            constraint_id = match_result.group(1)
-            constraint_lookup[int(constraint_id)] = (
-                str(line)
-                .replace(f"{unsat_constraint_atom}({constraint_id})", "")
-                .strip()
-            )
-
-        if assumption_string is not None and len(assumption_string) > 0:
-            assumptions_signatures = set(
-                get_signatures_from_model_string(assumption_string).items()
-            )
-            ft = FactTransformer(signatures=assumptions_signatures)
-            # first remove all facts from the programs matching the assumption signatures from the assumption_string
-            final_program = ft.parse_string(final_program)
-            # then add the assumed atoms as the only remaining facts
-            final_program += "\n" + ". ".join(assumption_string.split()) + "."
-
-        control.add("base", [], final_program)
-        control.ground([("base", [])])
-
-        with control.solve(yield_=True) as solve_handle:
-            model = solve_handle.model()
-            unsat_constraint_atoms = []
-            model_symbols_shown = []
-            while model is not None:
-                unsat_constraint_atoms = [
-                    a
-                    for a in model.symbols(atoms=True)
-                    if a.match(unsat_constraint_atom, 1, True)
-                ]
-                model_symbols_shown = model.symbols(shown=True)
-                solve_handle.resume()
-                model = solve_handle.model()
-            # print(" ".join([str(s) for s in model_symbols_shown]))
-            unsat_constraints = []
-            for a in unsat_constraint_atoms:
-                constraint = constraint_lookup.get(a.arguments[0].number)
-                unsat_constraints.append(constraint)
-
-            self._print_unsat_constraints(unsat_constraints, prefix=output_prefix)
+        ucc = UnsatConstraintComputer(control=control)
+        ucc.parse_files(files)
+        unsat_constraints = ucc.get_unsat_constraints(
+            assumption_string=assumption_string
+        )
+        self._print_unsat_constraints(unsat_constraints, prefix=output_prefix)
 
     def print_model(self, model, _):
         return
