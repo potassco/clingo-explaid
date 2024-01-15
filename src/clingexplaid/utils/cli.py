@@ -1,13 +1,13 @@
 import re
 from importlib.metadata import version
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import clingo
 from clingo.application import Application, Flag
 
 from .muc import CoreComputer
-from .transformer import AssumptionTransformer, ConstraintTransformer
-from ..utils import get_solver_literal_lookup
+from .transformer import AssumptionTransformer, ConstraintTransformer, FactTransformer
+from ..utils import get_solver_literal_lookup, get_signatures_from_model_string
 from ..utils.logger import BACKGROUND_COLORS, COLORS
 
 
@@ -109,7 +109,12 @@ class ClingoExplaidApp(Application):
         print(f"{COLORS['BLUE']}{muc}{COLORS['NORMAL']}")
         self._muc_id += 1
 
-    def _method_muc(self, control: clingo.Control, files: List[str]):
+    def _method_muc(
+        self,
+        control: clingo.Control,
+        files: List[str],
+        compute_unsat_constraints: bool = False,
+    ):
         program_transformed, at = self._apply_assumption_transformer(
             signatures=self._muc_assumption_signatures, files=files
         )
@@ -149,16 +154,34 @@ class ClingoExplaidApp(Application):
                     muc_string = " ".join([str(literal_lookup[a]) for a in muc])
                     self._print_muc(muc_string)
 
-    def _print_unsat_constraints(self, unsat_constraints) -> None:
-        print(f"{BACKGROUND_COLORS['RED']} Unsat Constraints {COLORS['NORMAL']}")
-        for c in unsat_constraints:
-            print(f"{COLORS['RED']}{c}{COLORS['NORMAL']}")
+                    if compute_unsat_constraints:
+                        self._method_unsat_constraints(
+                            control=clingo.Control(),
+                            files=files,
+                            assumption_string=muc_string,
+                            output_prefix=f"{COLORS['RED']}├──{COLORS['NORMAL']}",
+                        )
 
-    def _method_unsat_constraints(self, control: clingo.Control, files: List[str]):
+    def _print_unsat_constraints(
+        self, unsat_constraints, prefix: Optional[str] = None
+    ) -> None:
+        if prefix is None:
+            prefix = ""
+        print(
+            f"{prefix}{BACKGROUND_COLORS['RED']} Unsat Constraints {COLORS['NORMAL']}"
+        )
+        for c in unsat_constraints:
+            print(f"{prefix}{COLORS['RED']}{c}{COLORS['NORMAL']}")
+
+    def _method_unsat_constraints(
+        self,
+        control: clingo.Control,
+        files: List[str],
+        assumption_string: Optional[str] = None,
+        output_prefix: Optional[str] = None,
+    ):
         unsat_constraint_atom = "__unsat__"
         ct = ConstraintTransformer(unsat_constraint_atom, include_id=True)
-
-        print(files)
 
         if not files:
             program_transformed = ct.parse_files("-")
@@ -181,6 +204,16 @@ class ClingoExplaidApp(Application):
                 .strip()
             )
 
+        if assumption_string is not None and len(assumption_string) > 0:
+            assumptions_signatures = set(
+                get_signatures_from_model_string(assumption_string).items()
+            )
+            ft = FactTransformer(signatures=assumptions_signatures)
+            # first remove all facts from the programs matching the assumption signatures from the assumption_string
+            final_program = ft.parse_string(final_program)
+            # then add the assumed atoms as the only remaining facts
+            final_program += "\n" + ". ".join(assumption_string.split()) + "."
+
         control.add("base", [], final_program)
         control.ground([("base", [])])
 
@@ -197,13 +230,13 @@ class ClingoExplaidApp(Application):
                 model_symbols_shown = model.symbols(shown=True)
                 solve_handle.resume()
                 model = solve_handle.model()
-            print(" ".join([str(s) for s in model_symbols_shown]))
+            # print(" ".join([str(s) for s in model_symbols_shown]))
             unsat_constraints = []
             for a in unsat_constraint_atoms:
                 constraint = constraint_lookup.get(a.arguments[0].number)
                 unsat_constraints.append(constraint)
 
-            self._print_unsat_constraints(unsat_constraints)
+            self._print_unsat_constraints(unsat_constraints, prefix=output_prefix)
 
     def print_model(self, model, _):
         return
@@ -225,7 +258,4 @@ class ClingoExplaidApp(Application):
             method_function(control, files)
         # special cases where specific pipelines have to be configured
         elif self.methods == {"muc", "unsat-constraints"}:
-            print(
-                "NOT IMPLEMENTED: first find muc -> apply unsat-constraints to find conflicting constraints for"
-                "specific MUC"
-            )
+            self.method_functions["muc"](control, files, compute_unsat_constraints=True)
