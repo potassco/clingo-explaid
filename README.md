@@ -87,6 +87,10 @@ This blackens the source code whenever `git commit` is used.
 
 ## ToDos
 
+### Important Features
+
+`2023`
+
 + [x] New CLI structure
   + different modes:
     + MUC
@@ -95,14 +99,31 @@ This blackens the source code whenever `git commit` is used.
 + [x] Iterative Deltion for Multiple MUCs
   + variation of the QuickXplain algorithm : `SKIPPED`
 + [x] Finish unsat-constraints implementation for the API
-+ [ ] Give a warning in Transformer if control is not grounded yet
+  
+`2024 - JAN`
+
 + [x] New option to enable verbose derivation output
   + `--show-decisions` with more fine grained `--decision-signature` option
++ [ ] Give a warning in Transformer if control is not grounded yet
 + [ ] Documentation
-  + Proper README
-  + Docstrings for all API functions
-  + CLI documentation with examples
-  + Examples folder
+  + [ ] Proper README
+  + [ ] Docstrings for all API functions
+  + [ ] CLI documentation with examples
+  + [ ] Examples folder
+    + [ ] Sudoku
+    + [ ] Graph Coloring
+    + [ ] 1 More ...
+
++ [ ] Make `--show-decisions` its own mode
++ [ ] In `--show-decisions` hide INTERNAL when `--decision-signature` is active
+
+
++ [ ] Features for `--unsat-constraints`
+	+ [ ] Access comments in the same line as constraint
+	+ [ ] File + Line (Clickable link)
+	
+### Extra Features
++ [ ] Timeout
 
 ## Experimental Features
 
