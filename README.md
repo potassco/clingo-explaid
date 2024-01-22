@@ -104,6 +104,7 @@ This blackens the source code whenever `git commit` is used.
 
 + [x] New option to enable verbose derivation output
   + `--show-decisions` with more fine grained `--decision-signature` option
++ [x] Make `--show-decisions` its own mode
 + [ ] Give a warning in Transformer if control is not grounded yet
 + [ ] Documentation
   + [ ] Proper README
@@ -114,9 +115,7 @@ This blackens the source code whenever `git commit` is used.
     + [ ] Graph Coloring
     + [ ] 1 More ...
 
-+ [ ] Make `--show-decisions` its own mode
 + [ ] In `--show-decisions` hide INTERNAL when `--decision-signature` is active
-
 
 + [ ] Features for `--unsat-constraints`
 	+ [ ] Access comments in the same line as constraint
