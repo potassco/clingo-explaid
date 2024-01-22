@@ -1,4 +1,4 @@
-# Example : Graph coloring
+# Example : Graph Coloring
 
 + This example encodes the classic graph coloring problem together with an unsatisfiable instance
 + Here for the sake of illustration some of the graph nodes are already assigned a color from the start, which is where the conflict occurs
