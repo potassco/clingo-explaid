@@ -21,6 +21,7 @@ class ClingoExplaidApp(Application):
     CLINGEXPLAID_METHODS = {
         "muc": "Description for MUC method",
         "unsat-constraints": "Description for unsat-constraints method",
+        "show-decisions": "Visualize the decision process of clingo during solving",
     }
 
     def __init__(self, name):
@@ -31,10 +32,10 @@ class ClingoExplaidApp(Application):
             for m in self.CLINGEXPLAID_METHODS.keys()
         }
         self.method_flags = {m: Flag() for m in self.CLINGEXPLAID_METHODS.keys()}
-        self.flag_show_decisions = Flag()
 
         # SHOW DECISIONS
-        self._decision_signatures = {}
+        self._show_decisions_decision_signatures = {}
+        self._show_decisions_model_id = 1
 
         # MUC
         self._muc_assumption_signatures = {}
@@ -78,7 +79,7 @@ class ClingoExplaidApp(Application):
         return True
 
     def _parse_decision_signature(self, decision_signature: str) -> bool:
-        if not self.flag_show_decisions:
+        if not self.method_flags["show-decisions"]:
             print(
                 "PARSE ERROR: The decision signature option is only available if the flag --show-decisions is enabled"
             )
@@ -92,7 +93,7 @@ class ClingoExplaidApp(Application):
                 "<assumption-name>/<arity>"
             )
             return False
-        self._decision_signatures[signature] = arity
+        self._show_decisions_decision_signatures[signature] = arity
         return True
 
     def register_options(self, options):
@@ -117,14 +118,7 @@ class ClingoExplaidApp(Application):
             multi=True,
         )
 
-        group = "General Options"
-
-        options.add_flag(
-            group=group,
-            option="show-decisions",
-            description="Shows a visualization of the decisions made by the solver during the solving process",
-            target=self.flag_show_decisions,
-        )
+        group = "Show Decisions Options"
 
         options.add(
             group,
@@ -134,6 +128,8 @@ class ClingoExplaidApp(Application):
             self._parse_decision_signature,
             multi=True,
         )
+
+        # group = "General Options"
 
     def _apply_assumption_transformer(
         self, signatures: Dict[str, int], files: List[str]
@@ -229,8 +225,8 @@ class ClingoExplaidApp(Application):
         output_prefix_passive: str = "",
     ):
         # register DecisionOrderPropagator if flag is enabled
-        if self.flag_show_decisions:
-            decision_signatures = set(self._decision_signatures.items())
+        if self.method_flags["show-decisions"]:
+            decision_signatures = set(self._show_decisions_decision_signatures.items())
             dop = DecisionOrderPropagator(
                 signatures=decision_signatures, prefix=output_prefix_passive
             )
@@ -242,6 +238,38 @@ class ClingoExplaidApp(Application):
             assumption_string=assumption_string
         )
         self._print_unsat_constraints(unsat_constraints, prefix=output_prefix_active)
+
+    def _print_model(
+        self,
+        model,
+        prefix_active: str = "",
+        prefix_passive: str = "",
+    ) -> None:
+        print(prefix_passive)
+        print(
+            f"{prefix_active}"
+            f"{BACKGROUND_COLORS['LIGHT-GREY']}{COLORS['BLACK']} Model {COLORS['NORMAL']}{BACKGROUND_COLORS['GREY']} "
+            f"{self._show_decisions_model_id} {COLORS['NORMAL']} "
+            f"{model}"
+        )
+        # print(f"{COLORS['BLUE']}{model}{COLORS['NORMAL']}")
+        print(prefix_passive)
+        self._show_decisions_model_id += 1
+
+    def _method_show_decisions(
+        self,
+        control: clingo.Control,
+        files: List[str],
+    ):
+        decision_signatures = set(self._show_decisions_decision_signatures.items())
+        dop = DecisionOrderPropagator(signatures=decision_signatures)
+        control.register_propagator(dop)
+        for f in files:
+            control.load(f)
+        if not files:
+            control.load("-")
+        control.ground()
+        control.solve(on_model=lambda model: self._print_model(model, "├", "│"))
 
     def print_model(self, model, _):
         return
@@ -264,3 +292,12 @@ class ClingoExplaidApp(Application):
         # special cases where specific pipelines have to be configured
         elif self.methods == {"muc", "unsat-constraints"}:
             self.method_functions["muc"](control, files, compute_unsat_constraints=True)
+        elif self.methods == {"muc", "unsat-constraints", "show-decisions"}:
+            self.method_functions["muc"](control, files, compute_unsat_constraints=True)
+        elif self.methods == {"unsat-constraints", "show-decisions"}:
+            self.method_functions["unsat-constraints"](control, files)
+        else:
+            print(
+                f"METHOD ERROR: the combination of the methods {[f'--{m}' for m in self.methods]} is invalid. "
+                f"Please remove the conflicting method flags"
+            )
