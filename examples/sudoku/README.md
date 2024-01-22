@@ -9,7 +9,7 @@
 
 ## Run
 
-+ Finding all MUCs:
++ Finding all MUCs
 
   ```bash
   clingexplaid 0 encoding.lp instance.lp --muc -a initial/3
