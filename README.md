@@ -120,7 +120,7 @@ This blackens the source code whenever `git commit` is used.
 + [x] `AssumptionTransformer` doesn't work properly on included files
   + It actually did work fine
 + [x] In `--show-decisions` hide INTERNAL when `--decision-signature` is active
-+ [ ] cleanup `DecisionOrderPropagator` print functions
++ [x] cleanup `DecisionOrderPropagator` print functions
 
 + [ ] Features for `--unsat-constraints`
 	+ [ ] Access comments in the same line as constraint

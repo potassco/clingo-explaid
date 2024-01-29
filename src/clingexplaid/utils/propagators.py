@@ -41,6 +41,18 @@ class DecisionOrderPropagator:
             init.add_watch(query_solver_literal)
             init.add_watch(-query_solver_literal)
 
+    def _is_printed(self, symbol):
+        printed = True
+        # skip UNKNOWN print if signatures is set
+        if len(self.signatures) > 0 and symbol == UNKNOWN_SYMBOL_TOKEN:
+            printed = False
+        # skip if symbol signature is not in self.signatures
+        if len(self.signatures) > 0 and symbol != UNKNOWN_SYMBOL_TOKEN:
+            if not any(symbol.match(s, a) for s, a in self.signatures):
+                printed = False
+
+        return printed
+
     def propagate(self, control, changes) -> None:
         decisions, entailments = self.get_decisions(control.assignment)
 
@@ -49,53 +61,46 @@ class DecisionOrderPropagator:
             print_level += 1
             if d in self.last_decisions:
                 continue
+
             decision_symbol = self.get_symbol(d)
-
-            # don't print decision if its signature is not matching the provided ones
-            skip_print = False
-            # skip UNKNOWN print if signatures is set
-            if len(self.signatures) > 0 and decision_symbol == UNKNOWN_SYMBOL_TOKEN:
-                skip_print = True
-            if len(self.signatures) > 0 and decision_symbol != UNKNOWN_SYMBOL_TOKEN:
-                if not any(decision_symbol.match(s, a) for s, a in self.signatures):
-                    skip_print = True
-
+            decision_printed = self._is_printed(decision_symbol)
             decision_negative = d < 0
 
-            indent_string = INDENT_START + INDENT_STEP * (print_level - 1)
-            if not skip_print:
+            # build decision indent string
+            decision_indent_string = INDENT_START + INDENT_STEP * (print_level - 1)
+            # print decision if it matches the signatures (if provided)
+            if decision_printed:
                 print(
-                    f"{self.prefix}{indent_string}[{['+', '-'][int(decision_negative)]}] {decision_symbol} [{d}]"
+                    f"{self.prefix}{decision_indent_string}"
+                    f"[{['+', '-'][int(decision_negative)]}]"
+                    f" {decision_symbol} "
+                    f"[{d}]"
                 )
+
             entailment_list = entailments[d] if d in entailments else []
+            # build entailment indent string
+            entailment_indent_string = (
+                (INDENT_START + INDENT_STEP * (print_level - 2) + INDENT_END)
+                if print_level > 1
+                else "│ "
+            )
             for e in entailment_list:
+                # skip decision in entailments
                 if e == d:
                     continue
-                entailment_indent = (
-                    (INDENT_START + INDENT_STEP * (print_level - 2) + INDENT_END)
-                    if print_level > 1
-                    else "│ "
-                )
                 entailment_symbol = self.get_symbol(e)
-                # skip UNKNOWN print in entailments if signatures is set
-                if (
-                    len(self.signatures) > 0
-                    and entailment_symbol == UNKNOWN_SYMBOL_TOKEN
-                ):
+                entailment_printed = self._is_printed(entailment_symbol)
+                # skip if entailment symbol doesn't mach signatures (if provided)
+                if not entailment_printed:
                     continue
-                if (
-                    len(self.signatures) > 0
-                    and entailment_symbol != UNKNOWN_SYMBOL_TOKEN
-                ):
-                    if not any(
-                        entailment_symbol.match(s, a) for s, a in self.signatures
-                    ):
-                        continue
+
                 entailment_negative = e < 0
-                if not skip_print:
+                if decision_printed:
                     print(
-                        f"{self.prefix}{entailment_indent}{COLORS['GREY']}[{['+', '-'][int(entailment_negative)]}] "
-                        f"{entailment_symbol} [{e}]{COLORS['NORMAL']}"
+                        f"{self.prefix}{entailment_indent_string}{COLORS['GREY']}"
+                        f"[{['+', '-'][int(entailment_negative)]}] "
+                        f"{entailment_symbol} "
+                        f"[{e}]{COLORS['NORMAL']}"
                     )
 
         self.last_decisions = decisions
@@ -108,13 +113,10 @@ class DecisionOrderPropagator:
         decision_symbol = self.get_symbol(decision)
 
         # don't print decision undo if its signature is not matching the provided ones
-        skip_print = False
-        if len(self.signatures) > 0 and decision_symbol != UNKNOWN_SYMBOL_TOKEN:
-            if not any(decision_symbol.match(s, a) for s, a in self.signatures):
-                skip_print = True
+        printed = self._is_printed(decision_symbol)
 
         indent_string = INDENT_START + INDENT_STEP * (len(self.last_decisions) - 1)
-        if not skip_print:
+        if printed:
             print(
                 f"{self.prefix}{indent_string}{COLORS['RED']}[✕] {decision_symbol} [{decision}]{COLORS['NORMAL']}"
             )
