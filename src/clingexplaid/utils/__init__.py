@@ -3,7 +3,7 @@ Utilities
 """
 
 import re
-from typing import Dict, Iterable, Set, Tuple, Union
+from typing import Dict, Iterable, Set, Tuple, Union, List
 
 import clingo
 from clingo.ast import ASTType
@@ -74,3 +74,19 @@ def get_signatures_from_model_string(model_string: str) -> Dict[str, int]:
             arity += 1
         signatures[signature] = arity
     return signatures
+
+
+def get_constants_from_arguments(argument_vector: List[str]) -> Dict:
+    constants = dict()
+    next_constant = False
+    for element in argument_vector:
+        if next_constant:
+            result = re.search(r"(.*)=(.*)", element)
+            if len(result.groups()) == 0:
+                continue
+            constants[result.group(1)] = result.group(2)
+            next_constant = False
+        if element in ("-c", "--const"):
+            next_constant = True
+
+    return constants
