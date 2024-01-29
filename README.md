@@ -105,7 +105,7 @@ This blackens the source code whenever `git commit` is used.
 + [x] New option to enable verbose derivation output
   + `--show-decisions` with more fine grained `--decision-signature` option
 + [x] Make `--show-decisions` its own mode
-+ [ ] Give a warning in Transformer if control is not grounded yet
++ [x] Give a warning in Transformer if control is not grounded yet
 + [ ] Documentation
   + [ ] Proper README
   + [ ] Docstrings for all API functions

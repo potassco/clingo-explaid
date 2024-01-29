@@ -20,6 +20,12 @@ class UntransformedException(Exception):
     """
 
 
+class NotGroundedException(Exception):
+    """Exception raised if the get_assumptions method of an AssumptionTransformer is called without the control object
+    having been grounded beforehand.
+    """
+
+
 class RuleIDTransformer(_ast.Transformer):
     """
     A Transformer that takes all the rules of a program and adds an atom with `self.rule_id_signature` in their bodys,
@@ -170,14 +176,22 @@ class AssumptionTransformer(_ast.Transformer):
         Returns the assumptions which were gathered during the transformation of the program. Has to be called after
         a program has already been transformed.
         """
-        #  Just taking the fact symbolic atoms of the control given doesn't work here since we anticipate that
-        #  this control is ground on the already transformed program. This means that all facts are now choice rules
-        #  which means we cannot detect them like this anymore.
+        # Just taking the fact symbolic atoms of the control given doesn't work here since we anticipate that
+        # this control is ground on the already transformed program. This means that all facts are now choice rules
+        # which means we cannot detect them like this anymore.
         if not self.transformed:
             raise UntransformedException(
                 "The get_assumptions method cannot be called before a program has been "
                 "transformed"
             )
+        # If the control has not been grounded yet except since without grounding we don't have access to the symbolic
+        # atoms.
+        if len(control.symbolic_atoms) == 0:
+            raise NotGroundedException(
+                "The get_assumptions method cannot be called before the control has been "
+                "grounded"
+            )
+
         constants = constants if constants is not None else {}
 
         all_constants = dict(self.program_constants)
