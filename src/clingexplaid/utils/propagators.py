@@ -53,6 +53,9 @@ class DecisionOrderPropagator:
 
             # don't print decision if its signature is not matching the provided ones
             skip_print = False
+            # skip UNKNOWN print if signatures is set
+            if len(self.signatures) > 0 and decision_symbol == UNKNOWN_SYMBOL_TOKEN:
+                skip_print = True
             if len(self.signatures) > 0 and decision_symbol != UNKNOWN_SYMBOL_TOKEN:
                 if not any(decision_symbol.match(s, a) for s, a in self.signatures):
                     skip_print = True
@@ -74,6 +77,20 @@ class DecisionOrderPropagator:
                     else "│ "
                 )
                 entailment_symbol = self.get_symbol(e)
+                # skip UNKNOWN print in entailments if signatures is set
+                if (
+                    len(self.signatures) > 0
+                    and entailment_symbol == UNKNOWN_SYMBOL_TOKEN
+                ):
+                    continue
+                if (
+                    len(self.signatures) > 0
+                    and entailment_symbol != UNKNOWN_SYMBOL_TOKEN
+                ):
+                    if not any(
+                        entailment_symbol.match(s, a) for s, a in self.signatures
+                    ):
+                        continue
                 entailment_negative = e < 0
                 if not skip_print:
                     print(
