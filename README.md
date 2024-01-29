@@ -121,12 +121,13 @@ This blackens the source code whenever `git commit` is used.
   + It actually did work fine
 + [x] In `--show-decisions` hide INTERNAL when `--decision-signature` is active
 + [x] cleanup `DecisionOrderPropagator` print functions
-
-+ [ ] Features for `--unsat-constraints`
-	+ [ ] Access comments in the same line as constraint
-	+ [ ] File + Line (Clickable link)
++ [x] Features for `--unsat-constraints`
+	+ [x] File + Line (Clickable link)
 	
 ### Extra Features
++ [ ] `--unsat-constraints`:
+  + [ ] Access comments in the same line as constraint
+  + [ ] Currently, for multiline constraints a line number cannot be found
 + [ ] Timeout
 
 ## Experimental Features

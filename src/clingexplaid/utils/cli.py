@@ -212,7 +212,10 @@ class ClingoExplaidApp(Application):
                         )
 
     def _print_unsat_constraints(
-        self, unsat_constraints, prefix: Optional[str] = None
+        self,
+        unsat_constraints,
+        ucc: UnsatConstraintComputer,
+        prefix: Optional[str] = None,
     ) -> None:
         if prefix is None:
             prefix = ""
@@ -220,7 +223,10 @@ class ClingoExplaidApp(Application):
             f"{prefix}{BACKGROUND_COLORS['RED']} Unsat Constraints {COLORS['NORMAL']}"
         )
         for c in unsat_constraints:
-            print(f"{prefix}{COLORS['RED']}{c}{COLORS['NORMAL']}")
+            file, line = ucc.get_constraint_location(c)
+            print(
+                f"{prefix}{COLORS['RED']}{c}{COLORS['GREY']} [file://{file}](Line {line}){COLORS['NORMAL']}"
+            )
 
     def _method_unsat_constraints(
         self,
@@ -243,7 +249,9 @@ class ClingoExplaidApp(Application):
         unsat_constraints = ucc.get_unsat_constraints(
             assumption_string=assumption_string
         )
-        self._print_unsat_constraints(unsat_constraints, prefix=output_prefix_active)
+        self._print_unsat_constraints(
+            unsat_constraints, ucc=ucc, prefix=output_prefix_active
+        )
 
     def _print_model(
         self,

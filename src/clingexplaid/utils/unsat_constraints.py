@@ -3,7 +3,9 @@ Unsat Constraint Utilities
 """
 
 import re
-from typing import List, Optional
+from difflib import SequenceMatcher
+from pathlib import Path
+from typing import List, Optional, Tuple
 
 import clingo
 
@@ -28,6 +30,9 @@ class UnsatConstraintComputer:
         self.program_transformed = None
         self.initialized = False
 
+        self.included_files = set()
+        self.file_constraint_lookup = dict()
+
     def parse_string(self, program_string: str) -> None:
         ct = ConstraintTransformer(UNSAT_CONSTRAINT_SIGNATURE, include_id=True)
         self.program_transformed = ct.parse_string(program_string)
@@ -38,9 +43,66 @@ class UnsatConstraintComputer:
         if not files:
             program_transformed = ct.parse_files("-")
         else:
+            for file in files:
+                # add includes to included_files for every file
+                self._register_included_files(file)
             program_transformed = ct.parse_files(files)
         self.program_transformed = program_transformed
         self.initialized = True
+
+    def _register_included_files(self, file: str) -> None:
+        absolute_file_path = str(Path(file).absolute().resolve())
+        # skip if file was already checked for includes
+        if absolute_file_path in self.included_files:
+            return
+        self.included_files.add(absolute_file_path)
+
+        included_filenames = []
+        with open(file, "r") as f:
+            result = re.search(r'#include "([^"]*)".', str(f.read()))
+            if result is not None:
+                included_filenames = list(result.groups())
+
+        for included_file in included_filenames:
+            # join original file relative path with included files -> absolute path
+            absolute_file_path = str(
+                Path(file).parent.joinpath(Path(included_file)).absolute().resolve()
+            )
+            if absolute_file_path not in self.included_files:
+                self.included_files.add(absolute_file_path)
+                self._register_included_files(absolute_file_path)
+
+    def _create_file_constraint_lookup(self) -> None:
+        for file in self.included_files:
+            with open(file, "r") as f:
+                rule_strings = [rule.strip() for rule in f.read().split(".")]
+                constraints = [rule for rule in rule_strings if rule.startswith(":-")]
+                self.file_constraint_lookup[file] = constraints
+
+    def get_constraint_location(self, constraint_string: str) -> Tuple[str, int]:
+        self._create_file_constraint_lookup()
+        file_similarities = {f: 0.0 for f in self.included_files}
+        best_constraints = dict()
+        for file, constraints in self.file_constraint_lookup.items():
+            for constraint in constraints:
+                string_similarity = SequenceMatcher(
+                    None, constraint_string, constraint
+                ).ratio()
+                # update similarity dictionary to find file with the highest matching constraint
+                if string_similarity > file_similarities[file]:
+                    file_similarities[file] = string_similarity
+                    best_constraints[file] = constraint
+        # get file with the highest similarity
+        best_matching_file = max(file_similarities.items(), key=lambda x: x[1])[0]
+        # get the line number from the file
+        original_constraint = best_constraints[best_matching_file]
+        line_number = -1
+        with open(best_matching_file, "r") as f:
+            for i, line in enumerate(f.readlines(), 1):
+                # this currently only works for non-multiline constraints!
+                if original_constraint in line:
+                    line_number = i
+        return best_matching_file, line_number
 
     def get_unsat_constraints(
         self, assumption_string: Optional[str] = None
