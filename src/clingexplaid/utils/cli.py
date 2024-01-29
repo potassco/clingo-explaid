@@ -1,4 +1,5 @@
 import re
+import sys
 from importlib.metadata import version
 from typing import Dict, List, Tuple, Optional
 
@@ -10,7 +11,11 @@ from .muc import CoreComputer
 from .propagators import DecisionOrderPropagator
 from .transformer import AssumptionTransformer, ConstraintTransformer, FactTransformer
 from .unsat_constraints import UnsatConstraintComputer
-from ..utils import get_solver_literal_lookup, get_signatures_from_model_string
+from ..utils import (
+    get_solver_literal_lookup,
+    get_signatures_from_model_string,
+    get_constants_from_arguments,
+)
 
 
 class ClingoExplaidApp(Application):
@@ -32,6 +37,7 @@ class ClingoExplaidApp(Application):
             for m in self.CLINGEXPLAID_METHODS.keys()
         }
         self.method_flags = {m: Flag() for m in self.CLINGEXPLAID_METHODS.keys()}
+        self.argument_constants = dict()
 
         # SHOW DECISIONS
         self._show_decisions_decision_signatures = {}
@@ -165,7 +171,7 @@ class ClingoExplaidApp(Application):
         control.ground([("base", [])])
 
         literal_lookup = get_solver_literal_lookup(control)
-        assumptions = at.get_assumptions(control)
+        assumptions = at.get_assumptions(control, constants=self.argument_constants)
         cc = CoreComputer(control, assumptions)
 
         max_models = int(control.configuration.solve.models)
@@ -283,6 +289,8 @@ class ClingoExplaidApp(Application):
             print("Reading from -")
         else:
             print(f"Reading from {files[0]} {'...' if len(files) > 1 else ''}")
+
+        self.argument_constants = get_constants_from_arguments(sys.argv)
 
         # standard case: only one method
         if len(self.methods) == 1:

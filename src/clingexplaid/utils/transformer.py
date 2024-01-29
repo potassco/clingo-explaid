@@ -104,6 +104,7 @@ class AssumptionTransformer(_ast.Transformer):
         self.signatures = signatures if signatures is not None else set()
         self.fact_rules: List[str] = []
         self.transformed: bool = False
+        self.program_constants = {}
 
     def visit_Rule(self, node):  # pylint: disable=C0103
         """
@@ -133,6 +134,13 @@ class AssumptionTransformer(_ast.Transformer):
             ),
             body=[],
         )
+
+    def visit_Definition(self, node):
+        """
+        All defined constants of the program are stored in self.program_constants
+        """
+        self.program_constants[node.name] = node.value.symbol
+        return node
 
     def parse_string(self, string: str) -> str:
         """
@@ -170,8 +178,12 @@ class AssumptionTransformer(_ast.Transformer):
                 "The get_assumptions method cannot be called before a program has been "
                 "transformed"
             )
+        constants = constants if constants is not None else {}
+
+        all_constants = dict(self.program_constants)
+        all_constants.update(constants)
         constant_strings = (
-            [f"-c {k}={v}" for k, v in constants.items()]
+            [f"-c {k}={v}" for k, v in all_constants.items()]
             if constants is not None
             else []
         )
