@@ -114,12 +114,11 @@ This blackens the source code whenever `git commit` is used.
     + [x] Sudoku
     + [x] Graph Coloring
     + [x] N-Queens
-+ Error when calling `--muc` constants aren't properly kept::
-  + call:
-    + `clingexplaid examples/queens/encoding.lp examples/queens/instance.lp 0 --muc`
-  + error:
-    + `<block>:4:9-13: info: interval undefined: 1..n`
-  + CRITICAL!
++ [x] Error when calling `--muc` constants aren't properly kept:
+  + The problem was in `AssumptionTransformer` where get_assumptions didn't have proper access to constants defined over
+    the CL and the program constants
++ [ ] `AssumptionTransformer` doesn't work properly on included files
+  + IMPORTANT TO FIX!
 + [ ] In `--show-decisions` hide INTERNAL when `--decision-signature` is active
 
 + [ ] Features for `--unsat-constraints`
