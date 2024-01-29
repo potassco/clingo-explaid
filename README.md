@@ -117,8 +117,8 @@ This blackens the source code whenever `git commit` is used.
 + [x] Error when calling `--muc` constants aren't properly kept:
   + The problem was in `AssumptionTransformer` where get_assumptions didn't have proper access to constants defined over
     the CL and the program constants
-+ [ ] `AssumptionTransformer` doesn't work properly on included files
-  + IMPORTANT TO FIX!
++ [x] `AssumptionTransformer` doesn't work properly on included files
+  + It actually did work fine
 + [ ] In `--show-decisions` hide INTERNAL when `--decision-signature` is active
 
 + [ ] Features for `--unsat-constraints`
