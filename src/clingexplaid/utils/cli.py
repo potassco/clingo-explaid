@@ -2,6 +2,7 @@ import re
 import sys
 from importlib.metadata import version
 from typing import Dict, List, Tuple, Optional
+from urllib.parse import quote_plus
 
 import clingo
 from clingo.application import Application, Flag
@@ -16,6 +17,9 @@ from ..utils import (
     get_signatures_from_model_string,
     get_constants_from_arguments,
 )
+
+
+HYPERLINK_MASK = "\033]8;{};{}\033\\{}\033]8;;\033\\"
 
 
 class ClingoExplaidApp(Application):
@@ -233,8 +237,13 @@ class ClingoExplaidApp(Application):
         )
         for c in unsat_constraints:
             file, line = ucc.get_constraint_location(c)
+            file_link = "file://" + file
+            if " " in file:
+                # If there's a space in the filename use a hyperlink
+                file_link = HYPERLINK_MASK.format("", file_link, file_link)
+
             print(
-                f"{prefix}{COLORS['RED']}{c}{COLORS['GREY']} [file://{file}](Line {line}){COLORS['NORMAL']}"
+                f"{prefix}{COLORS['RED']}{c}{COLORS['GREY']} [{file_link}](Line {line}){COLORS['NORMAL']}"
             )
 
     def _method_unsat_constraints(
