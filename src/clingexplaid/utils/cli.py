@@ -211,7 +211,9 @@ class ClingoExplaidApp(Application):
                     program_unsat = True
 
             if program_unsat:
+                mucs = 0
                 for muc in cc.get_multiple_minimal(max_mucs=max_models):
+                    mucs += 1
                     muc_string = " ".join([str(literal_lookup[a]) for a in muc])
                     self._print_muc(muc_string)
 
@@ -223,6 +225,12 @@ class ClingoExplaidApp(Application):
                             output_prefix_active=f"{COLORS['RED']}├──{COLORS['NORMAL']}",
                             output_prefix_passive=f"{COLORS['RED']}│  {COLORS['NORMAL']}",
                         )
+                if not mucs:
+                    print(
+                        "NO MUCS CONTAINED: The unsatisfiability of this program is not induced by the provided "
+                        "assumptions"
+                    )
+                    return
 
     def _print_unsat_constraints(
         self,
