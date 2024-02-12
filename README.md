@@ -123,6 +123,8 @@ This blackens the source code whenever `git commit` is used.
 + [x] cleanup `DecisionOrderPropagator` print functions
 + [x] Features for `--unsat-constraints`
 	+ [x] File + Line (Clickable link)
++ [ ] Confusing Optimization prints during `--muc` when finding mucs in optimized Programs
++ [ ] Problem with `-a` between finding single MUC and multiple MUCs
 	
 ### Extra Features
 + [ ] `--unsat-constraints`:

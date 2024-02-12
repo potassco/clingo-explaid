@@ -9,7 +9,7 @@ from clingo.application import Application, Flag
 from .logger import BACKGROUND_COLORS, COLORS
 from .muc import CoreComputer
 from .propagators import DecisionOrderPropagator
-from .transformer import AssumptionTransformer, ConstraintTransformer, FactTransformer
+from .transformer import AssumptionTransformer, OptimizationRemover
 from .unsat_constraints import UnsatConstraintComputer
 from ..utils import (
     get_solver_literal_lookup,
@@ -167,6 +167,10 @@ class ClingoExplaidApp(Application):
             signatures=self._muc_assumption_signatures, files=files
         )
 
+        # remove optimization statements
+        optr = OptimizationRemover()
+        program_transformed = optr.parse_string(program_transformed)
+
         control.add("base", [], program_transformed)
         control.ground([("base", [])])
 
@@ -183,6 +187,11 @@ class ClingoExplaidApp(Application):
 
             if cc.minimal is None:
                 print("SATISFIABLE: Instance has no MUCs")
+                return
+            if len(cc.minimal) == 0:
+                print(
+                    "NO MUCS CONTAINED: The unsatisfiability of this program is not induced by the provided assumptions"
+                )
                 return
 
             muc_string = " ".join([str(literal_lookup[a]) for a in cc.minimal])
