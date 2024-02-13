@@ -205,7 +205,7 @@ NO MUCS CONTAINED: The unsatisfiability of this program is not induced by the pr
 UNSATISFIABLE
 ```
 
-+ This is actually due to an implicit `-unsat` in the first 3 MUCs that isn't printed
++ This is actually due to an implicit `(unsat, False)` in the first 3 MUCs that isn't printed
 + Since the standard mode of `--muc` converts all facts to choices when no `-a` is provided `a(1)`, `a(2)`, `a(3)`, 
   and `unsat` are all converted to choices
 + We know that for the program to become satisfiable `unsat` cannot be true (line 4)
