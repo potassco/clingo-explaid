@@ -126,6 +126,11 @@ This blackens the source code whenever `git commit` is used.
 + [x] Confusing Optimization prints during `--muc` when finding mucs in optimized Programs
 + [x] File-Link test with space in filename
   + with `urllib.parsequote`
++ [ ] Write up why negated assumptions in MUC's are a problem
+  + One which is currently not addressed by clingo-explaid
++ [ ] Remove minimization also from `--unsat-constaints` mode
++ [ ] Change file identification to use `clingo.ast.Location` instead of the subtring search and own built file tree
++ [x] Add spaces around Link to make it clickable on MAC
 	
 ### Extra Features
 + [ ] `--unsat-constraints`:
