@@ -251,7 +251,7 @@ class ClingoExplaidApp(Application):
                 file_link = HYPERLINK_MASK.format("", file_link, file_link)
 
             print(
-                f"{prefix}{COLORS['RED']}{c}{COLORS['GREY']} [{file_link}](Line {line}){COLORS['NORMAL']}"
+                f"{prefix}{COLORS['RED']}{c}{COLORS['GREY']} [ {file_link} ](Line {line}){COLORS['NORMAL']}"
             )
 
     def _method_unsat_constraints(
