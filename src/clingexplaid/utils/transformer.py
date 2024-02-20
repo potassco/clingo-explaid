@@ -335,9 +335,11 @@ class ConstraintTransformer(_ast.Transformer):
     """
 
     def __init__(self, constraint_head_symbol: str, include_id: bool = False):
-        self.constraint_head_symbol = constraint_head_symbol
-        self.include_id = include_id
-        self.constraint_id = 1
+        self._constraint_head_symbol = constraint_head_symbol
+        self._include_id = include_id
+        self._constraint_id = 1
+
+        self.constraint_location_lookup = {}
 
     def visit_Rule(self, node):  # pylint: disable=C0103
         """
@@ -351,20 +353,25 @@ class ConstraintTransformer(_ast.Transformer):
             return node
 
         arguments = []
-        if self.include_id:
+        if self._include_id:
             arguments = [
                 _ast.SymbolicTerm(
-                    node.location, clingo.parse_term(str(self.constraint_id))
+                    node.location, clingo.parse_term(str(self._constraint_id))
                 )
             ]
 
         head_symbol = _ast.Function(
             location=node.location,
-            name=self.constraint_head_symbol,
+            name=self._constraint_head_symbol,
             arguments=arguments,
             external=0,
         )
-        self.constraint_id += 1
+
+        # add constraint location to lookup indexed by the constraint id
+        self.constraint_location_lookup[self._constraint_id] = node.location
+
+        # increase constraint id
+        self._constraint_id += 1
 
         # insert id symbol into body of rule
         node.head = head_symbol

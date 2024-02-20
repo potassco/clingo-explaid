@@ -1,8 +1,9 @@
 import re
 import sys
 from importlib.metadata import version
+from pathlib import Path
 from typing import Dict, List, Tuple, Optional
-from urllib.parse import quote_plus
+
 
 import clingo
 from clingo.application import Application, Flag
@@ -234,7 +235,7 @@ class ClingoExplaidApp(Application):
 
     def _print_unsat_constraints(
         self,
-        unsat_constraints,
+        unsat_constraints: Dict[int, str],
         ucc: UnsatConstraintComputer,
         prefix: Optional[str] = None,
     ) -> None:
@@ -243,16 +244,28 @@ class ClingoExplaidApp(Application):
         print(
             f"{prefix}{BACKGROUND_COLORS['RED']} Unsat Constraints {COLORS['NORMAL']}"
         )
-        for c in unsat_constraints:
-            file, line = ucc.get_constraint_location(c)
-            file_link = "file://" + file
-            if " " in file:
+        for cid, constraint in unsat_constraints.items():
+            location = ucc.get_constraint_location(cid)
+            relative_file_path = location.begin.filename
+            absolute_file_path = str(Path(relative_file_path).absolute().resolve())
+            line_beginning = location.begin.line
+            line_end = location.end.line
+            line_string = (
+                f"Line {line_beginning}"
+                if line_beginning == line_end
+                else f"Lines {line_beginning}-{line_end}"
+            )
+            file_link = "file://" + absolute_file_path
+            if " " in absolute_file_path:
                 # If there's a space in the filename use a hyperlink
                 file_link = HYPERLINK_MASK.format("", file_link, file_link)
 
-            print(
-                f"{prefix}{COLORS['RED']}{c}{COLORS['GREY']} [ {file_link} ](Line {line}){COLORS['NORMAL']}"
-            )
+            if location is not None:
+                print(
+                    f"{prefix}{COLORS['RED']}{constraint}{COLORS['GREY']} [ {file_link} ]({line_string}){COLORS['NORMAL']}"
+                )
+            else:
+                print(f"{prefix}{COLORS['RED']}{constraint}{COLORS['NORMAL']}")
 
     def _method_unsat_constraints(
         self,
