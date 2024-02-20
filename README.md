@@ -131,7 +131,7 @@ This blackens the source code whenever `git commit` is used.
   + with `urllib.parsequote`
 + [x] Write up why negated assumptions in MUC's are a problem
   + One which is currently not addressed by clingo-explaid
-+ [ ] Remove minimization also from `--unsat-constaints` mode
++ [x] Remove minimization also from `--unsat-constaints` mode
 + [x] Change file identification to use `clingo.ast.Location` instead of the subtring search and own built file tree
 + [x] Add spaces around Link to make it clickable on MAC
 + [ ] Add way for `-a` to allow for signatures without variables (`test/0`)
