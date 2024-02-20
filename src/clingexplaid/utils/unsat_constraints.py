@@ -10,7 +10,7 @@ from typing import List, Optional, Dict
 import clingo
 from clingo.ast import Location
 
-from .transformer import ConstraintTransformer, FactTransformer
+from .transformer import ConstraintTransformer, FactTransformer, OptimizationRemover
 from ..utils import get_signatures_from_model_string
 
 
@@ -45,6 +45,11 @@ class UnsatConstraintComputer:
             program_transformed = ct.parse_files("-")
         else:
             program_transformed = ct.parse_files(files)
+
+        # remove optimization statements
+        optr = OptimizationRemover()
+        program_transformed = optr.parse_string(program_transformed)
+
         self.program_transformed = program_transformed
         self._file_constraint_lookup = ct.constraint_location_lookup
         self.initialized = True
