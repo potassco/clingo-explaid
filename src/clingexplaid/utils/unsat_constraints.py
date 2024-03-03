@@ -70,9 +70,7 @@ class UnsatConstraintComputer:
         program_string = self.program_transformed
         # if an assumption string is provided use a FactTransformer to remove interfering facts
         if assumption_string is not None and len(assumption_string) > 0:
-            assumptions_signatures = set(
-                get_signatures_from_model_string(assumption_string).items()
-            )
+            assumptions_signatures = get_signatures_from_model_string(assumption_string)
             ft = FactTransformer(signatures=assumptions_signatures)
             # first remove all facts from the programs matching the assumption signatures from the assumption_string
             program_string = ft.parse_string(program_string)

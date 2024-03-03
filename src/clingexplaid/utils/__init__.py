@@ -47,15 +47,16 @@ __all__ = [
 ]
 
 
-def get_signatures_from_model_string(model_string: str) -> Dict[str, int]:
+def get_signatures_from_model_string(model_string: str) -> Set[Tuple[str, int]]:
     """
     This function returns a dictionary of the signatures/arities of all atoms of a model string. Model strings are of
     the form: `"signature1(X1, ..., XN) ... signatureM(X1, ..., XK)"`
     """
-    signatures = {}
+    signatures = set()
     for atom_string in model_string.split():
         result = re.search(r"([^(]*)\(", atom_string)
-        if len(result.groups()) == 0:
+        if result is None:
+            signatures.add((atom_string, 0))
             continue
         signature = result.group(1)
         # calculate arity for the signature
@@ -70,9 +71,10 @@ def get_signatures_from_model_string(model_string: str) -> Dict[str, int]:
                 if level == 1 and c == ",":
                     arity += 1
         # if arity is not 0 increase by 1 for the last remaining parameter that is not followed by a comma
-        if arity > 0:
+        # also increase arity by one for the case that there's only one parameter and no commas are contained just '('
+        if arity > 0 or "(" in atom_string:
             arity += 1
-        signatures[signature] = arity
+        signatures.add((signature, arity))
     return signatures
 
 

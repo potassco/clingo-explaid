@@ -155,7 +155,7 @@ class TestMain(TestCase):
             "res/transformed_program_constraints.lp"
         )
         ct = ConstraintTransformer(constraint_head_symbol="unsat")
-        result = ct.parse_file(program_path)
+        result = ct.parse_files([program_path])
         self.assertEqual(
             result.strip(), self.read_file(program_path_transformed).strip()
         )
