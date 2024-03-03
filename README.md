@@ -134,7 +134,10 @@ This blackens the source code whenever `git commit` is used.
 + [x] Remove minimization also from `--unsat-constaints` mode
 + [x] Change file identification to use `clingo.ast.Location` instead of the subtring search and own built file tree
 + [x] Add spaces around Link to make it clickable on MAC
-+ [ ] Add way for `-a` to allow for signatures without variables (`test/0`)
+
+`2024 - MAR`
+
++ [x] Add way for `-a` to allow for signatures without variables (`test/0`)
 	
 ### Extra Features
 + [ ] `--unsat-constraints`:
