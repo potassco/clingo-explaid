@@ -202,6 +202,15 @@ class ClingoExplaidApp(Application):
             muc_string = " ".join([str(literal_lookup[a]) for a in cc.minimal])
             self._print_muc(muc_string)
 
+            if compute_unsat_constraints:
+                self._method_unsat_constraints(
+                    control=clingo.Control(),
+                    files=files,
+                    assumption_string=muc_string,
+                    output_prefix_active=f"{COLORS['RED']}├──{COLORS['NORMAL']}",
+                    output_prefix_passive=f"{COLORS['RED']}│  {COLORS['NORMAL']}",
+                )
+
         # Case: Finding multiple MUCs
         if max_models >= 0:
             program_unsat = False
