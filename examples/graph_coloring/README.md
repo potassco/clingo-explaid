@@ -14,7 +14,7 @@
 + Finding all MUCs
 
     ```bash
-    clingexplaid 0 encoding.lp instance.lp --muc -a assign/3
+    clingexplaid 0 encoding.lp instance.lp --muc -a assign/2
     ```
   
     Expected Output:
@@ -41,7 +41,7 @@
 
 + Combined call with unsatisfiable constraints for every found MUC
   ```bash
-  clingexplaid 0 encoding.lp instance.lp --muc --unsat-constraints -a assign/3
+  clingexplaid 0 encoding.lp instance.lp --muc --unsat-constraints -a assign/2
   ```
   
   Expected Output:
