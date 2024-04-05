@@ -8,14 +8,13 @@ from typing import Dict, List, Tuple, Optional
 import clingo
 from clingo.application import Application, Flag
 
-from .logger import BACKGROUND_COLORS, COLORS
+from .logging import BACKGROUND_COLORS, COLORS
 from .muc import CoreComputer
 from .propagators import DecisionOrderPropagator
 from .transformer import AssumptionTransformer, OptimizationRemover
 from .unsat_constraints import UnsatConstraintComputer
-from ..utils import (
+from . import (
     get_solver_literal_lookup,
-    get_signatures_from_model_string,
     get_constants_from_arguments,
 )
 
@@ -60,7 +59,7 @@ class ClingoExplaidApp(Application):
 
         if len(self.methods) == 0:
             raise ValueError(
-                f"Clingexplaid was called without any method, pleas select at least one of the following methods: "
+                f"Clingexplaid was called without any method, please select at least one of the following methods: "
                 f"[{', '.join(['--' + str(m) for m in self.CLINGEXPLAID_METHODS.keys()])}]"
             )
 

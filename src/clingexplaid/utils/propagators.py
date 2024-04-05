@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple, Set
 
 import clingo
 
-from .logger import COLORS
+from .logging import COLORS
 
 DecisionLevel = List[int]
 DecisionLevelList = List[DecisionLevel]
@@ -138,7 +138,7 @@ class DecisionOrderPropagator:
                 level_offset_diff = level_offset_end - level_offset_start
                 if level_offset_diff > 1:
                     entailments[decision] = trail[
-                        (level_offset_start + 1) : level_offset_end
+                        (level_offset_start + 1): level_offset_end
                     ]
                 level += 1
         except RuntimeError:

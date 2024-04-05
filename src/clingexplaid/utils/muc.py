@@ -1,7 +1,6 @@
 """
 Unsatisfiable Core Utilities
 """
-import time
 from typing import Optional, Set, Tuple
 from itertools import chain, combinations
 

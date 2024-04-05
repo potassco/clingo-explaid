@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
 import clingo
 from clingo import ast as _ast
 
-from clingexplaid.utils import match_ast_symbolic_atom_signature
+from . import match_ast_symbolic_atom_signature
 
 RULE_ID_SIGNATURE = "_rule"
 REMOVED_TOKEN = "__REMOVED__"

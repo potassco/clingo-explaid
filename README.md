@@ -1,19 +1,16 @@
 # clingexplaid
 
-This project template is configured to ease collaboration. Linters, formatters,
-and actions are already configured and ready to use.
-
-To use the project template, run the `init.py` script to give the project a
-name and some metadata. The script can then be removed afterward and the
-`setup.cfg` file adjusted.
-
 ## Installation
 
-```shell
-pip install clingexplaid
+To install the project, run
+
+```bash
+pip install .
 ```
 
 ## Usage
+
+Run the following for basic usage information:
 
 ```bash
 clingexplaid -h

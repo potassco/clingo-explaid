@@ -1,5 +1,5 @@
 """
-Utilities
+Utilities.
 """
 
 import re
@@ -7,6 +7,7 @@ from typing import Dict, Iterable, Set, Tuple, Union, List
 
 import clingo
 from clingo.ast import ASTType
+
 
 SymbolSet = Set[clingo.Symbol]
 Literal = Tuple[clingo.Symbol, bool]

@@ -3,15 +3,13 @@ Unsat Constraint Utilities
 """
 
 import re
-from difflib import SequenceMatcher
-from pathlib import Path
 from typing import List, Optional, Dict
 
 import clingo
 from clingo.ast import Location
 
 from .transformer import ConstraintTransformer, FactTransformer, OptimizationRemover
-from ..utils import get_signatures_from_model_string
+from . import get_signatures_from_model_string
 
 
 UNSAT_CONSTRAINT_SIGNATURE = "__unsat__"

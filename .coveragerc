@@ -1,9 +1,0 @@
-[run]
-source = clingexplaid
-       tests
-omit = */clingexplaid/__main__.py
-       */clingexplaid/utils/cli.py
-[report]
-exclude_lines =
-    assert
-    nocoverage
