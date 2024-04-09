@@ -1,3 +1,7 @@
+"""
+Transformer Module: Adding unique rule identifiers to the body of rules
+"""
+
 from pathlib import Path
 from typing import Optional, Set, Tuple, Union
 

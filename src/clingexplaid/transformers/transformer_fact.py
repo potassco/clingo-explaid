@@ -1,3 +1,7 @@
+"""
+Transformer Module: Fact Remover
+"""
+
 from pathlib import Path
 from typing import Optional, Sequence, Set, Tuple, Union
 
@@ -11,6 +15,8 @@ class FactTransformer(_ast.Transformer):
     """
     Transformer that removes all facts from a program that match provided signatures
     """
+
+    # pylint: disable=duplicate-code
 
     def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None):
         self.signatures = signatures if signatures is not None else set()
@@ -38,6 +44,9 @@ class FactTransformer(_ast.Transformer):
 
     @staticmethod
     def post_transform(program_string: str) -> str:
+        """
+        Helper function that is called after the transformation process for cleanup purposes
+        """
         # remove the transformed REMOVED_TOKENS from the resulting program string
         rules = program_string.split("\n")
         out = []

@@ -1,3 +1,7 @@
+"""
+Transformer Module: Assumption Transformer for converting facts to choices that can be assumed
+"""
+
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
 
@@ -52,6 +56,7 @@ class AssumptionTransformer(_ast.Transformer):
         """
         All defined constants of the program are stored in self.program_constants
         """
+        # pylint: disable=invalid-name
         self.program_constants[node.name] = node.value.symbol
         return node
 
@@ -84,13 +89,13 @@ class AssumptionTransformer(_ast.Transformer):
         # which means we cannot detect them like this anymore.
         if not self.transformed:
             raise UntransformedException(
-                "The get_assumptions method cannot be called before a program has been " "transformed"
+                "The get_assumptions method cannot be called before a program has been transformed"
             )
         # If the control has not been grounded yet except since without grounding we don't have access to the symbolic
         # atoms.
         if len(control.symbolic_atoms) == 0:
             raise NotGroundedException(
-                "The get_assumptions method cannot be called before the control has been " "grounded"
+                "The get_assumptions method cannot be called before the control has been grounded"
             )
 
         constants = constants if constants is not None else {}

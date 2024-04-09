@@ -1,3 +1,7 @@
+"""
+Propagator Module: Decision Order
+"""
+
 from typing import Optional, Tuple, Set
 
 import clingo
@@ -7,7 +11,12 @@ from ..utils.logging import COLORS
 
 
 class DecisionOrderPropagator:
+    """
+    Propagator for showing the Decision Order of clingo
+    """
+
     def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None, prefix: str = ""):
+        # pylint: disable=missing-function-docstring
         self.slit_symbol_lookup = {}
         self.signatures = signatures if signatures is not None else set()
         self.prefix = prefix
@@ -16,6 +25,9 @@ class DecisionOrderPropagator:
         self.last_entailments = {}
 
     def init(self, init):
+        """
+        Method to initialize the Decision Order Propagator. Here the literals are added to the Propagator's watch list.
+        """
         for atom in init.symbolic_atoms:
             program_literal = atom.literal
             solver_literal = init.solver_literal(program_literal)
@@ -29,7 +41,10 @@ class DecisionOrderPropagator:
             init.add_watch(query_solver_literal)
             init.add_watch(-query_solver_literal)
 
-    def _is_printed(self, symbol):
+    def _is_printed(self, symbol: clingo.Symbol) -> bool:
+        """
+        Helper function to check if a specific symbol should be printed or not
+        """
         printed = True
         # skip UNKNOWN print if signatures is set
         if len(self.signatures) > 0 and symbol == UNKNOWN_SYMBOL_TOKEN:
@@ -42,6 +57,11 @@ class DecisionOrderPropagator:
         return printed
 
     def propagate(self, control, changes) -> None:
+        """
+        Propagate method the is called when one the registered literals is propagated by clasp. Here useful information
+        about the decision progress is recorded to be visualized later.
+        """
+        # pylint: disable=unused-argument
         decisions, entailments = self.get_decisions(control.assignment)
 
         print_level = 0
@@ -93,6 +113,11 @@ class DecisionOrderPropagator:
         self.last_entailments = entailments
 
     def undo(self, thread_id: int, assignment, changes) -> None:
+        """
+        This function is called when one of the solvers decisions is undone.
+        """
+        # pylint: disable=unused-argument
+
         if len(self.last_decisions) < 1:
             return
         decision = self.last_decisions[-1]
@@ -108,6 +133,9 @@ class DecisionOrderPropagator:
 
     @staticmethod
     def get_decisions(assignment):
+        """
+        Helper function to extract a list of decisions and entailments from a clingo propagator assignment.
+        """
         level = 0
         decisions = []
         entailments = {}
@@ -127,6 +155,9 @@ class DecisionOrderPropagator:
             return decisions, entailments
 
     def get_symbol(self, literal) -> clingo.Symbol:
+        """
+        Helper function to get a literal's associated symbol.
+        """
         try:
             if literal > 0:
                 symbol = self.slit_symbol_lookup[literal]

@@ -1,3 +1,7 @@
+"""
+App Module: clingexplaid CLI clingo app
+"""
+
 import re
 import sys
 from importlib.metadata import version
@@ -27,6 +31,8 @@ class ClingoExplaidApp(Application):
     Application class for executing clingo-explaid functionality on the command line
     """
 
+    # pylint: disable = too-many-instance-attributes
+
     CLINGEXPLAID_METHODS = {
         "muc": "Description for MUC method",
         "unsat-constraints": "Description for unsat-constraints method",
@@ -36,11 +42,9 @@ class ClingoExplaidApp(Application):
     def __init__(self, name):
         # pylint: disable = unused-argument
         self.methods = set()
-        self.method_functions = {
-            m: getattr(self, f'_method_{m.replace("-", "_")}') for m in self.CLINGEXPLAID_METHODS.keys()
-        }
-        self.method_flags = {m: Flag() for m in self.CLINGEXPLAID_METHODS.keys()}
-        self.argument_constants = dict()
+        self.method_functions = {m: getattr(self, f'_method_{m.replace("-", "_")}') for m in self.CLINGEXPLAID_METHODS}
+        self.method_flags = {m: Flag() for m in self.CLINGEXPLAID_METHODS}
+        self.argument_constants = {}
 
         # SHOW DECISIONS
         self._show_decisions_decision_signatures = {}
@@ -59,7 +63,7 @@ class ClingoExplaidApp(Application):
         if len(self.methods) == 0:
             raise ValueError(
                 f"Clingexplaid was called without any method, please select at least one of the following methods: "
-                f"[{', '.join(['--' + str(m) for m in self.CLINGEXPLAID_METHODS.keys()])}]"
+                f"[{', '.join(['--' + str(m) for m in self.CLINGEXPLAID_METHODS])}]"
             )
 
     @staticmethod
@@ -257,7 +261,8 @@ class ClingoExplaidApp(Application):
 
             if location is not None:
                 print(
-                    f"{prefix}{COLORS['RED']}{constraint}{COLORS['GREY']} [ {file_link} ]({line_string}){COLORS['NORMAL']}"
+                    f"{prefix}{COLORS['RED']}{constraint}"
+                    f"{COLORS['GREY']} [ {file_link} ]({line_string}){COLORS['NORMAL']}"
                 )
             else:
                 print(f"{prefix}{COLORS['RED']}{constraint}{COLORS['NORMAL']}")

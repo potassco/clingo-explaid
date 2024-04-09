@@ -80,7 +80,11 @@ def get_signatures_from_model_string(model_string: str) -> Set[Tuple[str, int]]:
 
 
 def get_constants_from_arguments(argument_vector: List[str]) -> Dict:
-    constants = dict()
+    """
+    Function that is used to parse the command line argument vector to extract a dictionary of provided constants and
+    their values. For example "-c test=42" would be converted to {"test": "42"}.
+    """
+    constants = {}
     next_constant = False
     for element in argument_vector:
         if next_constant:

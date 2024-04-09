@@ -1,3 +1,7 @@
+"""
+Transformer Module: Split Rules into dedicated body and head parts
+"""
+
 import base64
 from pathlib import Path
 from typing import Union

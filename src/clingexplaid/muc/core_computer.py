@@ -1,3 +1,7 @@
+"""
+MUC Module: Core Computer to get Minimal Unsatisfiable Cores
+"""
+
 from typing import Optional, Set, Tuple
 from itertools import chain, combinations
 

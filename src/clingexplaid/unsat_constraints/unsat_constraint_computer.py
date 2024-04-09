@@ -27,15 +27,21 @@ class UnsatConstraintComputer:
         self.program_transformed = None
         self.initialized = False
 
-        self._file_constraint_lookup = dict()
+        self._file_constraint_lookup = {}
 
     def parse_string(self, program_string: str) -> None:
+        """
+        Method to parse a provided program string
+        """
         ct = ConstraintTransformer(UNSAT_CONSTRAINT_SIGNATURE, include_id=True)
         self.program_transformed = ct.parse_string(program_string)
         self._file_constraint_lookup = ct.constraint_location_lookup
         self.initialized = True
 
     def parse_files(self, files: List[str]) -> None:
+        """
+        Method to parse a provided sequence of filenames
+        """
         ct = ConstraintTransformer(UNSAT_CONSTRAINT_SIGNATURE, include_id=True)
         if not files:
             program_transformed = ct.parse_files("-")
@@ -51,9 +57,16 @@ class UnsatConstraintComputer:
         self.initialized = True
 
     def get_constraint_location(self, constraint_id: int) -> Optional[Location]:
+        """
+        Method to get the file that a constraint (identified by its `constraint_id`) is located in.
+        """
         return self._file_constraint_lookup.get(constraint_id)
 
     def get_unsat_constraints(self, assumption_string: Optional[str] = None) -> Dict[int, str]:
+        """
+        Method to get the unsat constraints of an initialized `UnsatConstraintComputer` Object.
+        """
+
         # only execute if the UnsatConstraintComputer was properly initialized
         if not self.initialized:
             raise ValueError(
@@ -78,7 +91,9 @@ class UnsatConstraintComputer:
         # create a rule lookup for every constraint in the program associated with it's unsat id
         constraint_lookup = {}
         for line in program_string.split("\n"):
-            id_re = re.compile(f"{UNSAT_CONSTRAINT_SIGNATURE}\(([1-9][0-9]*)\)")
+            id_re = re.compile(
+                f"{UNSAT_CONSTRAINT_SIGNATURE}\(([1-9][0-9]*)\)"  # pylint: disable=anomalous-backslash-in-string)
+            )
             match_result = id_re.match(line)
             if match_result is None:
                 continue

@@ -1,3 +1,7 @@
+"""
+Transformer Module: Removing all optimization statements
+"""
+
 from pathlib import Path
 from typing import Sequence, Union
 
@@ -11,6 +15,8 @@ class OptimizationRemover(_ast.Transformer):
     Transformer that removes all optimization statements
     """
 
+    # pylint: disable=duplicate-code
+
     def visit_Minimize(self, node):  # pylint: disable=C0103
         """
         Removes all facts from a program that match the given signatures (if none are given all facts are removed).
@@ -23,6 +29,9 @@ class OptimizationRemover(_ast.Transformer):
 
     @staticmethod
     def post_transform(program_string: str) -> str:
+        """
+        Helper function that is called after the transformation process for cleanup purposes
+        """
         # remove the transformed REMOVED_TOKENS from the resulting program string
         rules = program_string.split("\n")
         out = []

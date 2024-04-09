@@ -1,3 +1,7 @@
+"""
+Transformer Module: Adding atoms to constraint heads to retrace the ones firing in the case of an unsatisfiable program.
+"""
+
 from pathlib import Path
 from typing import Sequence, Union
 

@@ -1,3 +1,7 @@
+"""
+Constant definitions for the propagators package
+"""
+
 from ..utils.logging import COLORS
 
 UNKNOWN_SYMBOL_TOKEN = "INTERNAL"
