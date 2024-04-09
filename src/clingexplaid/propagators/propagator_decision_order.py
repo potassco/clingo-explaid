@@ -1,23 +1,13 @@
-from typing import List, Optional, Tuple, Set
+from typing import Optional, Tuple, Set
 
 import clingo
 
-from .logging import COLORS
-
-DecisionLevel = List[int]
-DecisionLevelList = List[DecisionLevel]
-
-UNKNOWN_SYMBOL_TOKEN = "INTERNAL"
-
-INDENT_START = "├─"
-INDENT_STEP = f"─{COLORS['GREY']}┼{COLORS['NORMAL']}──"
-INDENT_END = f"─{COLORS['GREY']}┤{COLORS['NORMAL']}  "
+from .constants import UNKNOWN_SYMBOL_TOKEN, INDENT_STEP, INDENT_START, INDENT_END
+from ..utils.logging import COLORS
 
 
 class DecisionOrderPropagator:
-    def __init__(
-        self, signatures: Optional[Set[Tuple[str, int]]] = None, prefix: str = ""
-    ):
+    def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None, prefix: str = ""):
         self.slit_symbol_lookup = {}
         self.signatures = signatures if signatures is not None else set()
         self.prefix = prefix
@@ -32,9 +22,7 @@ class DecisionOrderPropagator:
             self.slit_symbol_lookup[solver_literal] = atom.symbol
 
         for atom in init.symbolic_atoms:
-            if len(self.signatures) > 0 and not any(
-                atom.match(name=s, arity=a) for s, a in self.signatures
-            ):
+            if len(self.signatures) > 0 and not any(atom.match(name=s, arity=a) for s, a in self.signatures):
                 continue
             query_program_literal = init.symbolic_atoms[atom.symbol].literal
             query_solver_literal = init.solver_literal(query_program_literal)
@@ -80,9 +68,7 @@ class DecisionOrderPropagator:
             entailment_list = entailments[d] if d in entailments else []
             # build entailment indent string
             entailment_indent_string = (
-                (INDENT_START + INDENT_STEP * (print_level - 2) + INDENT_END)
-                if print_level > 1
-                else "│ "
+                (INDENT_START + INDENT_STEP * (print_level - 2) + INDENT_END) if print_level > 1 else "│ "
             )
             for e in entailment_list:
                 # skip decision in entailments
@@ -117,9 +103,7 @@ class DecisionOrderPropagator:
 
         indent_string = INDENT_START + INDENT_STEP * (len(self.last_decisions) - 1)
         if printed:
-            print(
-                f"{self.prefix}{indent_string}{COLORS['RED']}[✕] {decision_symbol} [{decision}]{COLORS['NORMAL']}"
-            )
+            print(f"{self.prefix}{indent_string}{COLORS['RED']}[✕] {decision_symbol} [{decision}]{COLORS['NORMAL']}")
         self.last_decisions = self.last_decisions[:-1]
 
     @staticmethod
@@ -137,9 +121,7 @@ class DecisionOrderPropagator:
                 level_offset_end = trail.end(level)
                 level_offset_diff = level_offset_end - level_offset_start
                 if level_offset_diff > 1:
-                    entailments[decision] = trail[
-                        (level_offset_start + 1): level_offset_end
-                    ]
+                    entailments[decision] = trail[(level_offset_start + 1) : level_offset_end]
                 level += 1
         except RuntimeError:
             return decisions, entailments

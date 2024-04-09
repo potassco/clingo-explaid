@@ -6,9 +6,7 @@ import sys
 
 from clingo.application import clingo_main
 
-from .utils.logging import configure_logging, get_logger
-from .utils.parser import get_parser
-from .utils.cli import ClingoExplaidApp
+from .cli.clingo_app import ClingoExplaidApp
 
 
 def main() -> None:

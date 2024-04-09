@@ -10,14 +10,15 @@ from unittest import TestCase
 import clingo
 
 from clingexplaid.utils import AssumptionSet, get_solver_literal_lookup
-from clingexplaid.utils.muc import CoreComputer
-from clingexplaid.utils.transformer import (
+from clingexplaid.muc import CoreComputer
+from clingexplaid.transformers import (
     AssumptionTransformer,
     ConstraintTransformer,
     RuleIDTransformer,
     RuleSplitter,
-    UntransformedException,
 )
+from clingexplaid.transformers.exceptions import UntransformedException
+
 
 TEST_DIR = parent = Path(__file__).resolve().parent
 
@@ -70,10 +71,7 @@ class TestMain(TestCase):
         """
         Asserts if a MUC is one of several valid MUC's.
         """
-        valid_mucs = [
-            {clingo.parse_term(s) for s in lit_strings}
-            for lit_strings in valid_mucs_string_lists
-        ]
+        valid_mucs = [{clingo.parse_term(s) for s in lit_strings} for lit_strings in valid_mucs_string_lists]
         self.assertIn(muc, valid_mucs)
 
     # TRANSFORMERS
@@ -84,28 +82,20 @@ class TestMain(TestCase):
         Test the AssumptionTransformer's `parse_file` method.
         """
         program_path = TEST_DIR.joinpath("res/test_program.lp")
-        program_path_transformed = TEST_DIR.joinpath(
-            "res/transformed_program_assumptions_certain_signatures.lp"
-        )
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_certain_signatures.lp")
         at = AssumptionTransformer(signatures={(c, 1) for c in "abcdef"})
         result = at.parse_files([program_path])
-        self.assertEqual(
-            result.strip(), self.read_file(program_path_transformed).strip()
-        )
+        self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
     def test_assumption_transformer_parse_file_no_signatures(self):
         """
         Test the AssumptionTransformer's `parse_file` method with no signatures provided.
         """
         program_path = TEST_DIR.joinpath("res/test_program.lp")
-        program_path_transformed = TEST_DIR.joinpath(
-            "res/transformed_program_assumptions_all.lp"
-        )
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_all.lp")
         at = AssumptionTransformer()
         result = at.parse_files([program_path])
-        self.assertEqual(
-            result.strip(), self.read_file(program_path_transformed).strip()
-        )
+        self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
     def test_assumption_transformer_get_assumptions_before_transformation(self):
         """
@@ -122,14 +112,10 @@ class TestMain(TestCase):
         Test the RuleIDTransformer's `parse_file` and `get_assumptions` methods.
         """
         program_path = TEST_DIR.joinpath("res/test_program.lp")
-        program_path_transformed = TEST_DIR.joinpath(
-            "res/transformed_program_rule_ids.lp"
-        )
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_rule_ids.lp")
         rt = RuleIDTransformer()
         result = rt.parse_file(program_path)
-        self.assertEqual(
-            result.strip(), self.read_file(program_path_transformed).strip()
-        )
+        self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
         assumptions = {
             (clingo.parse_term(s), True)
             for s in [
@@ -151,14 +137,10 @@ class TestMain(TestCase):
         Test the ConstraintTransformer's `parse_file` method.
         """
         program_path = TEST_DIR.joinpath("res/test_program_constraints.lp")
-        program_path_transformed = TEST_DIR.joinpath(
-            "res/transformed_program_constraints.lp"
-        )
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_constraints.lp")
         ct = ConstraintTransformer(constraint_head_symbol="unsat")
         result = ct.parse_files([program_path])
-        self.assertEqual(
-            result.strip(), self.read_file(program_path_transformed).strip()
-        )
+        self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
     # --- RULE SPLITTER
 
@@ -168,14 +150,10 @@ class TestMain(TestCase):
         """
 
         program_path = TEST_DIR.joinpath("res/test_program_rules.lp")
-        program_path_transformed = TEST_DIR.joinpath(
-            "res/transformed_program_rules_split.lp"
-        )
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_rules_split.lp")
         rs = RuleSplitter()
         result = rs.parse_file(program_path)
-        self.assertEqual(
-            result.strip(), self.read_file(program_path_transformed).strip()
-        )
+        self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
     # MUC
 
@@ -192,9 +170,7 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(
-            program_string=program, assumption_signatures=signatures, control=ctl
-        )
+        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         literal_lookup = get_solver_literal_lookup(ctl)
 
@@ -213,9 +189,7 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(
-            program_string=program, assumption_signatures=signatures, control=ctl
-        )
+        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         literal_lookup = get_solver_literal_lookup(ctl)
 
@@ -236,15 +210,11 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(
-            program_string=program, assumption_signatures=signatures, control=ctl
-        )
+        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         literal_lookup = get_solver_literal_lookup(ctl)
 
-        self.assert_muc(
-            {literal_lookup[a] for a in muc}, [{"a(3)"}, {"a(5)"}, {"a(9)"}]
-        )
+        self.assert_muc({literal_lookup[a] for a in muc}, [{"a(3)"}, {"a(5)"}, {"a(9)"}])
 
     def test_core_computer_shrink_multiple_mucs(self):
         """
@@ -261,9 +231,7 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(
-            program_string=program, assumption_signatures=signatures, control=ctl
-        )
+        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         literal_lookup = get_solver_literal_lookup(ctl)
 
@@ -291,15 +259,11 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(
-            program_string=program, assumption_signatures=signatures, control=ctl
-        )
+        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         literal_lookup = get_solver_literal_lookup(ctl)
 
-        self.assert_muc(
-            {literal_lookup[a] for a in muc}, [{f"a({i})" for i in random_core}]
-        )
+        self.assert_muc({literal_lookup[a] for a in muc}, [{f"a({i})" for i in random_core}])
 
     def test_core_computer_shrink_satisfiable(self):
         """
@@ -313,9 +277,7 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(
-            program_string=program, assumption_signatures=signatures, control=ctl
-        )
+        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         self.assertEqual(muc, set())
 
@@ -352,6 +314,4 @@ class TestMain(TestCase):
 
         control = clingo.Control()
         cc = CoreComputer(control, set())
-        self.assertRaises(
-            ValueError, cc._compute_single_minimal  # pylint: disable=W0212
-        )
+        self.assertRaises(ValueError, cc._compute_single_minimal)  # pylint: disable=W0212

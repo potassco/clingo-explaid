@@ -8,11 +8,9 @@ from typing import List, Optional, Dict
 import clingo
 from clingo.ast import Location
 
-from .transformer import ConstraintTransformer, FactTransformer, OptimizationRemover
-from . import get_signatures_from_model_string
-
-
-UNSAT_CONSTRAINT_SIGNATURE = "__unsat__"
+from .constants import UNSAT_CONSTRAINT_SIGNATURE
+from ..transformers import ConstraintTransformer, FactTransformer, OptimizationRemover
+from ..utils import get_signatures_from_model_string
 
 
 class UnsatConstraintComputer:
@@ -55,9 +53,7 @@ class UnsatConstraintComputer:
     def get_constraint_location(self, constraint_id: int) -> Optional[Location]:
         return self._file_constraint_lookup.get(constraint_id)
 
-    def get_unsat_constraints(
-        self, assumption_string: Optional[str] = None
-    ) -> Dict[int, str]:
+    def get_unsat_constraints(self, assumption_string: Optional[str] = None) -> Dict[int, str]:
         # only execute if the UnsatConstraintComputer was properly initialized
         if not self.initialized:
             raise ValueError(
@@ -88,9 +84,7 @@ class UnsatConstraintComputer:
                 continue
             constraint_id = match_result.group(1)
             constraint_lookup[int(constraint_id)] = (
-                str(line)
-                .replace(f"{UNSAT_CONSTRAINT_SIGNATURE}({constraint_id})", "")
-                .strip()
+                str(line).replace(f"{UNSAT_CONSTRAINT_SIGNATURE}({constraint_id})", "").strip()
             )
 
         self.control.add("base", [], program_string)
@@ -101,9 +95,7 @@ class UnsatConstraintComputer:
             unsat_constraint_atoms = []
             while model is not None:
                 unsat_constraint_atoms = [
-                    a
-                    for a in model.symbols(atoms=True)
-                    if a.match(UNSAT_CONSTRAINT_SIGNATURE, 1, True)
+                    a for a in model.symbols(atoms=True) if a.match(UNSAT_CONSTRAINT_SIGNATURE, 1, True)
                 ]
                 solve_handle.resume()
                 model = solve_handle.model()
@@ -114,8 +106,3 @@ class UnsatConstraintComputer:
                 unsat_constraints[constraint_id] = constraint
 
             return unsat_constraints
-
-
-__all__ = [
-    UnsatConstraintComputer.__name__,
-]

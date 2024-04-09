@@ -8,15 +8,15 @@ from typing import Dict, List, Tuple, Optional
 import clingo
 from clingo.application import Application, Flag
 
-from .logging import BACKGROUND_COLORS, COLORS
-from .muc import CoreComputer
-from .propagators import DecisionOrderPropagator
-from .transformer import AssumptionTransformer, OptimizationRemover
-from .unsat_constraints import UnsatConstraintComputer
-from . import (
+from ..muc import CoreComputer
+from ..propagators import DecisionOrderPropagator
+from ..unsat_constraints import UnsatConstraintComputer
+from ..utils import (
     get_solver_literal_lookup,
     get_constants_from_arguments,
 )
+from ..utils.logging import BACKGROUND_COLORS, COLORS
+from ..transformers import AssumptionTransformer, OptimizationRemover
 
 
 HYPERLINK_MASK = "\033]8;{};{}\033\\{}\033]8;;\033\\"
@@ -37,8 +37,7 @@ class ClingoExplaidApp(Application):
         # pylint: disable = unused-argument
         self.methods = set()
         self.method_functions = {
-            m: getattr(self, f'_method_{m.replace("-", "_")}')
-            for m in self.CLINGEXPLAID_METHODS.keys()
+            m: getattr(self, f'_method_{m.replace("-", "_")}') for m in self.CLINGEXPLAID_METHODS.keys()
         }
         self.method_flags = {m: Flag() for m in self.CLINGEXPLAID_METHODS.keys()}
         self.argument_constants = dict()
@@ -72,9 +71,7 @@ class ClingoExplaidApp(Application):
 
     def _parse_assumption_signature(self, assumption_signature: str) -> bool:
         if not self.method_flags["muc"]:
-            print(
-                "PARSE ERROR: The assumption signature option is only available if the flag --muc is enabled"
-            )
+            print("PARSE ERROR: The assumption signature option is only available if the flag --muc is enabled")
             return False
         assumption_signature_string = assumption_signature.replace("=", "").strip()
         try:
@@ -144,9 +141,7 @@ class ClingoExplaidApp(Application):
     def _apply_assumption_transformer(
         self, signatures: Dict[str, int], files: List[str]
     ) -> Tuple[str, AssumptionTransformer]:
-        signature_set = (
-            set(self._muc_assumption_signatures.items()) if signatures else None
-        )
+        signature_set = set(self._muc_assumption_signatures.items()) if signatures else None
         at = AssumptionTransformer(signatures=signature_set)
         if not files:
             program_transformed = at.parse_files("-")
@@ -155,9 +150,7 @@ class ClingoExplaidApp(Application):
         return program_transformed, at
 
     def _print_muc(self, muc) -> None:
-        print(
-            f"{BACKGROUND_COLORS['BLUE']} MUC {BACKGROUND_COLORS['LIGHT_BLUE']} {self._muc_id} {COLORS['NORMAL']}"
-        )
+        print(f"{BACKGROUND_COLORS['BLUE']} MUC {BACKGROUND_COLORS['LIGHT_BLUE']} {self._muc_id} {COLORS['NORMAL']}")
         print(f"{COLORS['BLUE']}{muc}{COLORS['NORMAL']}")
         self._muc_id += 1
 
@@ -213,9 +206,7 @@ class ClingoExplaidApp(Application):
         # Case: Finding multiple MUCs
         if max_models >= 0:
             program_unsat = False
-            with control.solve(
-                assumptions=list(assumptions), yield_=True
-            ) as solve_handle:
+            with control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
                 if not solve_handle.get().satisfiable:
                     program_unsat = True
 
@@ -249,9 +240,7 @@ class ClingoExplaidApp(Application):
     ) -> None:
         if prefix is None:
             prefix = ""
-        print(
-            f"{prefix}{BACKGROUND_COLORS['RED']} Unsat Constraints {COLORS['NORMAL']}"
-        )
+        print(f"{prefix}{BACKGROUND_COLORS['RED']} Unsat Constraints {COLORS['NORMAL']}")
         for cid, constraint in unsat_constraints.items():
             location = ucc.get_constraint_location(cid)
             relative_file_path = location.begin.filename
@@ -259,9 +248,7 @@ class ClingoExplaidApp(Application):
             line_beginning = location.begin.line
             line_end = location.end.line
             line_string = (
-                f"Line {line_beginning}"
-                if line_beginning == line_end
-                else f"Lines {line_beginning}-{line_end}"
+                f"Line {line_beginning}" if line_beginning == line_end else f"Lines {line_beginning}-{line_end}"
             )
             file_link = "file://" + absolute_file_path
             if " " in absolute_file_path:
@@ -286,19 +273,13 @@ class ClingoExplaidApp(Application):
         # register DecisionOrderPropagator if flag is enabled
         if self.method_flags["show-decisions"]:
             decision_signatures = set(self._show_decisions_decision_signatures.items())
-            dop = DecisionOrderPropagator(
-                signatures=decision_signatures, prefix=output_prefix_passive
-            )
+            dop = DecisionOrderPropagator(signatures=decision_signatures, prefix=output_prefix_passive)
             control.register_propagator(dop)
 
         ucc = UnsatConstraintComputer(control=control)
         ucc.parse_files(files)
-        unsat_constraints = ucc.get_unsat_constraints(
-            assumption_string=assumption_string
-        )
-        self._print_unsat_constraints(
-            unsat_constraints, ucc=ucc, prefix=output_prefix_active
-        )
+        unsat_constraints = ucc.get_unsat_constraints(assumption_string=assumption_string)
+        self._print_unsat_constraints(unsat_constraints, ucc=ucc, prefix=output_prefix_active)
 
     def _print_model(
         self,
