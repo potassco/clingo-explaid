@@ -22,9 +22,9 @@ class AssumptionTransformer(_ast.Transformer):
         self.signatures = signatures if signatures is not None else set()
         self.fact_rules: List[str] = []
         self.transformed: bool = False
-        self.program_constants = {}
+        self.program_constants: Dict[str, str] = {}
 
-    def visit_Rule(self, node):  # pylint: disable=C0103
+    def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
         """
         Transforms head of a rule into a choice rule if it is a fact and adheres to the given signatures.
         """
@@ -52,7 +52,7 @@ class AssumptionTransformer(_ast.Transformer):
             body=[],
         )
 
-    def visit_Definition(self, node):
+    def visit_Definition(self, node: clingo.ast.AST) -> clingo.ast.AST:
         """
         All defined constants of the program are stored in self.program_constants
         """
@@ -79,7 +79,7 @@ class AssumptionTransformer(_ast.Transformer):
         self.transformed = True
         return "\n".join(out)
 
-    def get_assumptions(self, control: clingo.Control, constants: Optional[Dict] = None) -> Set[int]:
+    def get_assumptions(self, control: clingo.Control, constants: Optional[Dict[str, str]] = None) -> Set[int]:
         """
         Returns the assumptions which were gathered during the transformation of the program. Has to be called after
         a program has already been transformed.

@@ -3,7 +3,7 @@ Transformer Module: Adding atoms to constraint heads to retrace the ones firing 
 """
 
 from pathlib import Path
-from typing import Sequence, Union
+from typing import Sequence, Union, Dict
 
 import clingo
 import clingo.ast as _ast
@@ -19,9 +19,9 @@ class ConstraintTransformer(_ast.Transformer):
         self._include_id = include_id
         self._constraint_id = 1
 
-        self.constraint_location_lookup = {}
+        self.constraint_location_lookup: Dict[int, clingo.ast.Location] = {}
 
-    def visit_Rule(self, node):  # pylint: disable=C0103
+    def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
         """
         Adds a constraint_head_symbol atom to the head of every constraint.
         """

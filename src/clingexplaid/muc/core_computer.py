@@ -2,7 +2,7 @@
 MUC Module: Core Computer to get Minimal Unsatisfiable Cores
 """
 
-from typing import Optional, Set, Tuple
+from typing import Optional, Set, Tuple, Generator, List
 from itertools import chain, combinations
 
 import clingo
@@ -29,7 +29,7 @@ class CoreComputer:
         if assumptions is None:
             assumptions = self.assumption_set
 
-        with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:  # type: ignore[union-attr]
+        with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
             satisfiable = bool(solve_handle.get().satisfiable)
             model = solve_handle.model().symbols(atoms=True) if solve_handle.model() is not None else []
             core = {self.literal_lookup[literal_id] for literal_id in solve_handle.core()}
@@ -81,7 +81,7 @@ class CoreComputer:
         """
         self.minimal = self._compute_single_minimal(assumptions=assumptions)
 
-    def get_multiple_minimal(self, max_mucs: Optional[int] = None):
+    def get_multiple_minimal(self, max_mucs: Optional[int] = None) -> Generator[AssumptionSet, None, None]:
         """
         This function generates all minimal unsatisfiable cores of the provided assumption set. It implements the
         generator pattern since finding all mucs of an assumption set is exponential in nature and the search might not
@@ -93,8 +93,8 @@ class CoreComputer:
             combinations(assumptions, r) for r in reversed(range(len(list(assumptions)) + 1))
         )
 
-        found_sat = []
-        found_mucs = []
+        found_sat: List[AssumptionSet] = []
+        found_mucs: List[AssumptionSet] = []
 
         for current_subset in (set(s) for s in assumption_powerset):
             # skip if empty subset

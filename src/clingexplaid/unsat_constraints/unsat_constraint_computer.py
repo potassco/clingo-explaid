@@ -24,10 +24,10 @@ class UnsatConstraintComputer:
         control: Optional[clingo.Control] = None,
     ):
         self.control = control if control is not None else clingo.Control()
-        self.program_transformed = None
-        self.initialized = False
+        self.program_transformed: Optional[str] = None
+        self.initialized: bool = False
 
-        self._file_constraint_lookup = {}
+        self._file_constraint_lookup: Dict[int, clingo.ast.Location] = {}
 
     def parse_string(self, program_string: str) -> None:
         """
@@ -74,7 +74,7 @@ class UnsatConstraintComputer:
                 "or `parse_string`."
             )
 
-        program_string = self.program_transformed
+        program_string = str(self.program_transformed)
         # if an assumption string is provided use a FactTransformer to remove interfering facts
         if assumption_string is not None and len(assumption_string) > 0:
             assumptions_signatures = get_signatures_from_model_string(assumption_string)
@@ -114,10 +114,10 @@ class UnsatConstraintComputer:
                 ]
                 solve_handle.resume()
                 model = solve_handle.model()
-            unsat_constraints = {}
+            unsat_constraints: Dict[int, str] = {}
             for a in unsat_constraint_atoms:
                 constraint_id = a.arguments[0].number
-                constraint = constraint_lookup.get(constraint_id)
+                constraint = str(constraint_lookup.get(constraint_id))
                 unsat_constraints[constraint_id] = constraint
 
             return unsat_constraints

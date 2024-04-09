@@ -24,7 +24,7 @@ class RuleIDTransformer(_ast.Transformer):
         self.rule_id = 0
         self.rule_id_signature = rule_id_signature
 
-    def visit_Rule(self, node):  # pylint: disable=C0103
+    def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
         """
         Adds a rule_id_signature(id) atom to the body of every rule that is visited.
         """
@@ -43,7 +43,7 @@ class RuleIDTransformer(_ast.Transformer):
         node.body.insert(len(node.body), symbol)
         return node.update(**self.visit_children(node))
 
-    def _get_number_of_rules(self):
+    def _get_number_of_rules(self) -> int:
         return self.rule_id - 1 if self.rule_id > 1 else self.rule_id
 
     def parse_string(self, string: str) -> str:

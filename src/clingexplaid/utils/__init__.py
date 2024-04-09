@@ -18,7 +18,7 @@ AssumptionSet = Iterable[Assumption]
 
 def match_ast_symbolic_atom_signature(
     ast_symbol: ASTType.SymbolicAtom, signature: Tuple[str, int]
-):
+) -> bool:
     """
     Function to match the signature of an AST SymbolicAtom to a tuple containing a string and int value, representing a
     matching signature.
@@ -79,7 +79,7 @@ def get_signatures_from_model_string(model_string: str) -> Set[Tuple[str, int]]:
     return signatures
 
 
-def get_constants_from_arguments(argument_vector: List[str]) -> Dict:
+def get_constants_from_arguments(argument_vector: List[str]) -> Dict[str, str]:
     """
     Function that is used to parse the command line argument vector to extract a dictionary of provided constants and
     their values. For example "-c test=42" would be converted to {"test": "42"}.
@@ -89,7 +89,7 @@ def get_constants_from_arguments(argument_vector: List[str]) -> Dict:
     for element in argument_vector:
         if next_constant:
             result = re.search(r"(.*)=(.*)", element)
-            if len(result.groups()) == 0:
+            if result is None or len(result.groups()) == 0:
                 continue
             constants[result.group(1)] = result.group(2)
             next_constant = False

@@ -5,6 +5,7 @@ Transformer Module: Fact Remover
 from pathlib import Path
 from typing import Optional, Sequence, Set, Tuple, Union
 
+import clingo.ast
 import clingo.ast as _ast
 
 from .constants import REMOVED_TOKEN
@@ -21,7 +22,7 @@ class FactTransformer(_ast.Transformer):
     def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None):
         self.signatures = signatures if signatures is not None else set()
 
-    def visit_Rule(self, node):  # pylint: disable=C0103
+    def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
         """
         Removes all facts from a program that match the given signatures (if none are given all facts are removed).
         """

@@ -4,7 +4,7 @@ Test cases for main application functionality.
 
 import random
 from pathlib import Path
-from typing import List, Optional, Set, Tuple, Union
+from typing import List, Optional, Set, Tuple, Union, Dict
 from unittest import TestCase
 
 import clingo
@@ -65,19 +65,29 @@ class TestMain(TestCase):
 
     def assert_muc(
         self,
-        muc: Set[Tuple[clingo.Symbol, bool]],
+        muc: Set[str],
         valid_mucs_string_lists: List[Set[str]],
-    ):
+    ) -> None:
         """
         Asserts if a MUC is one of several valid MUC's.
         """
         valid_mucs = [{clingo.parse_term(s) for s in lit_strings} for lit_strings in valid_mucs_string_lists]
         self.assertIn(muc, valid_mucs)
 
+    @staticmethod
+    def muc_to_string(muc: AssumptionSet, literal_lookup: Dict[int, clingo.Symbol]) -> Set[str]:
+        muc_string = set()
+        for a in muc:
+            if isinstance(a, int):
+                muc_string.add(str(literal_lookup[a]))
+            else:
+                muc_string.add(str(a[0]))
+        return muc_string
+
     # TRANSFORMERS
     # --- ASSUMPTION TRANSFORMER
 
-    def test_assumption_transformer_parse_file(self):
+    def test_assumption_transformer_parse_file(self) -> None:
         """
         Test the AssumptionTransformer's `parse_file` method.
         """
@@ -87,7 +97,7 @@ class TestMain(TestCase):
         result = at.parse_files([program_path])
         self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
-    def test_assumption_transformer_parse_file_no_signatures(self):
+    def test_assumption_transformer_parse_file_no_signatures(self) -> None:
         """
         Test the AssumptionTransformer's `parse_file` method with no signatures provided.
         """
@@ -97,7 +107,7 @@ class TestMain(TestCase):
         result = at.parse_files([program_path])
         self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
-    def test_assumption_transformer_get_assumptions_before_transformation(self):
+    def test_assumption_transformer_get_assumptions_before_transformation(self) -> None:
         """
         Test the AssumptionTransformer's behavior when get_assumptions is called before transformation.
         """
@@ -107,7 +117,7 @@ class TestMain(TestCase):
 
     # --- RULE ID TRANSFORMER
 
-    def test_rule_id_transformer(self):
+    def test_rule_id_transformer(self) -> None:
         """
         Test the RuleIDTransformer's `parse_file` and `get_assumptions` methods.
         """
@@ -132,7 +142,7 @@ class TestMain(TestCase):
 
     # --- CONSTRAINT TRANSFORMER
 
-    def test_constraint_transformer(self):
+    def test_constraint_transformer(self) -> None:
         """
         Test the ConstraintTransformer's `parse_file` method.
         """
@@ -144,7 +154,7 @@ class TestMain(TestCase):
 
     # --- RULE SPLITTER
 
-    def test_rule_splitter(self):
+    def test_rule_splitter(self) -> None:
         """
         Test the RuleSplitter's `parse_file` method.
         """
@@ -157,7 +167,7 @@ class TestMain(TestCase):
 
     # MUC
 
-    def test_core_computer_shrink_single_muc(self):
+    def test_core_computer_shrink_single_muc(self) -> None:
         """
         Test the CoreComputer's `shrink` function with a single MUC.
         """
@@ -174,9 +184,9 @@ class TestMain(TestCase):
 
         literal_lookup = get_solver_literal_lookup(ctl)
 
-        self.assert_muc({literal_lookup[a] for a in muc}, [{"a(1)", "a(4)", "a(5)"}])
+        self.assert_muc(self.muc_to_string(muc, literal_lookup), [{"a(1)", "a(4)", "a(5)"}])
 
-    def test_core_computer_shrink_single_atomic_muc(self):
+    def test_core_computer_shrink_single_atomic_muc(self) -> None:
         """
         Test the CoreComputer's `shrink` function with a single atomic MUC.
         """
@@ -193,9 +203,9 @@ class TestMain(TestCase):
 
         literal_lookup = get_solver_literal_lookup(ctl)
 
-        self.assert_muc({literal_lookup[a] for a in muc}, [{"a(3)"}])
+        self.assert_muc(self.muc_to_string(muc, literal_lookup), [{"a(3)"}])
 
-    def test_core_computer_shrink_multiple_atomic_mucs(self):
+    def test_core_computer_shrink_multiple_atomic_mucs(self) -> None:
         """
         Test the CoreComputer's `shrink` function with multiple atomic MUC's.
         """
@@ -214,9 +224,9 @@ class TestMain(TestCase):
 
         literal_lookup = get_solver_literal_lookup(ctl)
 
-        self.assert_muc({literal_lookup[a] for a in muc}, [{"a(3)"}, {"a(5)"}, {"a(9)"}])
+        self.assert_muc(self.muc_to_string(muc, literal_lookup), [{"a(3)"}, {"a(5)"}, {"a(9)"}])
 
-    def test_core_computer_shrink_multiple_mucs(self):
+    def test_core_computer_shrink_multiple_mucs(self) -> None:
         """
         Test the CoreComputer's `shrink` function with multiple MUC's.
         """
@@ -236,7 +246,7 @@ class TestMain(TestCase):
         literal_lookup = get_solver_literal_lookup(ctl)
 
         self.assert_muc(
-            {literal_lookup[a] for a in muc},
+            self.muc_to_string(muc, literal_lookup),
             [
                 {"a(3)", "a(9)", "a(5)"},
                 {"a(5)", "a(1)", "a(2)"},
@@ -244,7 +254,7 @@ class TestMain(TestCase):
             ],
         )
 
-    def test_core_computer_shrink_large_instance_random(self):
+    def test_core_computer_shrink_large_instance_random(self) -> None:
         """
         Test the CoreComputer's `shrink` function with a large random assumption set.
         """
@@ -263,9 +273,9 @@ class TestMain(TestCase):
 
         literal_lookup = get_solver_literal_lookup(ctl)
 
-        self.assert_muc({literal_lookup[a] for a in muc}, [{f"a({i})" for i in random_core}])
+        self.assert_muc(self.muc_to_string(muc, literal_lookup), [{f"a({i})" for i in random_core}])
 
-    def test_core_computer_shrink_satisfiable(self):
+    def test_core_computer_shrink_satisfiable(self) -> None:
         """
         Test the CoreComputer's `shrink` function with a satisfiable assumption set.
         """
@@ -283,7 +293,7 @@ class TestMain(TestCase):
 
     # --- INTERNAL
 
-    def test_core_computer_internal_solve_no_assumptions(self):
+    def test_core_computer_internal_solve_no_assumptions(self) -> None:
         """
         Test the CoreComputer's `_solve` function with no assumptions.
         """
@@ -293,7 +303,7 @@ class TestMain(TestCase):
         satisfiable, _, _ = cc._solve()  # pylint: disable=W0212
         self.assertTrue(satisfiable)
 
-    def test_core_computer_internal_compute_single_minimal_satisfiable(self):
+    def test_core_computer_internal_compute_single_minimal_satisfiable(self) -> None:
         """
         Test the CoreComputer's `_compute_single_minimal` function with a satisfiable assumption set.
         """
@@ -307,7 +317,7 @@ class TestMain(TestCase):
         muc = cc._compute_single_minimal()  # pylint: disable=W0212
         self.assertEqual(muc, set())
 
-    def test_core_computer_internal_compute_single_minimal_no_assumptions(self):
+    def test_core_computer_internal_compute_single_minimal_no_assumptions(self) -> None:
         """
         Test the CoreComputer's `_compute_single_minimal` function with no assumptions.
         """

@@ -5,6 +5,7 @@ Transformer Module: Removing all optimization statements
 from pathlib import Path
 from typing import Sequence, Union
 
+import clingo.ast
 import clingo.ast as _ast
 
 from .constants import REMOVED_TOKEN
@@ -17,7 +18,7 @@ class OptimizationRemover(_ast.Transformer):
 
     # pylint: disable=duplicate-code
 
-    def visit_Minimize(self, node):  # pylint: disable=C0103
+    def visit_Minimize(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
         """
         Removes all facts from a program that match the given signatures (if none are given all facts are removed).
         """

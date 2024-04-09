@@ -2,7 +2,7 @@
 Propagator Module: Decision Order
 """
 
-from typing import Optional, Tuple, Set
+from typing import Optional, Tuple, Set, Dict, List, Sequence, Union
 
 import clingo
 
@@ -17,14 +17,14 @@ class DecisionOrderPropagator:
 
     def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None, prefix: str = ""):
         # pylint: disable=missing-function-docstring
-        self.slit_symbol_lookup = {}
+        self.slit_symbol_lookup: Dict[int, clingo.Symbol] = {}
         self.signatures = signatures if signatures is not None else set()
         self.prefix = prefix
 
-        self.last_decisions = []
-        self.last_entailments = {}
+        self.last_decisions: List[int] = []
+        self.last_entailments: Dict[int, List[int]] = {}
 
-    def init(self, init):
+    def init(self, init: clingo.PropagateInit) -> None:
         """
         Method to initialize the Decision Order Propagator. Here the literals are added to the Propagator's watch list.
         """
@@ -36,12 +36,15 @@ class DecisionOrderPropagator:
         for atom in init.symbolic_atoms:
             if len(self.signatures) > 0 and not any(atom.match(name=s, arity=a) for s, a in self.signatures):
                 continue
-            query_program_literal = init.symbolic_atoms[atom.symbol].literal
+            symbolic_atom = init.symbolic_atoms[atom.symbol]
+            if symbolic_atom is None:
+                continue
+            query_program_literal = symbolic_atom.literal
             query_solver_literal = init.solver_literal(query_program_literal)
             init.add_watch(query_solver_literal)
             init.add_watch(-query_solver_literal)
 
-    def _is_printed(self, symbol: clingo.Symbol) -> bool:
+    def _is_printed(self, symbol: Union[clingo.Symbol, str]) -> bool:
         """
         Helper function to check if a specific symbol should be printed or not
         """
@@ -50,13 +53,16 @@ class DecisionOrderPropagator:
         if len(self.signatures) > 0 and symbol == UNKNOWN_SYMBOL_TOKEN:
             printed = False
         # skip if symbol signature is not in self.signatures
-        if len(self.signatures) > 0 and symbol != UNKNOWN_SYMBOL_TOKEN:
-            if not any(symbol.match(s, a) for s, a in self.signatures):
+        elif len(self.signatures) > 0 and symbol != UNKNOWN_SYMBOL_TOKEN:
+            # `symbol` can only be a `str` if it is the UNKNOWN_SYMBOL_TOKEN
+            if isinstance(symbol, str):
+                printed = False
+            elif not any(symbol.match(s, a) for s, a in self.signatures):
                 printed = False
 
         return printed
 
-    def propagate(self, control, changes) -> None:
+    def propagate(self, control: clingo.PropagateControl, changes: Sequence[int]) -> None:
         """
         Propagate method the is called when one the registered literals is propagated by clasp. Here useful information
         about the decision progress is recorded to be visualized later.
@@ -112,7 +118,7 @@ class DecisionOrderPropagator:
         self.last_decisions = decisions
         self.last_entailments = entailments
 
-    def undo(self, thread_id: int, assignment, changes) -> None:
+    def undo(self, thread_id: int, assignment: clingo.Assignment, changes: Sequence[int]) -> None:
         """
         This function is called when one of the solvers decisions is undone.
         """
@@ -132,7 +138,7 @@ class DecisionOrderPropagator:
         self.last_decisions = self.last_decisions[:-1]
 
     @staticmethod
-    def get_decisions(assignment):
+    def get_decisions(assignment: clingo.Assignment) -> Tuple[List[int], Dict[int, List[int]]]:
         """
         Helper function to extract a list of decisions and entailments from a clingo propagator assignment.
         """
@@ -154,7 +160,7 @@ class DecisionOrderPropagator:
         except RuntimeError:
             return decisions, entailments
 
-    def get_symbol(self, literal) -> clingo.Symbol:
+    def get_symbol(self, literal: int) -> Union[clingo.Symbol, str]:
         """
         Helper function to get a literal's associated symbol.
         """
@@ -166,5 +172,5 @@ class DecisionOrderPropagator:
                 symbol = clingo.parse_term(str(self.slit_symbol_lookup[-literal]))
         except KeyError:
             # internal literals
-            symbol = UNKNOWN_SYMBOL_TOKEN
+            return UNKNOWN_SYMBOL_TOKEN
         return symbol

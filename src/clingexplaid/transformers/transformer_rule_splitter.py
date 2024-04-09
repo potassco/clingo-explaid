@@ -4,7 +4,7 @@ Transformer Module: Split Rules into dedicated body and head parts
 
 import base64
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 import clingo
 import clingo.ast as _ast
@@ -19,10 +19,10 @@ class RuleSplitter(_ast.Transformer):
     transformer.
     """
 
-    def __init__(self):
-        self.head_rules = []
+    def __init__(self) -> None:
+        self.head_rules: List[clingo.ast.AST] = []
 
-    def visit_Rule(self, node):  # pylint: disable=C0103
+    def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
         """
         Replaces the head of every rule with the intermediate `_body` predicate and stores all new head rules using this
         intermediary predicate in `self.head_rules`
