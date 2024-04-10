@@ -4,12 +4,12 @@ Test cases for main application functionality.
 
 import random
 from pathlib import Path
-from typing import List, Optional, Set, Tuple, Union, Dict
+from typing import List, Optional, Set, Tuple, Union
 from unittest import TestCase
 
 import clingo
 
-from clingexplaid.utils import AssumptionSet, get_solver_literal_lookup
+from clingexplaid.utils import AssumptionSet
 from clingexplaid.muc import CoreComputer
 from clingexplaid.transformers import (
     AssumptionTransformer,
@@ -41,7 +41,7 @@ class TestMain(TestCase):
         program_string: str,
         assumption_signatures: Set[Tuple[str, int]],
         control: Optional[clingo.Control] = None,
-    ) -> AssumptionSet:
+    ) -> Tuple[AssumptionSet, CoreComputer]:
         """
         Helper function to directly get the MUC of a given program string.
         """
@@ -61,7 +61,7 @@ class TestMain(TestCase):
         # if the instance was satisfiable and the on_core function wasn't called an empty set is returned, else the muc.
         result = cc.minimal if cc.minimal is not None else set()
 
-        return result
+        return result, cc
 
     def assert_muc(
         self,
@@ -72,17 +72,8 @@ class TestMain(TestCase):
         Asserts if a MUC is one of several valid MUC's.
         """
         valid_mucs = [{clingo.parse_term(s) for s in lit_strings} for lit_strings in valid_mucs_string_lists]
-        self.assertIn(muc, valid_mucs)
-
-    @staticmethod
-    def muc_to_string(muc: AssumptionSet, literal_lookup: Dict[int, clingo.Symbol]) -> Set[str]:
-        muc_string = set()
-        for a in muc:
-            if isinstance(a, int):
-                muc_string.add(str(literal_lookup[a]))
-            else:
-                muc_string.add(str(a[0]))
-        return muc_string
+        parsed_muc = {clingo.parse_term(s) for s in muc}
+        self.assertIn(parsed_muc, valid_mucs)
 
     # TRANSFORMERS
     # --- ASSUMPTION TRANSFORMER
@@ -180,11 +171,11 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        muc, cc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
-        literal_lookup = get_solver_literal_lookup(ctl)
-
-        self.assert_muc(self.muc_to_string(muc, literal_lookup), [{"a(1)", "a(4)", "a(5)"}])
+        if cc.minimal is None:
+            self.fail()
+        self.assert_muc(cc.muc_to_string(muc), [{"a(1)", "a(4)", "a(5)"}])
 
     def test_core_computer_shrink_single_atomic_muc(self) -> None:
         """
@@ -199,11 +190,11 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        muc, cc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
-        literal_lookup = get_solver_literal_lookup(ctl)
-
-        self.assert_muc(self.muc_to_string(muc, literal_lookup), [{"a(3)"}])
+        if cc.minimal is None:
+            self.fail()
+        self.assert_muc(cc.muc_to_string(muc), [{"a(3)"}])
 
     def test_core_computer_shrink_multiple_atomic_mucs(self) -> None:
         """
@@ -220,11 +211,11 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        muc, cc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
-        literal_lookup = get_solver_literal_lookup(ctl)
-
-        self.assert_muc(self.muc_to_string(muc, literal_lookup), [{"a(3)"}, {"a(5)"}, {"a(9)"}])
+        if cc.minimal is None:
+            self.fail()
+        self.assert_muc(cc.muc_to_string(muc), [{"a(3)"}, {"a(5)"}, {"a(9)"}])
 
     def test_core_computer_shrink_multiple_mucs(self) -> None:
         """
@@ -241,12 +232,12 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        muc, cc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
-        literal_lookup = get_solver_literal_lookup(ctl)
-
+        if cc.minimal is None:
+            self.fail()
         self.assert_muc(
-            self.muc_to_string(muc, literal_lookup),
+            cc.muc_to_string(muc),
             [
                 {"a(3)", "a(9)", "a(5)"},
                 {"a(5)", "a(1)", "a(2)"},
@@ -269,11 +260,11 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        muc, cc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
-        literal_lookup = get_solver_literal_lookup(ctl)
-
-        self.assert_muc(self.muc_to_string(muc, literal_lookup), [{f"a({i})" for i in random_core}])
+        if cc.minimal is None:
+            self.fail()
+        self.assert_muc(cc.muc_to_string(muc), [{f"a({i})" for i in random_core}])
 
     def test_core_computer_shrink_satisfiable(self) -> None:
         """
@@ -287,7 +278,7 @@ class TestMain(TestCase):
         """
         signatures = {("a", 1)}
 
-        muc = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        muc, _ = self.get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         self.assertEqual(muc, set())
 

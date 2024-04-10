@@ -6,7 +6,8 @@ import re
 import sys
 from importlib.metadata import version
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Set, Callable, Sequence
+from warnings import warn
 
 
 import clingo
@@ -16,7 +17,6 @@ from ..muc import CoreComputer
 from ..propagators import DecisionOrderPropagator
 from ..unsat_constraints import UnsatConstraintComputer
 from ..utils import (
-    get_solver_literal_lookup,
     get_constants_from_arguments,
 )
 from ..utils.logging import BACKGROUND_COLORS, COLORS
@@ -39,20 +39,22 @@ class ClingoExplaidApp(Application):
         "show-decisions": "Visualize the decision process of clingo during solving",
     }
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         # pylint: disable = unused-argument
-        self.methods = set()
-        self.method_functions = {m: getattr(self, f'_method_{m.replace("-", "_")}') for m in self.CLINGEXPLAID_METHODS}
-        self.method_flags = {m: Flag() for m in self.CLINGEXPLAID_METHODS}
-        self.argument_constants = {}
+        self.methods: Set[str] = set()
+        self.method_functions: Dict[str, Callable] = {  # type: ignore
+            m: getattr(self, f'_method_{m.replace("-", "_")}') for m in self.CLINGEXPLAID_METHODS
+        }
+        self.method_flags: Dict[str, Flag] = {m: Flag() for m in self.CLINGEXPLAID_METHODS}
+        self.argument_constants: Dict[str, str] = {}
 
         # SHOW DECISIONS
-        self._show_decisions_decision_signatures = {}
-        self._show_decisions_model_id = 1
+        self._show_decisions_decision_signatures: Dict[str, int] = {}
+        self._show_decisions_model_id: int = 1
 
         # MUC
-        self._muc_assumption_signatures = {}
-        self._muc_id = 1
+        self._muc_assumption_signatures: Dict[str, int] = {}
+        self._muc_id: int = 1
 
     def _initialize(self) -> None:
         # add enabled methods to self.methods
@@ -107,7 +109,7 @@ class ClingoExplaidApp(Application):
         self._show_decisions_decision_signatures[signature] = arity
         return True
 
-    def register_options(self, options):
+    def register_options(self, options: clingo.ApplicationOptions) -> None:
         group = "Clingo-Explaid Methods"
 
         for method, description in self.CLINGEXPLAID_METHODS.items():
@@ -153,9 +155,9 @@ class ClingoExplaidApp(Application):
             program_transformed = at.parse_files(files)
         return program_transformed, at
 
-    def _print_muc(self, muc) -> None:
+    def _print_muc(self, muc_string: str) -> None:
         print(f"{BACKGROUND_COLORS['BLUE']} MUC {BACKGROUND_COLORS['LIGHT_BLUE']} {self._muc_id} {COLORS['NORMAL']}")
-        print(f"{COLORS['BLUE']}{muc}{COLORS['NORMAL']}")
+        print(f"{COLORS['BLUE']}{muc_string}{COLORS['NORMAL']}")
         self._muc_id += 1
 
     def _method_muc(
@@ -163,7 +165,7 @@ class ClingoExplaidApp(Application):
         control: clingo.Control,
         files: List[str],
         compute_unsat_constraints: bool = False,
-    ):
+    ) -> None:
         program_transformed, at = self._apply_assumption_transformer(
             signatures=self._muc_assumption_signatures, files=files
         )
@@ -175,11 +177,10 @@ class ClingoExplaidApp(Application):
         control.add("base", [], program_transformed)
         control.ground([("base", [])])
 
-        literal_lookup = get_solver_literal_lookup(control)
         assumptions = at.get_assumptions(control, constants=self.argument_constants)
         cc = CoreComputer(control, assumptions)
 
-        max_models = int(control.configuration.solve.models)
+        max_models = int(control.configuration.solve.models)  # type: ignore
         print("Solving...")
 
         # Case: Finding a single MUC
@@ -189,13 +190,13 @@ class ClingoExplaidApp(Application):
             if cc.minimal is None:
                 print("SATISFIABLE: Instance has no MUCs")
                 return
-            if len(cc.minimal) == 0:
+            if len(list(cc.minimal)) == 0:
                 print(
                     "NO MUCS CONTAINED: The unsatisfiability of this program is not induced by the provided assumptions"
                 )
                 return
 
-            muc_string = " ".join([str(literal_lookup[a]) for a in cc.minimal])
+            muc_string = " ".join(cc.muc_to_string(cc.minimal))
             self._print_muc(muc_string)
 
             if compute_unsat_constraints:
@@ -218,7 +219,7 @@ class ClingoExplaidApp(Application):
                 mucs = 0
                 for muc in cc.get_multiple_minimal(max_mucs=max_models):
                     mucs += 1
-                    muc_string = " ".join([str(literal_lookup[a]) for a in muc])
+                    muc_string = " ".join(cc.muc_to_string(muc))
                     self._print_muc(muc_string)
 
                     if compute_unsat_constraints:
@@ -247,6 +248,9 @@ class ClingoExplaidApp(Application):
         print(f"{prefix}{BACKGROUND_COLORS['RED']} Unsat Constraints {COLORS['NORMAL']}")
         for cid, constraint in unsat_constraints.items():
             location = ucc.get_constraint_location(cid)
+            if location is None:
+                warn(f"Couldn't find a corresponding file for constraint with id {cid}")
+                continue
             relative_file_path = location.begin.filename
             absolute_file_path = str(Path(relative_file_path).absolute().resolve())
             line_beginning = location.begin.line
@@ -274,12 +278,12 @@ class ClingoExplaidApp(Application):
         assumption_string: Optional[str] = None,
         output_prefix_active: str = "",
         output_prefix_passive: str = "",
-    ):
+    ) -> None:
         # register DecisionOrderPropagator if flag is enabled
         if self.method_flags["show-decisions"]:
             decision_signatures = set(self._show_decisions_decision_signatures.items())
             dop = DecisionOrderPropagator(signatures=decision_signatures, prefix=output_prefix_passive)
-            control.register_propagator(dop)
+            control.register_propagator(dop)  # type: ignore
 
         ucc = UnsatConstraintComputer(control=control)
         ucc.parse_files(files)
@@ -288,7 +292,7 @@ class ClingoExplaidApp(Application):
 
     def _print_model(
         self,
-        model,
+        model: clingo.Model,
         prefix_active: str = "",
         prefix_passive: str = "",
     ) -> None:
@@ -307,10 +311,10 @@ class ClingoExplaidApp(Application):
         self,
         control: clingo.Control,
         files: List[str],
-    ):
+    ) -> None:
         decision_signatures = set(self._show_decisions_decision_signatures.items())
         dop = DecisionOrderPropagator(signatures=decision_signatures)
-        control.register_propagator(dop)
+        control.register_propagator(dop)  # type: ignore
         for f in files:
             control.load(f)
         if not files:
@@ -318,10 +322,10 @@ class ClingoExplaidApp(Application):
         control.ground()
         control.solve(on_model=lambda model: self._print_model(model, "├", "│"))
 
-    def print_model(self, model, _):
+    def print_model(self, model: clingo.Model, _) -> None:  # type: ignore
         return
 
-    def main(self, control, files):
+    def main(self, control: clingo.Control, files: Sequence[str]) -> None:
         print("clingexplaid", "version", version("clingexplaid"))
         self._initialize()
 

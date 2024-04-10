@@ -5,26 +5,25 @@ Transformer Module: Removing all optimization statements
 from pathlib import Path
 from typing import Sequence, Union
 
-import clingo.ast
-import clingo.ast as _ast
+from clingo import ast
 
 from .constants import REMOVED_TOKEN
 
 
-class OptimizationRemover(_ast.Transformer):
+class OptimizationRemover(ast.Transformer):
     """
     Transformer that removes all optimization statements
     """
 
     # pylint: disable=duplicate-code
 
-    def visit_Minimize(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
+    def visit_Minimize(self, node: ast.AST) -> ast.AST:  # pylint: disable=C0103
         """
         Removes all facts from a program that match the given signatures (if none are given all facts are removed).
         """
-        return _ast.Rule(
+        return ast.Rule(
             location=node.location,
-            head=_ast.Function(location=node.location, name=REMOVED_TOKEN, arguments=[], external=0),
+            head=ast.Function(location=node.location, name=REMOVED_TOKEN, arguments=[], external=0),
             body=[],
         )
 
@@ -47,7 +46,7 @@ class OptimizationRemover(_ast.Transformer):
         program string.
         """
         out = []
-        _ast.parse_string(string, lambda stm: out.append(str(self(stm))))
+        ast.parse_string(string, lambda stm: out.append(str(self(stm))))
         return self.post_transform("\n".join(out))
 
     def parse_files(self, paths: Sequence[Union[str, Path]]) -> str:
@@ -55,7 +54,7 @@ class OptimizationRemover(_ast.Transformer):
         Parses the files and returns a string with the transformed program.
         """
         out = []
-        _ast.parse_files(
+        ast.parse_files(
             [str(p) for p in paths],
             lambda stm: out.append(str(self(stm))),
         )

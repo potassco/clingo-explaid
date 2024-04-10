@@ -2,7 +2,7 @@
 MUC Module: Core Computer to get Minimal Unsatisfiable Cores
 """
 
-from typing import Optional, Set, Tuple, Generator, List
+from typing import Optional, Set, Tuple, Generator, List, Dict
 from itertools import chain, combinations
 
 import clingo
@@ -121,3 +121,19 @@ class CoreComputer:
                 # if the maximum muc amount is found stop search
                 if max_mucs is not None and len(found_mucs) == max_mucs:
                     break
+
+    def muc_to_string(self, muc: AssumptionSet, literal_lookup: Optional[Dict[int, clingo.Symbol]] = None) -> Set[str]:
+        """
+        Converts a MUC into a set containing the string representations of the contained assumptions
+        """
+        # take class literal_lookup as default if no other is provided
+        if literal_lookup is None:
+            literal_lookup = self.literal_lookup
+
+        muc_string = set()
+        for a in muc:
+            if isinstance(a, int):
+                muc_string.add(str(literal_lookup[a]))
+            else:
+                muc_string.add(str(a[0]))
+        return muc_string

@@ -5,14 +5,14 @@ Transformer Module: Fact Remover
 from pathlib import Path
 from typing import Optional, Sequence, Set, Tuple, Union
 
-import clingo.ast
-import clingo.ast as _ast
+import clingo
+from clingo import ast
 
 from .constants import REMOVED_TOKEN
 from ..utils import match_ast_symbolic_atom_signature
 
 
-class FactTransformer(_ast.Transformer):
+class FactTransformer(ast.Transformer):
     """
     Transformer that removes all facts from a program that match provided signatures
     """
@@ -26,7 +26,7 @@ class FactTransformer(_ast.Transformer):
         """
         Removes all facts from a program that match the given signatures (if none are given all facts are removed).
         """
-        if node.head.ast_type != _ast.ASTType.Literal:
+        if node.head.ast_type != ast.ASTType.Literal:
             return node
         if node.body:
             return node
@@ -37,9 +37,9 @@ class FactTransformer(_ast.Transformer):
         if self.signatures and not has_matching_signature:
             return node
 
-        return _ast.Rule(
+        return ast.Rule(
             location=node.location,
-            head=_ast.Function(location=node.location, name=REMOVED_TOKEN, arguments=[], external=0),
+            head=ast.Function(location=node.location, name=REMOVED_TOKEN, arguments=[], external=0),
             body=[],
         )
 
@@ -62,7 +62,7 @@ class FactTransformer(_ast.Transformer):
         program string.
         """
         out = []
-        _ast.parse_string(string, lambda stm: out.append(str(self(stm))))
+        ast.parse_string(string, lambda stm: out.append(str(self(stm))))
         return self.post_transform("\n".join(out))
 
     def parse_files(self, paths: Sequence[Union[str, Path]]) -> str:
@@ -70,7 +70,7 @@ class FactTransformer(_ast.Transformer):
         Parses the files and returns a string with the transformed program.
         """
         out = []
-        _ast.parse_files(
+        ast.parse_files(
             [str(p) for p in paths],
             lambda stm: out.append(str(self(stm))),
         )
