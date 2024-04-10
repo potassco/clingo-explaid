@@ -4,20 +4,24 @@ Test cases for main application functionality.
 
 import random
 from pathlib import Path
-from typing import List, Optional, Set, Tuple, Union
+from typing import List, Optional, Set, Tuple, Union, Dict
 from unittest import TestCase
 
 import clingo
 
 from clingexplaid.utils import AssumptionSet
 from clingexplaid.muc import CoreComputer
+from clingexplaid.unsat_constraints import UnsatConstraintComputer
 from clingexplaid.transformers import (
     AssumptionTransformer,
     ConstraintTransformer,
     RuleIDTransformer,
     RuleSplitter,
+    OptimizationRemover,
+    FactTransformer,
 )
-from clingexplaid.transformers.exceptions import UntransformedException
+from clingexplaid.propagators import DecisionOrderPropagator
+from clingexplaid.transformers.exceptions import UntransformedException, NotGroundedException
 
 
 TEST_DIR = parent = Path(__file__).resolve().parent
@@ -27,6 +31,8 @@ class TestMain(TestCase):
     """
     Test cases for clingexplaid.
     """
+
+    # pylint: disable=too-many-public-methods
 
     @staticmethod
     def read_file(path: Union[str, Path], encoding: str = "utf-8") -> str:
@@ -106,6 +112,31 @@ class TestMain(TestCase):
         control = clingo.Control()
         self.assertRaises(UntransformedException, lambda: at.get_assumptions(control))
 
+    def test_assumption_transformer_get_assumptions_before_grounding(self) -> None:
+        """
+        Test the AssumptionTransformer's behavior when get_assumptions is called before transformation.
+        """
+        program_path = TEST_DIR.joinpath("res/test_program.lp")
+        at = AssumptionTransformer()
+        control = clingo.Control()
+        at.parse_files([program_path])
+        self.assertRaises(NotGroundedException, lambda: at.get_assumptions(control))
+
+    def test_assumption_transformer_visit_definition(self) -> None:
+        """
+        Test the AssumptionTransformer's detection of constant definitions.
+        """
+        program_path = TEST_DIR.joinpath("res/test_program_constants.lp")
+        at = AssumptionTransformer()
+        control = clingo.Control()
+        result = at.parse_files([program_path])
+        control.add("base", [], result)
+        control.ground([("base", [])])
+        self.assertEqual(
+            at.program_constants,
+            {k: clingo.parse_term(v) for k, v in {"number": "42", "message": "helloworld"}.items()},
+        )
+
     # --- RULE ID TRANSFORMER
 
     def test_rule_id_transformer(self) -> None:
@@ -143,6 +174,17 @@ class TestMain(TestCase):
         result = ct.parse_files([program_path])
         self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
 
+    def test_constraint_transformer_include_id(self) -> None:
+        """
+        Test the ConstraintTransformer's `parse_file` method.
+        """
+        program_path = TEST_DIR.joinpath("res/test_program_constraints.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_constraints_id.lp")
+        ct = ConstraintTransformer(constraint_head_symbol="unsat", include_id=True)
+        with open(program_path, "r", encoding="utf-8") as f:
+            result = ct.parse_string(f.read())
+        self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
+
     # --- RULE SPLITTER
 
     def test_rule_splitter(self) -> None:
@@ -155,6 +197,69 @@ class TestMain(TestCase):
         rs = RuleSplitter()
         result = rs.parse_file(program_path)
         self.assertEqual(result.strip(), self.read_file(program_path_transformed).strip())
+
+    # --- OPTIMIZATION REMOVER
+
+    def test_optimization_remover(self) -> None:
+        """
+        Test the OptimizationRemover's `parse_file` and `parse_string_method` method.
+        """
+
+        program_path = TEST_DIR.joinpath("res/test_program_optimization.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_optimization.lp")
+        optrm = OptimizationRemover()
+        result_files = optrm.parse_files([program_path])
+        with open(program_path, "r", encoding="utf-8") as f:
+            result_string = optrm.parse_string(f.read())
+        self.assertEqual(result_files.strip(), self.read_file(program_path_transformed).strip())
+        self.assertEqual(result_files.strip(), result_string.strip())
+
+    # --- FACT TRANSFORMER
+
+    def test_fact_transformer(self) -> None:
+        """
+        Test the FactTransformer's `parse_files` and `parse_string_method` method.
+        """
+
+        program_path = TEST_DIR.joinpath("res/test_program.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_facts.lp")
+        ft = FactTransformer(signatures={("a", 1), ("d", 1), ("e", 1)})
+        result_files = ft.parse_files([program_path])
+        with open(program_path, "r", encoding="utf-8") as f:
+            result_string = ft.parse_string(f.read())
+        self.assertEqual(result_files.strip(), self.read_file(program_path_transformed).strip())
+        self.assertEqual(result_files.strip(), result_string.strip())
+
+    # PROPAGATORS
+    # --- DECISION ORDER PROPAGATOR
+
+    def test_decision_order_propagator(self) -> None:
+        """
+        Testing the functionality of the DecisionOrderPropagator without signatures
+        """
+        program_path = TEST_DIR.joinpath("res/test_program_decision_order.lp")
+        control = clingo.Control()
+        dop = DecisionOrderPropagator()
+        control.register_propagator(dop)  # type: ignore
+        control.load(str(program_path))
+        control.ground()
+        control.solve()
+
+        # No asserts since the propagator currently doesn't support any outputs but only prints.
+
+    def test_decision_order_propagator_with_signatures(self) -> None:
+        """
+        Testing the functionality of the DecisionOrderPropagator with signatures
+        """
+        program_path = TEST_DIR.joinpath("res/test_program_decision_order.lp")
+        control = clingo.Control()
+        dop = DecisionOrderPropagator(signatures={("a", 0), ("b", 0), ("x", 1)})
+        control.register_propagator(dop)  # type: ignore
+        control.load(str(program_path))
+        control.ground()
+        control.solve()
+
+        # No asserts since the propagator currently doesn't support any outputs but only prints.
 
     # MUC
 
@@ -282,6 +387,54 @@ class TestMain(TestCase):
 
         self.assertEqual(muc, set())
 
+    def test_core_computer_get_multiple_minimal(self) -> None:
+        """
+        Test the CoreComputer's `get_multiple_minimal` function to get multiple MUCs.
+        """
+
+        ctl = clingo.Control()
+
+        program_path = TEST_DIR.joinpath("res/test_program_multi_muc.lp")
+        at = AssumptionTransformer(signatures={("a", 1)})
+        parsed = at.parse_files([program_path])
+        ctl.add("base", [], parsed)
+        ctl.ground([("base", [])])
+        cc = CoreComputer(ctl, at.get_assumptions(ctl))
+
+        muc_generator = cc.get_multiple_minimal()
+
+        muc_string_sets = [cc.muc_to_string(muc) for muc in list(muc_generator)]
+        for muc_string_set in muc_string_sets:
+            self.assertIn(
+                muc_string_set,
+                [{"a(1)", "a(2)"}, {"a(1)", "a(9)"}, {"a(3)", "a(5)", "a(8)"}],
+            )
+
+    def test_core_computer_get_multiple_minimal_max_mucs_2(self) -> None:
+        """
+        Test the CoreComputer's `get_multiple_minimal` function to get multiple MUCs.
+        """
+
+        ctl = clingo.Control()
+
+        program_path = TEST_DIR.joinpath("res/test_program_multi_muc.lp")
+        at = AssumptionTransformer(signatures={("a", 1)})
+        parsed = at.parse_files([program_path])
+        ctl.add("base", [], parsed)
+        ctl.ground([("base", [])])
+        cc = CoreComputer(ctl, at.get_assumptions(ctl))
+
+        muc_generator = cc.get_multiple_minimal(max_mucs=2)
+
+        muc_string_sets = [cc.muc_to_string(muc) for muc in list(muc_generator)]
+        for muc_string_set in muc_string_sets:
+            self.assertIn(
+                muc_string_set,
+                [{"a(1)", "a(2)"}, {"a(1)", "a(9)"}, {"a(3)", "a(5)", "a(8)"}],
+            )
+
+        self.assertEqual(len(muc_string_sets), 2)
+
     # --- INTERNAL
 
     def test_core_computer_internal_solve_no_assumptions(self) -> None:
@@ -316,3 +469,73 @@ class TestMain(TestCase):
         control = clingo.Control()
         cc = CoreComputer(control, set())
         self.assertRaises(ValueError, cc._compute_single_minimal)  # pylint: disable=W0212
+
+    def test_core_computer_muc_to_string(self) -> None:
+        """
+        Test the CoreComputer's `_compute_single_minimal` function with no assumptions.
+        """
+
+        control = clingo.Control()
+        cc = CoreComputer(control, set())
+        self.assertEqual(
+            cc.muc_to_string({(clingo.parse_term(string), True) for string in ["this", "is", "a", "test"]}),
+            {"this", "is", "a", "test"},
+        )  # pylint: disable=W0212
+
+    # UNSAT CONSTRAINT COMPUTER
+
+    def unsat_constraint_computer_helper(
+        self,
+        constraint_strings: Dict[int, str],
+        constraint_lines: Dict[int, int],
+        constraint_files: Dict[int, str],
+        assumption_string: Optional[str] = None,
+    ) -> None:
+        """
+        Helper function for testing the UnsatConstraintComputer
+        """
+        for method in ["from_files", "from_string"]:
+            program_path = TEST_DIR.joinpath("res/test_program_unsat_constraints.lp")
+            ucc = UnsatConstraintComputer()
+            if method == "from_files":
+                ucc.parse_files([str(program_path)])
+            elif method == "from_string":
+                with open(program_path, "r", encoding="utf-8") as f:
+                    ucc.parse_string(f.read())
+            unsat_constraints = ucc.get_unsat_constraints(assumption_string=assumption_string)
+            self.assertEqual(set(unsat_constraints.values()), set(constraint_strings.values()))
+
+            for c_id in unsat_constraints:
+                loc = ucc.get_constraint_location(c_id)
+                if method == "from_files":
+                    # only check the source file if .from_files is used to initialize
+                    self.assertEqual(loc.begin.filename, constraint_files[c_id])  # type: ignore
+                self.assertEqual(loc.begin.line, constraint_lines[c_id])  # type: ignore
+
+    def test_unsat_constraint_computer(self) -> None:
+        """
+        Testing the UnsatConstraintComputer without assumptions.
+        """
+        self.unsat_constraint_computer_helper(
+            constraint_strings={2: ":- not a."},
+            constraint_lines={2: 4},
+            constraint_files={2: str(TEST_DIR.joinpath("res/test_program_unsat_constraints.lp"))},
+        )
+
+    def test_unsat_constraint_computer_with_assumptions(self) -> None:
+        """
+        Testing the UnsatConstraintComputer with assumptions.
+        """
+        self.unsat_constraint_computer_helper(
+            constraint_strings={1: ":- a."},
+            constraint_lines={1: 3},
+            constraint_files={1: str(TEST_DIR.joinpath("res/test_program_unsat_constraints.lp"))},
+            assumption_string="a",
+        )
+
+    def test_unsat_constraint_computer_not_initialized(self) -> None:
+        """
+        Testing the UnsatConstraintComputer without initializing it.
+        """
+        ucc = UnsatConstraintComputer()
+        self.assertRaises(ValueError, ucc.get_unsat_constraints)

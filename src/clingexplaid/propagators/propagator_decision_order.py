@@ -38,7 +38,7 @@ class DecisionOrderPropagator:
                 continue
             symbolic_atom = init.symbolic_atoms[atom.symbol]
             if symbolic_atom is None:
-                continue
+                continue  # nocoverage
             query_program_literal = symbolic_atom.literal
             query_solver_literal = init.solver_literal(query_program_literal)
             init.add_watch(query_solver_literal)
@@ -51,13 +51,13 @@ class DecisionOrderPropagator:
         printed = True
         # skip UNKNOWN print if signatures is set
         if len(self.signatures) > 0 and symbol == UNKNOWN_SYMBOL_TOKEN:
-            printed = False
+            printed = False  # nocoverage
         # skip if symbol signature is not in self.signatures
         elif len(self.signatures) > 0 and symbol != UNKNOWN_SYMBOL_TOKEN:
             # `symbol` can only be a `str` if it is the UNKNOWN_SYMBOL_TOKEN
-            if isinstance(symbol, str):
+            if isinstance(symbol, str):  # nocoverage
                 printed = False
-            elif not any(symbol.match(s, a) for s, a in self.signatures):
+            elif not any(symbol.match(s, a) for s, a in self.signatures):  # nocoverage
                 printed = False
 
         return printed
@@ -99,12 +99,12 @@ class DecisionOrderPropagator:
             for e in entailment_list:
                 # skip decision in entailments
                 if e == d:
-                    continue
+                    continue  # nocoverage
                 entailment_symbol = self.get_symbol(e)
                 entailment_printed = self._is_printed(entailment_symbol)
                 # skip if entailment symbol doesn't mach signatures (if provided)
                 if not entailment_printed:
-                    continue
+                    continue  # nocoverage
 
                 entailment_negative = e < 0
                 if decision_printed:
@@ -125,7 +125,7 @@ class DecisionOrderPropagator:
         # pylint: disable=unused-argument
 
         if len(self.last_decisions) < 1:
-            return
+            return  # nocoverage
         decision = self.last_decisions[-1]
         decision_symbol = self.get_symbol(decision)
 

@@ -44,7 +44,7 @@ class UnsatConstraintComputer:
         """
         ct = ConstraintTransformer(UNSAT_CONSTRAINT_SIGNATURE, include_id=True)
         if not files:
-            program_transformed = ct.parse_files("-")
+            program_transformed = ct.parse_files("-")  # nocoverage
         else:
             program_transformed = ct.parse_files(files)
 

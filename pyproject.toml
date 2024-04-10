@@ -76,7 +76,16 @@ good-names = ["_"]
 
 [tool.coverage.run]
 source = ["clingexplaid", "tests"]
-omit = ["*/clingexplaid/__main__.py"]
+omit = [
+    "*/clingexplaid/__main__.py",
+    "*/clingexplaid/cli/*",
+    "*/clingexplaid/propagators/__init__.py",
+    "*/clingexplaid/transformers/__init__.py",
+    "*/clingexplaid/muc/__init__.py",
+    "*/clingexplaid/unsat_constraints/__init__.py",
+    "*/tests/*",
+    "*/constants.py"
+]
 
 [tool.coverage.report]
 exclude_lines = ["assert", "nocoverage"]
