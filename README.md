@@ -1,13 +1,5 @@
 # clingexplaid
 
-## Installation
-
-To install the project, run
-
-```bash
-pip install .
-```
-
 ## Usage
 
 Run the following for basic usage information:
@@ -16,16 +8,44 @@ Run the following for basic usage information:
 clingexplaid -h
 ```
 
-Compute Minimal Unsatisfiable Core from unsatisfiable program:
+The clingexplaid CLI (based on the `clingo.Application` class) can  be called using this generic command.
 
 ```bash
-clingexplaid <filenames> --assumption-signature signature/arity
+clingexplaid <filenames> <n> <method> <options>
 ```
 
-+ `--assumption-signature` is optional to allow for only specific facts to be transformed to assumptions
-	+ if no such option is given all facts are transformed to assumptions regardless of their signature
++ `<filenames>`: has to be replaced by a list of all files or a single filename
++ `<n>`: defines how many models are computed (Default=`1`, All=`0`)
++ `<method>`: specifies which Clingexplaid method is used (Required)
+  + Options:
+    + `--muc`:
+      + Computes the Minimal Unsatisfiable Cores (MUCs) of the provided unsatisfiable program
+    + `--unsat-constraints`: 
+      + Computes the Unsatisfiable Constraints of the unsatisfiable program provided.
+    + `--show-decisions`: 
+      + Visualizes the decision process of clasp
++ `<options>`: Additional options for the different methods
+  + For `--muc`:
+    + `-a`, `--assumption-signature`: limits which facts of the current program are converted to choices/assumptions for
+      finding the MUCs (Default: all facts are converted)
+  + For `--show-decisions`:
+    + `--decision-signature`: limits which decisions are shown in the visualization (Default: all atom's decisions are 
+      shown)
+
+### Examples
+
++ A selection of examples can be found [here](examples)
 
 ## Development
+
+### Installation
+
+To install the project, run
+
+```bash
+pip install .
+```
+
 
 To improve code quality, we run linters, type checkers, and unit tests. The
 tools can be run using [nox]. We recommend installing nox using [pipx] to have

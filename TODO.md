@@ -19,10 +19,10 @@
   + `--show-decisions` with more fine grained `--decision-signature` option
 + [x] Make `--show-decisions` its own mode
 + [x] Give a warning in Transformer if control is not grounded yet
-+ [ ] Documentation
-  + [ ] Proper README
-  + [ ] Docstrings for all API functions
-  + [ ] CLI documentation with examples
++ [x] Documentation
+  + [x] Proper README
+  + [x] Docstrings for all API functions
+  + [x] CLI documentation with examples
   + [x] Examples folder
     + [x] Sudoku
     + [x] Graph Coloring
