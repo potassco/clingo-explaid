@@ -243,7 +243,7 @@ class TestMain(TestCase):
         control.register_propagator(dop)  # type: ignore
         control.load(str(program_path))
         control.ground()
-        control.solve()
+        control.solve(assumptions=[])
 
         # No asserts since the propagator currently doesn't support any outputs but only prints.
 
@@ -257,7 +257,7 @@ class TestMain(TestCase):
         control.register_propagator(dop)  # type: ignore
         control.load(str(program_path))
         control.ground()
-        control.solve()
+        control.solve(assumptions=[])
 
         # No asserts since the propagator currently doesn't support any outputs but only prints.
 
