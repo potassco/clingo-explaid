@@ -92,7 +92,7 @@ class UnsatConstraintComputer:
         constraint_lookup = {}
         for line in program_string.split("\n"):
             id_re = re.compile(
-                f"{UNSAT_CONSTRAINT_SIGNATURE}\(([1-9][0-9]*)\)"  # pylint: disable=anomalous-backslash-in-string)
+                f"{UNSAT_CONSTRAINT_SIGNATURE}[(]([1-9][0-9]*)[)]"
             )
             match_result = id_re.match(line)
             if match_result is None:
