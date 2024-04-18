@@ -82,7 +82,7 @@ def get_constants_from_arguments(argument_vector: List[str]) -> Dict[str, str]:
     for element in argument_vector:
         if next_constant:
             result = re.search(r"(.*)=(.*)", element)
-            if result is None or len(result.groups()) == 0:
+            if result is None:
                 continue
             constants[result.group(1)] = result.group(2)
             next_constant = False
