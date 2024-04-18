@@ -2,12 +2,13 @@
 MUC Module: Core Computer to get Minimal Unsatisfiable Cores
 """
 
-from typing import Optional, Set, Tuple, Generator, List, Dict
 from itertools import chain, combinations
+from typing import Optional, Set, Tuple, Generator, List, Dict
 
 import clingo
 
-from ..utils import Assumption, AssumptionSet, SymbolSet, get_solver_literal_lookup
+from ..utils import get_solver_literal_lookup
+from ..utils.types import Assumption, AssumptionSet, SymbolSet
 
 
 class CoreComputer:

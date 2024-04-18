@@ -3,17 +3,10 @@ Utilities.
 """
 
 import re
-from typing import Dict, Iterable, Set, Tuple, Union, List
+from typing import Dict, Set, Tuple, List
 
 import clingo
 from clingo.ast import ASTType
-
-
-SymbolSet = Set[clingo.Symbol]
-Literal = Tuple[clingo.Symbol, bool]
-LiteralSet = Set[Literal]
-Assumption = Union[Literal, int]
-AssumptionSet = Iterable[Assumption]
 
 
 def match_ast_symbolic_atom_signature(
