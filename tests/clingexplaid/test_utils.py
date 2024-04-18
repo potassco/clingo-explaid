@@ -7,7 +7,7 @@ from unittest import TestCase
 from clingexplaid.utils import get_signatures_from_model_string, get_constants_from_arguments
 
 
-class TestMain(TestCase):
+class TestUtils(TestCase):
     """
     Test cases for clingexplaid.
     """
