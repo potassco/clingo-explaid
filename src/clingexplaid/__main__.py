@@ -6,15 +6,15 @@ import sys
 
 from clingo.application import clingo_main
 
-from clingexplaid.utils.cli import CoreComputerApp
+from .cli.clingo_app import ClingoExplaidApp
 
 
-def main():
+def main() -> None:
     """
-    Main function calling the application class
+    Run the main function.
     """
-    clingo_main(CoreComputerApp(sys.argv[0]), sys.argv[1:] + ["-V0"])
-    sys.exit()
+
+    clingo_main(ClingoExplaidApp(sys.argv[0]), sys.argv[1:] + ["-V0"])
 
 
 if __name__ == "__main__":
