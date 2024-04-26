@@ -154,7 +154,7 @@ class TestMUC(TestCase):
         ctl = clingo.Control()
 
         n_assumptions = 1000
-        random_core = random.choices(range(n_assumptions), k=10)
+        random_core = random.choices(range(1, n_assumptions), k=10)
         program = f"""
             a(1..{n_assumptions}).
             :- {', '.join([f"a({i})" for i in random_core])}.
