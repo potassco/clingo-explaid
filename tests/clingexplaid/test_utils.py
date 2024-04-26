@@ -4,7 +4,7 @@ Tests for the utils package
 
 from unittest import TestCase
 
-from clingexplaid.utils import get_signatures_from_model_string, get_constants_from_arguments
+from clingexplaid.utils import get_constants_from_arguments, get_signatures_from_model_string
 
 
 class TestUtils(TestCase):

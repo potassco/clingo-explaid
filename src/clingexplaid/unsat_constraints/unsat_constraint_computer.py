@@ -3,14 +3,14 @@ Unsat Constraint Utilities
 """
 
 import re
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
 
 import clingo
 from clingo.ast import Location
 
-from .constants import UNSAT_CONSTRAINT_SIGNATURE
 from ..transformers import ConstraintTransformer, FactTransformer, OptimizationRemover
 from ..utils import get_signatures_from_model_string
+from .constants import UNSAT_CONSTRAINT_SIGNATURE
 
 
 class UnsatConstraintComputer:
@@ -91,9 +91,7 @@ class UnsatConstraintComputer:
         # create a rule lookup for every constraint in the program associated with it's unsat id
         constraint_lookup = {}
         for line in program_string.split("\n"):
-            id_re = re.compile(
-                f"{UNSAT_CONSTRAINT_SIGNATURE}[(]([1-9][0-9]*)[)]"
-            )
+            id_re = re.compile(f"{UNSAT_CONSTRAINT_SIGNATURE}[(]([1-9][0-9]*)[)]")
             match_result = id_re.match(line)
             if match_result is None:
                 continue

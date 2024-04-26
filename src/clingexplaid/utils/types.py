@@ -2,7 +2,7 @@
 Custom types for clingexplaid
 """
 
-from typing import Set, Tuple, Union, Iterable
+from typing import Iterable, Set, Tuple, Union
 
 import clingo
 

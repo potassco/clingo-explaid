@@ -1,9 +1,9 @@
 # Example : N Queens Problem
 
-+ This example encodes the classic n queens problem
-+ The correct problem encoding is provided with an unsatisfiable instance
-+ Using `clingexplaid` we can discover the underlying Minimal Unsatisfiable Cores (MUCs) and their respective unsatisfiable constraints
-
+- This example encodes the classic n queens problem
+- The correct problem encoding is provided with an unsatisfiable instance
+- Using `clingexplaid` we can discover the underlying Minimal Unsatisfiable
+  Cores (MUCs) and their respective unsatisfiable constraints
 
 ## Visualization
 
@@ -11,20 +11,20 @@
 
 ## Run
 
-+ Finding all MUCs
+- Finding all MUCs
 
   ```bash
   clingexplaid 0 encoding.lp instance.lp --muc -a queen/2
   ```
-  
+
   Expected Output:
 
   ```bash
-  MUC  1 
+  MUC  1
   queen(1,1) queen(2,5)
   ```
 
-+ Finding the unsatisfiable constraints
+- Finding the unsatisfiable constraints
 
   ```bash
   clingexplaid 0 encoding.lp instance.lp --unsat-constraints
@@ -33,12 +33,13 @@
   Expected Output:
 
   ```bash
-  Unsat Constraints 
+  Unsat Constraints
   :- 2 <= { queen((D-J),J) }; D = (2..(2*n)).
   :- 2 <= { queen((D+J),J) }; D = ((1-n)..(n-1)).
   ```
 
-+ Combined call with unsatisfiable constraints for every found MUC
+- Combined call with unsatisfiable constraints for every found MUC
+
   ```bash
   clingexplaid 0 encoding.lp instance.lp --muc --unsat-constraints -a queen/2
   ```
@@ -46,9 +47,8 @@
   Expected Output:
 
   ```bash
-  MUC  1 
+  MUC  1
   queen(1,1) queen(2,5)
-  ├── Unsat Constraints 
+  ├── Unsat Constraints
   ├──:- 2 <= { queen((D-J),J) }; D = (2..(2*n)).
   ```
-

@@ -1,11 +1,13 @@
 """
 Tests for the muc package
 """
+
 import random
-from typing import Set, Tuple, Optional, List
+from typing import List, Optional, Set, Tuple
 from unittest import TestCase
 
 import clingo
+
 from clingexplaid.muc import CoreComputer
 from clingexplaid.transformers import AssumptionTransformer
 from clingexplaid.utils.types import AssumptionSet

@@ -6,22 +6,18 @@ import re
 import sys
 from importlib.metadata import version
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Set, Callable, Sequence
+from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple
 from warnings import warn
-
 
 import clingo
 from clingo.application import Application, Flag
 
 from ..muc import CoreComputer
 from ..propagators import DecisionOrderPropagator
-from ..unsat_constraints import UnsatConstraintComputer
-from ..utils import (
-    get_constants_from_arguments,
-)
-from ..utils.logging import BACKGROUND_COLORS, COLORS
 from ..transformers import AssumptionTransformer, OptimizationRemover
-
+from ..unsat_constraints import UnsatConstraintComputer
+from ..utils import get_constants_from_arguments
+from ..utils.logging import BACKGROUND_COLORS, COLORS
 
 HYPERLINK_MASK = "\033]8;{};{}\033\\{}\033]8;;\033\\"
 

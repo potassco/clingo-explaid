@@ -5,15 +5,16 @@ Tests for the transformers package
 from unittest import TestCase
 
 import clingo
+
 from clingexplaid.transformers import (
     AssumptionTransformer,
-    RuleIDTransformer,
     ConstraintTransformer,
-    RuleSplitter,
-    OptimizationRemover,
     FactTransformer,
+    OptimizationRemover,
+    RuleIDTransformer,
+    RuleSplitter,
 )
-from clingexplaid.transformers.exceptions import UntransformedException, NotGroundedException
+from clingexplaid.transformers.exceptions import NotGroundedException, UntransformedException
 
 from .test_main import TEST_DIR, read_file
 

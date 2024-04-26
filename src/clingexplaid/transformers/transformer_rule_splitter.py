@@ -4,7 +4,7 @@ Transformer Module: Split Rules into dedicated body and head parts
 
 import base64
 from pathlib import Path
-from typing import Union, List
+from typing import List, Union
 
 import clingo
 import clingo.ast as _ast

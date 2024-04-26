@@ -3,7 +3,7 @@ MUC Module: Core Computer to get Minimal Unsatisfiable Cores
 """
 
 from itertools import chain, combinations
-from typing import Optional, Set, Tuple, Generator, List, Dict
+from typing import Dict, Generator, List, Optional, Set, Tuple
 
 import clingo
 

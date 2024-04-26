@@ -3,15 +3,13 @@ Utilities.
 """
 
 import re
-from typing import Dict, Set, Tuple, List
+from typing import Dict, List, Set, Tuple
 
 import clingo
 from clingo.ast import ASTType
 
 
-def match_ast_symbolic_atom_signature(
-    ast_symbol: ASTType.SymbolicAtom, signature: Tuple[str, int]
-) -> bool:
+def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signature: Tuple[str, int]) -> bool:
     """
     Function to match the signature of an AST SymbolicAtom to a tuple containing a string and int value, representing a
     matching signature.

@@ -29,4 +29,3 @@ _muc(initial(3,3,1)) :- initial(3,3,1).
 _assumption(initial(3,4,3)).
 _muc(initial(3,4,3)) :- initial(3,4,3).
 #show initial/3.
-

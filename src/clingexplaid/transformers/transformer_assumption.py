@@ -8,8 +8,8 @@ from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
 import clingo
 import clingo.ast as _ast
 
-from .exceptions import NotGroundedException, UntransformedException
 from ..utils import match_ast_symbolic_atom_signature
+from .exceptions import NotGroundedException, UntransformedException
 
 
 class AssumptionTransformer(_ast.Transformer):

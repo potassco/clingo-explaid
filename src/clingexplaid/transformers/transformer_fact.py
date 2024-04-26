@@ -8,8 +8,8 @@ from typing import Optional, Sequence, Set, Tuple, Union
 import clingo
 from clingo import ast
 
-from .constants import REMOVED_TOKEN
 from ..utils import match_ast_symbolic_atom_signature
+from .constants import REMOVED_TOKEN
 
 
 class FactTransformer(ast.Transformer):

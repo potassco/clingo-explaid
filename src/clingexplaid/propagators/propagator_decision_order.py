@@ -2,12 +2,12 @@
 Propagator Module: Decision Order
 """
 
-from typing import Optional, Tuple, Set, Dict, List, Sequence, Union
+from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import clingo
 
-from .constants import UNKNOWN_SYMBOL_TOKEN, INDENT_STEP, INDENT_START, INDENT_END
 from ..utils.logging import COLORS
+from .constants import INDENT_END, INDENT_START, INDENT_STEP, UNKNOWN_SYMBOL_TOKEN
 
 
 class DecisionOrderPropagator:

@@ -3,7 +3,7 @@ Transformer Module: Adding atoms to constraint heads to retrace the ones firing 
 """
 
 from pathlib import Path
-from typing import Sequence, Union, Dict
+from typing import Dict, Sequence, Union
 
 import clingo
 import clingo.ast as _ast
