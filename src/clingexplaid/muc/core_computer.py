@@ -1,5 +1,5 @@
 """
-MUC Module: Core Computer to get Minimal Unsatisfiable Cores
+MUS Module: Core Computer to get Minimal Unsatisfiable Subsets
 """
 
 from itertools import chain, combinations
@@ -25,7 +25,7 @@ class CoreComputer:
 
     def _solve(self, assumptions: Optional[AssumptionSet] = None) -> Tuple[bool, SymbolSet, SymbolSet]:
         """
-        Internal function that is used to make the single solver calls for finding the minimal unsatisfiable core.
+        Internal function that is used to make the single solver calls for finding the minimal unsatisfiable subset.
         """
         if assumptions is None:
             assumptions = self.assumption_set
@@ -39,8 +39,8 @@ class CoreComputer:
 
     def _compute_single_minimal(self, assumptions: Optional[AssumptionSet] = None) -> AssumptionSet:
         """
-        Function to compute a single minimal unsatisfiable core from the passed set of assumptions and the program of
-        the CoreComputer. If there is no minimal unsatisfiable core, since for example the program with assumptions
+        Function to compute a single minimal unsatisfiable subset from the passed set of assumptions and the program of
+        the CoreComputer. If there is no minimal unsatisfiable subset, since for example the program with assumptions
         assumed is satisfiable, an empty set is returned. The algorithm that is used to compute this minimal
         unsatisfiable core is the iterative deletion algorithm.
         """
@@ -49,7 +49,7 @@ class CoreComputer:
 
         # check that the assumption set isn't empty
         if not assumptions:
-            raise ValueError("A minimal unsatisfiable core cannot be computed on an empty assumption set")
+            raise ValueError("A minimal unsatisfiable subset cannot be computed on an empty assumption set")
 
         # check if the problem with the full assumption set is unsatisfiable in the first place, and if not skip the
         # rest of the algorithm and return an empty set.
@@ -57,37 +57,37 @@ class CoreComputer:
         if satisfiable:
             return set()
 
-        muc_members: Set[Assumption] = set()
+        mus_members: Set[Assumption] = set()
         working_set = set(assumptions)
 
         for assumption in assumptions:
             # remove the current assumption from the working set
             working_set.remove(assumption)
 
-            satisfiable, _, _ = self._solve(assumptions=working_set.union(muc_members))
-            # if the working set now becomes satisfiable without the assumption it is added to the muc_members
+            satisfiable, _, _ = self._solve(assumptions=working_set.union(mus_members))
+            # if the working set now becomes satisfiable without the assumption it is added to the mus_members
             if satisfiable:
-                muc_members.add(assumption)
-                # every time we discover a new muc member we also check if all currently found muc members already
-                # suffice to make the instance unsatisfiable. If so we can stop the search sice we fund our muc.
-                if not self._solve(assumptions=muc_members)[0]:
+                mus_members.add(assumption)
+                # every time we discover a new mus member we also check if all currently found mus members already
+                # suffice to make the instance unsatisfiable. If so we can stop the search sice we found our mus.
+                if not self._solve(assumptions=mus_members)[0]:
                     break
 
-        return muc_members
+        return mus_members
 
     def shrink(self, assumptions: Optional[AssumptionSet] = None) -> None:
         """
-        This function applies the unsatisfiable core minimization (`self._compute_single_minimal`) on the assumptions
-        set `assumptions` and stores the resulting MUC inside `self.minimal`.
+        This function applies the unsatisfiable subset minimization (`self._compute_single_minimal`) on the assumptions
+        set `assumptions` and stores the resulting MUS inside `self.minimal`.
         """
         self.minimal = self._compute_single_minimal(assumptions=assumptions)
 
-    def get_multiple_minimal(self, max_mucs: Optional[int] = None) -> Generator[AssumptionSet, None, None]:
+    def get_multiple_minimal(self, max_mus: Optional[int] = None) -> Generator[AssumptionSet, None, None]:
         """
-        This function generates all minimal unsatisfiable cores of the provided assumption set. It implements the
-        generator pattern since finding all mucs of an assumption set is exponential in nature and the search might not
-        fully complete in reasonable time. The parameter `max_mucs` can be used to specify the maximum number of
-        mucs that are found before stopping the search.
+        This function generates all minimal unsatisfiable subsets of the provided assumption set. It implements the
+        generator pattern since finding all mus of an assumption set is exponential in nature and the search might not
+        fully complete in reasonable time. The parameter `max_mus` can be used to specify the maximum number of
+        mus that are found before stopping the search.
         """
         assumptions = self.assumption_set
         assumption_powerset = chain.from_iterable(
@@ -120,21 +120,21 @@ class CoreComputer:
                 found_mucs.append(muc)
                 yield muc
                 # if the maximum muc amount is found stop search
-                if max_mucs is not None and len(found_mucs) == max_mucs:
+                if max_mus is not None and len(found_mucs) == max_mus:
                     break
 
-    def muc_to_string(self, muc: AssumptionSet, literal_lookup: Optional[Dict[int, clingo.Symbol]] = None) -> Set[str]:
+    def mus_to_string(self, muc: AssumptionSet, literal_lookup: Optional[Dict[int, clingo.Symbol]] = None) -> Set[str]:
         """
-        Converts a MUC into a set containing the string representations of the contained assumptions
+        Converts a MUS into a set containing the string representations of the contained assumptions
         """
         # take class literal_lookup as default if no other is provided
         if literal_lookup is None:
             literal_lookup = self.literal_lookup
 
-        muc_string = set()
+        mus_string = set()
         for a in muc:
             if isinstance(a, int):
-                muc_string.add(str(literal_lookup[a]))
+                mus_string.add(str(literal_lookup[a]))
             else:
-                muc_string.add(str(a[0]))
-        return muc_string
+                mus_string.add(str(a[0]))
+        return mus_string

@@ -192,7 +192,7 @@ class ClingoExplaidApp(Application):
                 )
                 return
 
-            muc_string = " ".join(cc.muc_to_string(cc.minimal))
+            muc_string = " ".join(cc.mus_to_string(cc.minimal))
             self._print_muc(muc_string)
 
             if compute_unsat_constraints:
@@ -213,9 +213,9 @@ class ClingoExplaidApp(Application):
 
             if program_unsat:
                 mucs = 0
-                for muc in cc.get_multiple_minimal(max_mucs=max_models):
+                for muc in cc.get_multiple_minimal(max_mus=max_models):
                     mucs += 1
-                    muc_string = " ".join(cc.muc_to_string(muc))
+                    muc_string = " ".join(cc.mus_to_string(muc))
                     self._print_muc(muc_string)
 
                     if compute_unsat_constraints:
