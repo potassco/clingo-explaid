@@ -1,4 +1,4 @@
 autoflake==2.3.1
 clingo==5.7.1
 pre-commit==3.7.0
-textual==0.58.1
+textual[syntax]==0.58.1
