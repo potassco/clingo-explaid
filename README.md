@@ -27,15 +27,13 @@ Run the following for basic usage information:
 clingexplaid -h
 ```
 
-The clingexplaid CLI (based on the `clingo.Application` class) can be called
-using this generic command.
+The clingexplaid CLI (based on the `clingo.Application` class) extends clingo
+with `<method>` and `<options>`.
 
 ```bash
-clingexplaid <filenames> <n> <method> <options>
+clingexplaid <method> <options>
 ```
 
-- `<filenames>`: has to be replaced by a list of all files or a single filename
-- `<n>`: defines how many models are computed (Default=`1`, All=`0`)
 - `<method>`: specifies which Clingexplaid method is used (Required)
   - Options:
     - `--muc`:
