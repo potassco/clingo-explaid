@@ -12,7 +12,7 @@ from warnings import warn
 import clingo
 from clingo.application import Application, Flag
 
-from ..muc import CoreComputer
+from ..mus import CoreComputer
 from ..propagators import DecisionOrderPropagator
 from ..transformers import AssumptionTransformer, OptimizationRemover
 from ..unsat_constraints import UnsatConstraintComputer
@@ -30,7 +30,7 @@ class ClingoExplaidApp(Application):
     # pylint: disable = too-many-instance-attributes
 
     CLINGEXPLAID_METHODS = {
-        "muc": "Description for MUC method",
+        "mus": "Description for MUS method",
         "unsat-constraints": "Description for unsat-constraints method",
         "show-decisions": "Visualize the decision process of clingo during solving",
     }
@@ -48,9 +48,9 @@ class ClingoExplaidApp(Application):
         self._show_decisions_decision_signatures: Dict[str, int] = {}
         self._show_decisions_model_id: int = 1
 
-        # MUC
-        self._muc_assumption_signatures: Dict[str, int] = {}
-        self._muc_id: int = 1
+        # MUS
+        self._mus_assumption_signatures: Dict[str, int] = {}
+        self._mus_id: int = 1
 
     def _initialize(self) -> None:
         # add enabled methods to self.methods
@@ -72,8 +72,8 @@ class ClingoExplaidApp(Application):
         return match_result.group(1), int(match_result.group(2))
 
     def _parse_assumption_signature(self, assumption_signature: str) -> bool:
-        if not self.method_flags["muc"]:
-            print("PARSE ERROR: The assumption signature option is only available if the flag --muc is enabled")
+        if not self.method_flags["mus"]:
+            print("PARSE ERROR: The assumption signature option is only available if the flag --mus is enabled")
             return False
         assumption_signature_string = assumption_signature.replace("=", "").strip()
         try:
@@ -84,7 +84,7 @@ class ClingoExplaidApp(Application):
                 "<assumption-name>/<arity>"
             )
             return False
-        self._muc_assumption_signatures[signature] = arity
+        self._mus_assumption_signatures[signature] = arity
         return True
 
     def _parse_decision_signature(self, decision_signature: str) -> bool:
@@ -116,12 +116,12 @@ class ClingoExplaidApp(Application):
                 target=self.method_flags[method],
             )
 
-        group = "MUC Options"
+        group = "MUS Options"
 
         options.add(
             group,
             "assumption-signature,a",
-            "Facts matching with this signature will be converted to assumptions for finding a MUC "
+            "Facts matching with this signature will be converted to assumptions for finding a MUS "
             "(default: all facts)",
             self._parse_assumption_signature,
             multi=True,
@@ -143,7 +143,7 @@ class ClingoExplaidApp(Application):
     def _apply_assumption_transformer(
         self, signatures: Dict[str, int], files: List[str]
     ) -> Tuple[str, AssumptionTransformer]:
-        signature_set = set(self._muc_assumption_signatures.items()) if signatures else None
+        signature_set = set(self._mus_assumption_signatures.items()) if signatures else None
         at = AssumptionTransformer(signatures=signature_set)
         if not files:
             program_transformed = at.parse_files("-")
@@ -151,19 +151,19 @@ class ClingoExplaidApp(Application):
             program_transformed = at.parse_files(files)
         return program_transformed, at
 
-    def _print_muc(self, muc_string: str) -> None:
-        print(f"{BACKGROUND_COLORS['BLUE']} MUC {BACKGROUND_COLORS['LIGHT_BLUE']} {self._muc_id} {COLORS['NORMAL']}")
-        print(f"{COLORS['BLUE']}{muc_string}{COLORS['NORMAL']}")
-        self._muc_id += 1
+    def _print_mus(self, mus_string: str) -> None:
+        print(f"{BACKGROUND_COLORS['BLUE']} MUS {BACKGROUND_COLORS['LIGHT_BLUE']} {self._mus_id} {COLORS['NORMAL']}")
+        print(f"{COLORS['BLUE']}{mus_string}{COLORS['NORMAL']}")
+        self._mus_id += 1
 
-    def _method_muc(
+    def _method_mus(
         self,
         control: clingo.Control,
         files: List[str],
         compute_unsat_constraints: bool = False,
     ) -> None:
         program_transformed, at = self._apply_assumption_transformer(
-            signatures=self._muc_assumption_signatures, files=files
+            signatures=self._mus_assumption_signatures, files=files
         )
 
         # remove optimization statements
@@ -179,32 +179,32 @@ class ClingoExplaidApp(Application):
         max_models = int(control.configuration.solve.models)  # type: ignore
         print("Solving...")
 
-        # Case: Finding a single MUC
+        # Case: Finding a single MUS
         if max_models == -1:
             control.solve(assumptions=list(assumptions), on_core=cc.shrink)
 
             if cc.minimal is None:
-                print("SATISFIABLE: Instance has no MUCs")
+                print("SATISFIABLE: Instance has no MUS")
                 return
             if len(list(cc.minimal)) == 0:
                 print(
-                    "NO MUCS CONTAINED: The unsatisfiability of this program is not induced by the provided assumptions"
+                    "NO MUS CONTAINED: The unsatisfiability of this program is not induced by the provided assumptions"
                 )
                 return
 
-            muc_string = " ".join(cc.mus_to_string(cc.minimal))
-            self._print_muc(muc_string)
+            mus_string = " ".join(cc.mus_to_string(cc.minimal))
+            self._print_mus(mus_string)
 
             if compute_unsat_constraints:
                 self._method_unsat_constraints(
                     control=clingo.Control(),
                     files=files,
-                    assumption_string=muc_string,
+                    assumption_string=mus_string,
                     output_prefix_active=f"{COLORS['RED']}├──{COLORS['NORMAL']}",
                     output_prefix_passive=f"{COLORS['RED']}│  {COLORS['NORMAL']}",
                 )
 
-        # Case: Finding multiple MUCs
+        # Case: Finding multiple MUS
         if max_models >= 0:
             program_unsat = False
             with control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
@@ -212,23 +212,23 @@ class ClingoExplaidApp(Application):
                     program_unsat = True
 
             if program_unsat:
-                mucs = 0
-                for muc in cc.get_multiple_minimal(max_mus=max_models):
-                    mucs += 1
-                    muc_string = " ".join(cc.mus_to_string(muc))
-                    self._print_muc(muc_string)
+                n_mus = 0
+                for mus in cc.get_multiple_minimal(max_mus=max_models):
+                    n_mus += 1
+                    mus_string = " ".join(cc.mus_to_string(mus))
+                    self._print_mus(mus_string)
 
                     if compute_unsat_constraints:
                         self._method_unsat_constraints(
                             control=clingo.Control(),
                             files=files,
-                            assumption_string=muc_string,
+                            assumption_string=mus_string,
                             output_prefix_active=f"{COLORS['RED']}├──{COLORS['NORMAL']}",
                             output_prefix_passive=f"{COLORS['RED']}│  {COLORS['NORMAL']}",
                         )
-                if not mucs:
+                if not n_mus:
                     print(
-                        "NO MUCS CONTAINED: The unsatisfiability of this program is not induced by the provided "
+                        "NO MUS CONTAINED: The unsatisfiability of this program is not induced by the provided "
                         "assumptions"
                     )
                     return
@@ -339,10 +339,10 @@ class ClingoExplaidApp(Application):
             method_function = self.method_functions[method]
             method_function(control, files)
         # special cases where specific pipelines have to be configured
-        elif self.methods == {"muc", "unsat-constraints"}:
-            self.method_functions["muc"](control, files, compute_unsat_constraints=True)
-        elif self.methods == {"muc", "unsat-constraints", "show-decisions"}:
-            self.method_functions["muc"](control, files, compute_unsat_constraints=True)
+        elif self.methods == {"mus", "unsat-constraints"}:
+            self.method_functions["mus"](control, files, compute_unsat_constraints=True)
+        elif self.methods == {"mus", "unsat-constraints", "show-decisions"}:
+            self.method_functions["mus"](control, files, compute_unsat_constraints=True)
         elif self.methods == {"unsat-constraints", "show-decisions"}:
             self.method_functions["unsat-constraints"](control, files)
         else:

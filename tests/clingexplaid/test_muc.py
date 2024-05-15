@@ -1,5 +1,5 @@
 """
-Tests for the muc package
+Tests for the mus package
 """
 
 import random
@@ -8,20 +8,20 @@ from unittest import TestCase
 
 import clingo
 
-from clingexplaid.muc import CoreComputer
+from clingexplaid.mus import CoreComputer
 from clingexplaid.transformers import AssumptionTransformer
 from clingexplaid.utils.types import AssumptionSet
 
 from .test_main import TEST_DIR
 
 
-def get_muc_of_program(
+def get_mus_of_program(
     program_string: str,
     assumption_signatures: Set[Tuple[str, int]],
     control: Optional[clingo.Control] = None,
 ) -> Tuple[AssumptionSet, CoreComputer]:
     """
-    Helper function to directly get the MUC of a given program string.
+    Helper function to directly get the MUS of a given program string.
     """
     ctl = control if control is not None else clingo.Control()
 
@@ -36,32 +36,32 @@ def get_muc_of_program(
     cc = CoreComputer(ctl, assumptions)
     ctl.solve(assumptions=list(assumptions), on_core=cc.shrink)
 
-    # if the instance was satisfiable and the on_core function wasn't called an empty set is returned, else the muc.
+    # if the instance was satisfiable and the on_core function wasn't called an empty set is returned, else the mus.
     result = cc.minimal if cc.minimal is not None else set()
 
     return result, cc
 
 
-class TestMUC(TestCase):
+class TestMUS(TestCase):
     """
-    Test cases for MUC functionality.
+    Test cases for MUS functionality.
     """
 
-    def _assert_muc(
+    def _assert_mus(
         self,
-        muc: Set[str],
-        valid_mucs_string_lists: List[Set[str]],
+        mus: Set[str],
+        valid_mus_string_lists: List[Set[str]],
     ) -> None:
         """
-        Asserts if a MUC is one of several valid MUC's.
+        Asserts if a MUS is one of several valid MUS's.
         """
-        valid_mucs = [{clingo.parse_term(s) for s in lit_strings} for lit_strings in valid_mucs_string_lists]
-        parsed_muc = {clingo.parse_term(s) for s in muc}
-        self.assertIn(parsed_muc, valid_mucs)
+        valid_mus_list = [{clingo.parse_term(s) for s in lit_strings} for lit_strings in valid_mus_string_lists]
+        parsed_mus = {clingo.parse_term(s) for s in mus}
+        self.assertIn(parsed_mus, valid_mus_list)
 
-    def test_core_computer_shrink_single_muc(self) -> None:
+    def test_core_computer_shrink_single_mus(self) -> None:
         """
-        Test the CoreComputer's `shrink` function with a single MUC.
+        Test the CoreComputer's `shrink` function with a single MUS.
         """
 
         ctl = clingo.Control()
@@ -72,15 +72,15 @@ class TestMUC(TestCase):
             """
         signatures = {("a", 1)}
 
-        muc, cc = get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, cc = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         if cc.minimal is None:
             self.fail()
-        self._assert_muc(cc.muc_to_string(muc), [{"a(1)", "a(4)", "a(5)"}])
+        self._assert_mus(cc.mus_to_string(mus), [{"a(1)", "a(4)", "a(5)"}])
 
-    def test_core_computer_shrink_single_atomic_muc(self) -> None:
+    def test_core_computer_shrink_single_atomic_mus(self) -> None:
         """
-        Test the CoreComputer's `shrink` function with a single atomic MUC.
+        Test the CoreComputer's `shrink` function with a single atomic MUS.
         """
 
         ctl = clingo.Control()
@@ -91,15 +91,15 @@ class TestMUC(TestCase):
             """
         signatures = {("a", 1)}
 
-        muc, cc = get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, cc = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         if cc.minimal is None:
             self.fail()
-        self._assert_muc(cc.muc_to_string(muc), [{"a(3)"}])
+        self._assert_mus(cc.mus_to_string(mus), [{"a(3)"}])
 
-    def test_core_computer_shrink_multiple_atomic_mucs(self) -> None:
+    def test_core_computer_shrink_multiple_atomic_mus(self) -> None:
         """
-        Test the CoreComputer's `shrink` function with multiple atomic MUC's.
+        Test the CoreComputer's `shrink` function with multiple atomic MUS's.
         """
 
         ctl = clingo.Control()
@@ -112,15 +112,15 @@ class TestMUC(TestCase):
             """
         signatures = {("a", 1)}
 
-        muc, cc = get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, cc = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         if cc.minimal is None:
             self.fail()
-        self._assert_muc(cc.muc_to_string(muc), [{"a(3)"}, {"a(5)"}, {"a(9)"}])
+        self._assert_mus(cc.mus_to_string(mus), [{"a(3)"}, {"a(5)"}, {"a(9)"}])
 
-    def test_core_computer_shrink_multiple_mucs(self) -> None:
+    def test_core_computer_shrink_multiple_mus(self) -> None:
         """
-        Test the CoreComputer's `shrink` function with multiple MUC's.
+        Test the CoreComputer's `shrink` function with multiple MUS's.
         """
 
         ctl = clingo.Control()
@@ -133,12 +133,12 @@ class TestMUC(TestCase):
             """
         signatures = {("a", 1)}
 
-        muc, cc = get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, cc = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         if cc.minimal is None:
             self.fail()
-        self._assert_muc(
-            cc.muc_to_string(muc),
+        self._assert_mus(
+            cc.mus_to_string(mus),
             [
                 {"a(3)", "a(9)", "a(5)"},
                 {"a(5)", "a(1)", "a(2)"},
@@ -161,11 +161,11 @@ class TestMUC(TestCase):
             """
         signatures = {("a", 1)}
 
-        muc, cc = get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, cc = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
         if cc.minimal is None:
             self.fail()
-        self._assert_muc(cc.muc_to_string(muc), [{f"a({i})" for i in random_core}])
+        self._assert_mus(cc.mus_to_string(mus), [{f"a({i})" for i in random_core}])
 
     def test_core_computer_shrink_satisfiable(self) -> None:
         """
@@ -179,57 +179,57 @@ class TestMUC(TestCase):
             """
         signatures = {("a", 1)}
 
-        muc, _ = get_muc_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, _ = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
 
-        self.assertEqual(muc, set())
+        self.assertEqual(mus, set())
 
     def test_core_computer_get_multiple_minimal(self) -> None:
         """
-        Test the CoreComputer's `get_multiple_minimal` function to get multiple MUCs.
+        Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
         """
 
         ctl = clingo.Control()
 
-        program_path = TEST_DIR.joinpath("res/test_program_multi_muc.lp")
+        program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
         at = AssumptionTransformer(signatures={("a", 1)})
         parsed = at.parse_files([program_path])
         ctl.add("base", [], parsed)
         ctl.ground([("base", [])])
         cc = CoreComputer(ctl, at.get_assumptions(ctl))
 
-        muc_generator = cc.get_multiple_minimal()
+        mus_generator = cc.get_multiple_minimal()
 
-        muc_string_sets = [cc.muc_to_string(muc) for muc in list(muc_generator)]
-        for muc_string_set in muc_string_sets:
+        mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
+        for mus_string_set in mus_string_sets:
             self.assertIn(
-                muc_string_set,
+                mus_string_set,
                 [{"a(1)", "a(2)"}, {"a(1)", "a(9)"}, {"a(3)", "a(5)", "a(8)"}],
             )
 
-    def test_core_computer_get_multiple_minimal_max_mucs_2(self) -> None:
+    def test_core_computer_get_multiple_minimal_max_mus_2(self) -> None:
         """
-        Test the CoreComputer's `get_multiple_minimal` function to get multiple MUCs.
+        Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
         """
 
         ctl = clingo.Control()
 
-        program_path = TEST_DIR.joinpath("res/test_program_multi_muc.lp")
+        program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
         at = AssumptionTransformer(signatures={("a", 1)})
         parsed = at.parse_files([program_path])
         ctl.add("base", [], parsed)
         ctl.ground([("base", [])])
         cc = CoreComputer(ctl, at.get_assumptions(ctl))
 
-        muc_generator = cc.get_multiple_minimal(max_mucs=2)
+        mus_generator = cc.get_multiple_minimal(max_mus=2)
 
-        muc_string_sets = [cc.muc_to_string(muc) for muc in list(muc_generator)]
-        for muc_string_set in muc_string_sets:
+        mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
+        for mus_string_set in mus_string_sets:
             self.assertIn(
-                muc_string_set,
+                mus_string_set,
                 [{"a(1)", "a(2)"}, {"a(1)", "a(9)"}, {"a(3)", "a(5)", "a(8)"}],
             )
 
-        self.assertEqual(len(muc_string_sets), 2)
+        self.assertEqual(len(mus_string_sets), 2)
 
     # INTERNAL
 
@@ -254,8 +254,8 @@ class TestMUC(TestCase):
         control.ground([("base", [])])
         assumptions = {(clingo.parse_term(c), True) for c in "abc"}
         cc = CoreComputer(control, assumptions)
-        muc = cc._compute_single_minimal()  # pylint: disable=W0212
-        self.assertEqual(muc, set())
+        mus = cc._compute_single_minimal()  # pylint: disable=W0212
+        self.assertEqual(mus, set())
 
     def test_core_computer_internal_compute_single_minimal_no_assumptions(self) -> None:
         """
@@ -266,7 +266,7 @@ class TestMUC(TestCase):
         cc = CoreComputer(control, set())
         self.assertRaises(ValueError, cc._compute_single_minimal)  # pylint: disable=W0212
 
-    def test_core_computer_muc_to_string(self) -> None:
+    def test_core_computer_mus_to_string(self) -> None:
         """
         Test the CoreComputer's `_compute_single_minimal` function with no assumptions.
         """
@@ -274,6 +274,6 @@ class TestMUC(TestCase):
         control = clingo.Control()
         cc = CoreComputer(control, set())
         self.assertEqual(
-            cc.muc_to_string({(clingo.parse_term(string), True) for string in ["this", "is", "a", "test"]}),
+            cc.mus_to_string({(clingo.parse_term(string), True) for string in ["this", "is", "a", "test"]}),
             {"this", "is", "a", "test"},
         )  # pylint: disable=W0212
