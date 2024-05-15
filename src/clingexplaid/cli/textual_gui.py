@@ -1,9 +1,13 @@
+"""
+Module for a Command Line based GUI for clingexplaid
+"""
+
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Button, Checkbox, Collapsible, Footer, Input, Label, Select, Tabs
 
 
-class ClingexplaidTextualApp(App):
+class ClingexplaidTextualApp(App[int]):
     """A textual app for a terminal GUI to use the clingexplaid functionality"""
 
     BINDINGS = [("ctrl+x", "exit", "Exit")]
@@ -62,9 +66,6 @@ class ClingexplaidTextualApp(App):
     }
     """
 
-    def __init__(self):
-        super(ClingexplaidTextualApp, self).__init__()
-
     def compose(self) -> ComposeResult:
         yield Vertical(
             Vertical(
@@ -98,5 +99,8 @@ class ClingexplaidTextualApp(App):
         )
         yield Footer()
 
-    def action_exit(self):
-        self.exit()
+    def action_exit(self) -> None:
+        """
+        Action to exit the textual application
+        """
+        self.exit(0)
