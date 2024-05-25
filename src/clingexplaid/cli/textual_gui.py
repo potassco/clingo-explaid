@@ -8,6 +8,7 @@ import itertools
 import re
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
+import clingo
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import HorizontalScroll, Vertical, VerticalScroll
@@ -27,6 +28,8 @@ from textual.widgets import (
     TabPane,
     Tree,
 )
+
+from ..propagators import SolverDecisionPropagator
 
 ACTIVE_CLASS = "active"
 
@@ -370,6 +373,20 @@ class ClingexplaidTextualApp(App[int]):
         """
         self.exit(0)
 
+    async def on_model(self, model):
+        tree = self.query_one(SolverTreeView).solve_tree
+        tree.root.add(f"MODEL {' '.join([str(a) for a in model])}")
+        await asyncio.sleep(0.1)
+
+    def on_propagate(self, decisions):
+        tree = self.query_one(SolverTreeView).solve_tree
+        decisions_string = " -> ".join([str(d) for d in decisions])
+        tree.root.add(decisions_string)
+
+    def on_undo(self):
+        tree = self.query_one(SolverTreeView).solve_tree
+        tree.root.add("UNDO")
+
     async def action_solve(self) -> None:
         """
         Action to exit the textual application
@@ -378,13 +395,35 @@ class ClingexplaidTextualApp(App[int]):
         solve_button = self.query_one("#solve-button")
         tree = tree_view.solve_tree
         tree.reset(tree.root.label)
-        tree_view.add_class("loading")
-        # deactivate solve button
-        solve_button.disabled = True
-        await asyncio.sleep(2)
-        solve_button.disabled = False
-        tree_view.remove_class("loading")
-        tree.root.add("TEST")
+        # tree_view.add_class("loading")
+        # # deactivate solve button
+        # solve_button.disabled = True
+        # await asyncio.sleep(2)
+        # solve_button.disabled = False
+        # tree_view.remove_class("loading")
+
+        sdp = SolverDecisionPropagator(
+            callback_propagate=self.on_propagate,
+            callback_undo=self.on_undo,
+        )
+        ctl = clingo.Control("0")
+        ctl.register_propagator(sdp)
+        ctl.add("base", [], "1{a;b}. x:-not b.")
+        ctl.ground([("base", [])])
+
+        exhausted = False
+        with ctl.solve(yield_=True) as solver_handle:
+            while not exhausted:
+                result = solver_handle.get()
+                if result.satisfiable:
+                    model = solver_handle.model()
+                    if model is None:
+                        break
+                    await self.on_model(model.symbols(atoms=True))
+                exhausted = result.exhausted
+                if not exhausted:
+                    solver_handle.resume()
+        tree.root.add("END")
 
 
 def flatten_list(ls: Optional[List[List[Any]]]) -> List:
