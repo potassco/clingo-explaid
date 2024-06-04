@@ -11,7 +11,7 @@ from .cli.clingo_app import ClingoExplaidApp
 from .cli.textual_gui import textual_main
 from .propagators import SolverDecisionPropagator
 
-RUN_TEXTUAL_GUI = True
+RUN_TEXTUAL_GUI = False
 
 
 def main() -> None:

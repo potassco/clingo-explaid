@@ -307,7 +307,7 @@ class ClingexplaidTextualApp(App[int]):
         model.label.stylize("#000000 on #CCCCCC", 0, 7)
         model.label.stylize("#000000 on #999999", 7, 7 + 2 + len(str(self.model_count)))
         # add some small sleep time to make ux seem more interactive
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.1)
 
     def on_propagate(self, decisions):
         for element in decisions:

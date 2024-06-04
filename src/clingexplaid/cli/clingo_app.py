@@ -18,6 +18,7 @@ from ..transformers import AssumptionTransformer, OptimizationRemover
 from ..unsat_constraints import UnsatConstraintComputer
 from ..utils import get_constants_from_arguments
 from ..utils.logging import BACKGROUND_COLORS, COLORS
+from .textual_gui import ClingexplaidTextualApp
 
 HYPERLINK_MASK = "\033]8;{};{}\033\\{}\033]8;;\033\\"
 
@@ -308,15 +309,12 @@ class ClingoExplaidApp(Application):
         control: clingo.Control,
         files: List[str],
     ) -> None:
-        decision_signatures = set(self._show_decisions_decision_signatures.items())
-        dop = DecisionOrderPropagator(signatures=decision_signatures)
-        control.register_propagator(dop)  # type: ignore
-        for f in files:
-            control.load(f)
-        if not files:
-            control.load("-")
-        control.ground()
-        control.solve(on_model=lambda model: self._print_model(model, "├", "│"))
+        app = ClingexplaidTextualApp(
+            files=files,
+            constants={},
+            signatures=set(),
+        )
+        app.run()
 
     def print_model(self, model: clingo.Model, _) -> None:  # type: ignore
         return
@@ -341,10 +339,6 @@ class ClingoExplaidApp(Application):
         # special cases where specific pipelines have to be configured
         elif self.methods == {"mus", "unsat-constraints"}:
             self.method_functions["mus"](control, files, compute_unsat_constraints=True)
-        elif self.methods == {"mus", "unsat-constraints", "show-decisions"}:
-            self.method_functions["mus"](control, files, compute_unsat_constraints=True)
-        elif self.methods == {"unsat-constraints", "show-decisions"}:
-            self.method_functions["unsat-constraints"](control, files)
         else:
             print(
                 f"METHOD ERROR: the combination of the methods {[f'--{m}' for m in self.methods]} is invalid. "
