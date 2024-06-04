@@ -9,6 +9,8 @@ import clingo
 from clingo import Propagator
 
 INTERNAL_STRING = "INTERNAL"
+POSITIVE_STRING = "[+]"
+NEGATIVE_STRING = "[-]"
 
 
 @dataclass
@@ -17,9 +19,20 @@ class Decision:
     literal: int
     symbol: Optional[clingo.Symbol]
 
+    def matches_any(self, signatures: Set[Tuple[str, int]], show_internal: bool = True) -> bool:
+        if self.symbol is not None:
+            for sig, arity in signatures:
+                if self.symbol.match(sig, arity):
+                    return True
+        else:
+            # show internal is show_internal is True
+            return show_internal
+        return False
+
     def __str__(self) -> str:
         symbol_string = str(self.symbol) if self.symbol is not None else INTERNAL_STRING
-        return f"({[" - ", " + "][self.positive]}{symbol_string})"
+        sign_string = POSITIVE_STRING if self.positive else NEGATIVE_STRING
+        return f"{sign_string} {symbol_string} [{self.literal}]"
 
 
 class SolverDecisionPropagator(Propagator):
@@ -39,6 +52,8 @@ class SolverDecisionPropagator(Propagator):
 
         self.callback_propagate: Callable = callback_propagate if callback_propagate is not None else lambda x: None
         self.callback_undo: Callable = callback_undo if callback_undo is not None else lambda x: None
+
+        self.last_decisions: List[Decision] = []
 
     def init(self, init: clingo.PropagateInit) -> None:
         """
@@ -60,7 +75,7 @@ class SolverDecisionPropagator(Propagator):
             init.add_watch(query_solver_literal)
             init.add_watch(-query_solver_literal)
 
-    def propagate(self, control: clingo.PropagateControl, changes: Sequence[int]) -> None:
+    def propagate(self, control: clingo.PropagateControl, changes: Sequence[int], use_diff: bool = True) -> None:
         """
         Propagate method the is called when one the registered literals is propagated by clasp. Here useful information
         about the decision progress is recorded to be visualized later.
@@ -75,7 +90,18 @@ class SolverDecisionPropagator(Propagator):
                 literal_sequence.append(list(entailments[d]))
         decision_sequence = self.literal_to_decision_sequence(literal_sequence)
 
-        self.callback_propagate(decision_sequence)
+        if use_diff:
+            decision_diff = []
+            for i in range(len(decision_sequence)):
+                if i < len(self.last_decisions):
+                    if self.last_decisions[i] != decision_sequence[i]:
+                        decision_diff.append(decision_sequence[i])
+                else:
+                    decision_diff.append(decision_sequence[i])
+            self.last_decisions = decision_sequence
+            self.callback_propagate(decision_diff)
+        else:
+            self.callback_propagate(decision_sequence)
 
     def undo(self, thread_id: int, assignment: clingo.Assignment, changes: Sequence[int]) -> None:
         """

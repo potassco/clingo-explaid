@@ -6,7 +6,8 @@ import argparse
 import asyncio
 import itertools
 import re
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import clingo
 from textual import on
@@ -17,7 +18,6 @@ from textual.widget import Widget
 from textual.widgets import (
     Button,
     Checkbox,
-    Collapsible,
     Footer,
     Input,
     Label,
@@ -30,6 +30,8 @@ from textual.widgets import (
 )
 
 from ..propagators import SolverDecisionPropagator
+from ..propagators.propagator_solver_decisions import INTERNAL_STRING
+from .textual_style import MAIN_CSS
 
 ACTIVE_CLASS = "active"
 
@@ -37,18 +39,23 @@ ACTIVE_CLASS = "active"
 class SelectorWidget(Static):
     """SelectorWidget Field"""
 
-    def __init__(self, compose_widgets: List[Widget]) -> None:
+    def __init__(self, compose_widgets: List[Widget], update_value_function: Callable) -> None:
         super(SelectorWidget, self).__init__()
         self.compose_widgets = compose_widgets
         self.active = True
-        self.set_active_class()
+        self.value = ""
+        self.update_value_function = update_value_function
 
-    def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
-        self.toggle_active()
+        self.set_active_class()
 
     def toggle_active(self) -> None:
         self.active = not self.active
+        if self.active:
+            self.apply_value_function()
         self.set_active_class()
+
+    def apply_value_function(self):
+        self.value = self.update_value_function(self)
 
     def set_active_class(self):
         if self.active:
@@ -62,27 +69,36 @@ class SelectorWidget(Static):
         for element in self.compose_widgets:
             yield element
 
+    @on(Checkbox.Changed)
+    async def selector_changed(self, event: Checkbox.Changed) -> None:
+        # Updating the UI to show the reasons why validation failed
+        if event.checkbox == self.query_one(Checkbox):
+            self.toggle_active()
+            await self.run_action("update_config")
+
 
 class LabelInputWidget(SelectorWidget):
     """LabelInputWidget Field"""
 
-    def __init__(self, name: str, value: str) -> None:
+    def __init__(self, name: str, value: str, update_value_function: Callable) -> None:
         super(LabelInputWidget, self).__init__(
             compose_widgets=[
                 Label(name),
                 Input(placeholder="Value", value=value),
-            ]
+            ],
+            update_value_function=update_value_function,
         )
 
 
 class LabelWidget(SelectorWidget):
     """LabelWidget Field"""
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, update_value_function: Callable) -> None:
         super(LabelWidget, self).__init__(
             compose_widgets=[
                 HorizontalScroll(Label(path)),
-            ]
+            ],
+            update_value_function=update_value_function,
         )
 
 
@@ -111,7 +127,16 @@ class ConstantsWidget(SelectorList):
         super(ConstantsWidget, self).__init__(selectors={} if constants is None else constants)
 
     def get_selectors(self) -> List[LabelInputWidget]:
-        return [LabelInputWidget(name, value) for name, value in dict(self.selectors).items()]
+        return [
+            LabelInputWidget(name, value, update_value_function=self.update_value)
+            for name, value in dict(self.selectors).items()
+        ]
+
+    @staticmethod
+    def update_value(selector_object):
+        label_string = str(selector_object.query_one(Label).renderable).strip()
+        input_string = str(selector_object.query_one(Input).value).strip()
+        return f"#const {label_string}={input_string}."
 
 
 class FilesWidget(SelectorList):
@@ -120,7 +145,12 @@ class FilesWidget(SelectorList):
         super(FilesWidget, self).__init__(selectors=[] if files is None else files)
 
     def get_selectors(self) -> List[LabelWidget]:
-        return [LabelWidget(name) for name in self.selectors]
+        return [LabelWidget(name, update_value_function=self.update_value) for name in self.selectors]
+
+    @staticmethod
+    def update_value(selector_object):
+        label_string = str(selector_object.query_one(Label).renderable).strip()
+        return label_string
 
 
 class SignaturesWidget(SelectorList):
@@ -129,7 +159,12 @@ class SignaturesWidget(SelectorList):
         super(SignaturesWidget, self).__init__(selectors=[] if signatures is None else signatures)
 
     def get_selectors(self) -> List[LabelWidget]:
-        return [LabelWidget(name) for name in self.selectors]
+        return [LabelWidget(name, update_value_function=self.update_value) for name in self.selectors]
+
+    @staticmethod
+    def update_value(selector_object):
+        label_string = str(selector_object.query_one(Label).renderable).strip()
+        return label_string
 
 
 class Sidebar(Static):
@@ -145,7 +180,16 @@ class Sidebar(Static):
         super(Sidebar, self).__init__(classes=classes)
         self.files = files
         self.constants = {} if constants is None else constants
-        self.signatures = set() if signatures is None else signatures
+        self.signatures = self.get_all_program_signatures()
+
+    def get_all_program_signatures(self) -> Set[Tuple[str, int]]:
+        # TODO: This is done with grounding rn but doing a text processing would probably be more efficient for large
+        #  programs!
+        ctl = clingo.Control()
+        for file in self.files:
+            ctl.load(file)
+        ctl.ground([("base", [])])
+        return {(name, arity) for name, arity, _ in ctl.symbolic_atoms.signatures}
 
     def compose(self) -> ComposeResult:
         with TabbedContent():
@@ -154,7 +198,8 @@ class Sidebar(Static):
             with TabPane("Constants"):
                 yield ConstantsWidget(self.constants)
             with TabPane("Decision Signatures"):
-                yield SignaturesWidget([f"{name} / {arity}" for name, arity in self.signatures])
+                sorted_signatures = list(sorted(self.signatures, key=lambda x: x[0]))
+                yield SignaturesWidget([INTERNAL_STRING] + [f"{name} / {arity}" for name, arity in sorted_signatures])
 
 
 class ControlPanel(Static):
@@ -170,21 +215,24 @@ class ControlPanel(Static):
             value="1",
             validate_on=["changed"],
             validators=[Number(minimum=0)],
+            id="model-number-input",
         )
         yield Static(classes="error")
         yield Label("", classes="error")
         yield Button("SOLVE", id="solve-button", variant="primary")
 
     @on(Input.Changed)
-    def show_invalid_reasons(self, event: Input.Changed) -> None:
+    async def input_changed(self, event: Input.Changed) -> None:
         # Updating the UI to show the reasons why validation failed
-        if not event.validation_result.is_valid:
-            self.add_class("error")
-            first_error = event.validation_result.failure_descriptions[0]
-            self.query_one("Label.error").update(first_error)
-        else:
-            self.remove_class("error")
-            self.query_one("Label.error").update("")
+        if event.input == self.query_one("#model-number-input"):
+            if not event.validation_result.is_valid:
+                self.add_class("error")
+                first_error = event.validation_result.failure_descriptions[0]
+                self.query_one("Label.error").update(first_error)
+            else:
+                self.remove_class("error")
+                self.query_one("Label.error").update("")
+                await self.run_action("update_config")
 
     @on(Button.Pressed)
     async def solve(self, event: Button.Pressed) -> None:
@@ -200,12 +248,16 @@ class SolverTreeView(Static):
         self.solve_tree = Tree("Solver Decisions", id="explanation-tree")
 
     def compose(self) -> ComposeResult:
-        self.solve_tree.root.add("Test 1")
-        self.solve_tree.root.add("Test 2")
-        self.solve_tree.root.add("Test 3")
         self.solve_tree.root.expand()
         yield self.solve_tree
         yield LoadingIndicator()
+
+
+def read_file(path: Union[Path, str]) -> str:
+    file_content = ""
+    with open(path, "r", encoding="utf-8") as f:
+        file_content = f.read()
+    return file_content
 
 
 class ClingexplaidTextualApp(App[int]):
@@ -213,146 +265,22 @@ class ClingexplaidTextualApp(App[int]):
 
     BINDINGS = [
         ("ctrl+x", "exit", "Exit"),
-        ("ctrl+s", "solve", "Solve"),
+        # ("ctrl+s", "solve", "Solve"),
     ]
-    CSS = """
-    Screen {
-        layout: grid;
-        grid-size: 2 2;
-        grid-columns: 1fr 2fr;
-        grid-rows: 1fr auto;
-    }
-    #debug{
-        column-span: 2;
-    }
-
-    .box {
-        height: 100%;
-        border: round #455A64;
-        padding: 1;
-    }
-
-    .box.tabs{
-        padding: 0;
-    }
-
-    #top-cell {
-        layout: grid;
-        grid-size: 1;
-        grid-rows: auto 1fr;
-    }
-
-    ControlPanel {
-        layout: grid;
-        grid-size: 2;
-        grid-columns: auto 1fr;
-        grid-gutter: 1;
-    }
-
-    ControlPanel Input{
-        width: 100%;
-    }
-
-    ControlPanel Label {
-        padding: 1 2;
-        background: #263238;
-        width: 100%;
-    }
-
-    ControlPanel Label.error{
-        border: tall rgb(235,64,52);
-        background: rgba(235,64,52,0.2);
-        padding: 0 2;
-        color: rgb(235,64,52);
-    }
-
-    ControlPanel .error{
-        display: none;
-    }
-
-    ControlPanel.error .error{
-        display: block
-    }
-
-    ControlPanel #solve-button{
-        column-span: 2;
-        width: 100%;
-    }
-
-    ControlPanel.error #solve-button{
-        display: none;
-    }
-
-    .selectors{
-        background: #000;
-    }
-
-    SelectorWidget{
-        layout: grid;
-        grid-size: 2;
-        grid-columns: auto 1fr;
-    }
-
-    LabelInputWidget{
-        layout: grid;
-        grid-size: 3;
-        grid-columns: auto 1fr 1fr;
-    }
-
-    SelectorWidget{
-        background: transparent;
-    }
-
-    SelectorWidget.active{
-        background: $primary-darken-3;
-    }
-
-    SelectorWidget Label{
-        padding: 1;
-    }
-
-    SelectorWidget Checkbox{
-        background: transparent;
-    }
-
-    SelectorWidget Input{
-        border: none;
-        padding: 1 2;
-    }
-
-    SelectorWidget HorizontalScroll{
-        height: auto;
-        background: transparent;
-    }
-
-    SolverTreeView{
-        content-align: center middle;
-    }
-
-    SolverTreeView Tree{
-        display: block;
-        padding: 1 2;
-    }
-
-    SolverTreeView.loading Tree{
-        display: none;
-    }
-
-    SolverTreeView LoadingIndicator{
-        display: none;
-    }
-
-    SolverTreeView.loading LoadingIndicator{
-        display: block;
-        height: 20;
-    }
-    """
+    CSS = MAIN_CSS
 
     def __init__(self, files: List[str], constants: Dict[str, str], signatures: Set[Tuple[str, int]]) -> None:
         super(ClingexplaidTextualApp, self).__init__()
         self.files = files
         self.constants = constants
         self.signatures = signatures
+        self.tree_cursor = None
+        self.model_count = 0
+
+        self.config_model_number = 1
+        self.config_show_internal = True
+        self.loaded_files = set()
+        self.loaded_signatures = set()
 
     def compose(self) -> ComposeResult:
         yield Vertical(
@@ -374,18 +302,64 @@ class ClingexplaidTextualApp(App[int]):
         self.exit(0)
 
     async def on_model(self, model):
-        tree = self.query_one(SolverTreeView).solve_tree
-        tree.root.add(f"MODEL {' '.join([str(a) for a in model])}")
-        await asyncio.sleep(0.1)
+        self.model_count += 1
+        model = self.tree_cursor.add_leaf(f" MODEL  {self.model_count}  {' '.join([str(a) for a in model])}")
+        model.label.stylize("#000000 on #CCCCCC", 0, 7)
+        model.label.stylize("#000000 on #999999", 7, 7 + 2 + len(str(self.model_count)))
+        # add some small sleep time to make ux seem more interactive
+        await asyncio.sleep(0.5)
 
     def on_propagate(self, decisions):
-        tree = self.query_one(SolverTreeView).solve_tree
-        decisions_string = " -> ".join([str(d) for d in decisions])
-        tree.root.add(decisions_string)
+        for element in decisions:
+            if isinstance(element, list):
+                for literal in element:
+                    if literal.matches_any(self.loaded_signatures, show_internal=self.config_show_internal):
+                        entailment = self.tree_cursor.add_leaf(str(literal)).expand()
+                        entailment.label.stylize("#666666")
+            else:
+                new_node = self.tree_cursor.add(str(element))
+                new_node.expand()
+                self.tree_cursor = new_node
 
     def on_undo(self):
-        tree = self.query_one(SolverTreeView).solve_tree
-        tree.root.add("UNDO")
+        undo = self.tree_cursor.add_leaf(f"UNDO {self.tree_cursor.label}")
+        undo.label.stylize("#E53935")
+        self.tree_cursor = self.tree_cursor.parent
+
+    async def action_update_config(self) -> None:
+        """
+        Action to update the solving config
+        """
+        # update model number
+        model_number_input = self.query_one("#model-number-input")
+        model_number = int(model_number_input.value)
+        self.config_model_number = model_number
+
+        # update loaded files
+        files_widget = self.query_one(FilesWidget)
+        files = set()
+        for selector in files_widget.query(SelectorWidget):
+            selector.apply_value_function()
+            if selector.active:
+                files.add(selector.value)
+        self.loaded_files = files
+
+        # update program signatures
+        signatures_widget = self.query_one(SignaturesWidget)
+        signature_strings = set()
+        for selector in signatures_widget.query(SelectorWidget):
+            selector.apply_value_function()
+            if selector.active:
+                signature_strings.add(selector.value)
+        signatures = set()
+        self.config_show_internal = False
+        for signature_string in signature_strings:
+            if signature_string.startswith(INTERNAL_STRING):
+                self.config_show_internal = True
+            else:
+                name, arity = signature_string.split(" / ")
+                signatures.add((name, int(arity)))
+        self.loaded_signatures = signatures
 
     async def action_solve(self) -> None:
         """
@@ -393,25 +367,29 @@ class ClingexplaidTextualApp(App[int]):
         """
         tree_view = self.query_one(SolverTreeView)
         solve_button = self.query_one("#solve-button")
+
         tree = tree_view.solve_tree
         tree.reset(tree.root.label)
-        # tree_view.add_class("loading")
-        # # deactivate solve button
-        # solve_button.disabled = True
-        # await asyncio.sleep(2)
-        # solve_button.disabled = False
-        # tree_view.remove_class("loading")
+        self.tree_cursor = tree.root
+        self.model_count = 0
+
+        solve_button.disabled = True
+        tree_view.add_class("solving")
 
         sdp = SolverDecisionPropagator(
             callback_propagate=self.on_propagate,
             callback_undo=self.on_undo,
         )
-        ctl = clingo.Control("0")
+        ctl = clingo.Control(f"{self.config_model_number}")
         ctl.register_propagator(sdp)
-        ctl.add("base", [], "1{a;b}. x:-not b.")
+        for file in self.loaded_files:
+            ctl.load(file)
+        if not self.loaded_files:
+            ctl.add("base", [], "")
         ctl.ground([("base", [])])
 
         exhausted = False
+
         with ctl.solve(yield_=True) as solver_handle:
             while not exhausted:
                 result = solver_handle.get()
@@ -423,7 +401,12 @@ class ClingexplaidTextualApp(App[int]):
                 exhausted = result.exhausted
                 if not exhausted:
                     solver_handle.resume()
-        tree.root.add("END")
+        tree_view.remove_class("solving")
+        solve_button.disabled = False
+
+        self.tree_cursor = tree.root
+        end_string = "SAT" if self.model_count > 0 else "UNSAT"
+        self.tree_cursor.add(end_string)
 
 
 def flatten_list(ls: Optional[List[List[Any]]]) -> List:
@@ -478,7 +461,7 @@ def textual_main():
     args = parser.parse_args()
 
     app = ClingexplaidTextualApp(
-        files=flatten_list(args.files),
+        files=list(set(flatten_list(args.files))),
         constants=parse_constants(flatten_list(args.const)),
         signatures=parse_signatures(flatten_list(args.decision_signature)),
     )
