@@ -4,12 +4,10 @@ The main entry point for the application.
 
 import sys
 
-import clingo
 from clingo.application import clingo_main
 
 from .cli.clingo_app import ClingoExplaidApp
 from .cli.textual_gui import textual_main
-from .propagators import SolverDecisionPropagator
 
 RUN_TEXTUAL_GUI = False
 

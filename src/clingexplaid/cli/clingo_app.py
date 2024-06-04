@@ -13,7 +13,6 @@ import clingo
 from clingo.application import Application, Flag
 
 from ..mus import CoreComputer
-from ..propagators import DecisionOrderPropagator
 from ..transformers import AssumptionTransformer, OptimizationRemover
 from ..unsat_constraints import UnsatConstraintComputer
 from ..utils import get_constants_from_arguments
@@ -202,7 +201,6 @@ class ClingoExplaidApp(Application):
                     files=files,
                     assumption_string=mus_string,
                     output_prefix_active=f"{COLORS['RED']}├──{COLORS['NORMAL']}",
-                    output_prefix_passive=f"{COLORS['RED']}│  {COLORS['NORMAL']}",
                 )
 
         # Case: Finding multiple MUS
@@ -225,7 +223,6 @@ class ClingoExplaidApp(Application):
                             files=files,
                             assumption_string=mus_string,
                             output_prefix_active=f"{COLORS['RED']}├──{COLORS['NORMAL']}",
-                            output_prefix_passive=f"{COLORS['RED']}│  {COLORS['NORMAL']}",
                         )
                 if not n_mus:
                     print(
@@ -274,14 +271,7 @@ class ClingoExplaidApp(Application):
         files: List[str],
         assumption_string: Optional[str] = None,
         output_prefix_active: str = "",
-        output_prefix_passive: str = "",
     ) -> None:
-        # register DecisionOrderPropagator if flag is enabled
-        if self.method_flags["show-decisions"]:
-            decision_signatures = set(self._show_decisions_decision_signatures.items())
-            dop = DecisionOrderPropagator(signatures=decision_signatures, prefix=output_prefix_passive)
-            control.register_propagator(dop)  # type: ignore
-
         ucc = UnsatConstraintComputer(control=control)
         ucc.parse_files(files)
         unsat_constraints = ucc.get_unsat_constraints(assumption_string=assumption_string)
@@ -309,11 +299,9 @@ class ClingoExplaidApp(Application):
         control: clingo.Control,
         files: List[str],
     ) -> None:
-        app = ClingexplaidTextualApp(
-            files=files,
-            constants={},
-            signatures=set(),
-        )
+        print(control)  # only for pylint
+
+        app = ClingexplaidTextualApp(files=files, constants={})
         app.run()
 
     def print_model(self, model: clingo.Model, _) -> None:  # type: ignore

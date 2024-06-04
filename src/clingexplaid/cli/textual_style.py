@@ -1,3 +1,7 @@
+"""
+Module containing TCSS style strings for the textual TUI
+"""
+
 MAIN_CSS = """
 Screen {
     layout: grid;
