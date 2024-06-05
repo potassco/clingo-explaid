@@ -351,9 +351,6 @@ class ClingexplaidTextualApp(App):
 
     # pylint: disable=too-many-instance-attributes
 
-    BINDINGS = [
-        ("ctrl+x", "exit", "Exit"),
-    ]
     CSS = MAIN_CSS
 
     def __init__(self, files: List[str], constants: Dict[str, str]) -> None:
@@ -367,6 +364,8 @@ class ClingexplaidTextualApp(App):
         self._config_show_internal = True
         self._loaded_files: Set[str] = set()
         self._loaded_signatures: Set[Tuple[str, int]] = set()
+
+        self.bind("ctrl+x", "exit", description="Exit", key_display="CTRL+X")
 
     def compose(self) -> ComposeResult:
         """

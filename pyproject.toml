@@ -20,7 +20,7 @@ readme = "README.md"
 dependencies = [
 	"clingo>=5.7.1",
     "autoflake",
-    "textual==0.62.0",
+    "textual==0.65.1",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
