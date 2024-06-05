@@ -121,7 +121,7 @@ class SelectorWidget(Static):
         # Updating the UI to show the reasons why validation failed
         if event.checkbox == self.query_one(Checkbox):
             self.toggle_active()
-            await self.run_action("update_config")
+            await self.run_action("app.update_config")
 
 
 class LabelInputWidget(SelectorWidget):
@@ -319,7 +319,7 @@ class ControlPanel(Static):
             else:
                 self.remove_class("error")
                 cast(Label, self.query_one("Label.error")).update("")
-                await self.run_action("update_config")
+                await self.run_action("app.update_config")
 
     @on(Button.Pressed)
     async def solve(self, event: Button.Pressed) -> None:
@@ -327,7 +327,7 @@ class ControlPanel(Static):
         Callback for when the `ControlPanel`'s Button is changed.
         """
         if event.button == self.query_one("#solve-button"):
-            await self.run_action("solve")
+            await self.run_action("app.solve")
 
 
 class SolverTreeView(Static):
@@ -346,7 +346,7 @@ class SolverTreeView(Static):
         yield LoadingIndicator()
 
 
-class ClingexplaidTextualApp(App[int]):
+class ClingexplaidTextualApp(App):
     """A textual app for a terminal GUI to use the clingexplaid functionality"""
 
     # pylint: disable=too-many-instance-attributes
@@ -434,6 +434,8 @@ class ClingexplaidTextualApp(App[int]):
         """
         Action to update the solving config
         """
+        self.refresh_bindings()
+
         # update model number
         model_number_input = cast(Input, self.query_one("#model-number-input"))
         model_number = int(model_number_input.value)
@@ -469,6 +471,8 @@ class ClingexplaidTextualApp(App[int]):
         """
         Action to exit the textual application
         """
+        self.refresh_bindings()
+
         tree_view = self.query_one(SolverTreeView)
         solve_button = self.query_one("#solve-button")
 
@@ -511,6 +515,12 @@ class ClingexplaidTextualApp(App[int]):
         self.tree_cursor = tree.root
         end_string = "SAT" if self.model_count > 0 else "UNSAT"
         self.tree_cursor.add(end_string)
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """
+        Check if any action may run
+        """
+        return True
 
 
 def textual_main() -> None:
