@@ -346,7 +346,7 @@ class SolverTreeView(Static):
         yield LoadingIndicator()
 
 
-class ClingexplaidTextualApp(App):
+class ClingexplaidTextualApp(App[int]):
     """A textual app for a terminal GUI to use the clingexplaid functionality"""
 
     # pylint: disable=too-many-instance-attributes
