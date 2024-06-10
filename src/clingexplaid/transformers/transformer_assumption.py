@@ -79,7 +79,9 @@ class AssumptionTransformer(_ast.Transformer):
         self.transformed = True
         return "\n".join(out)
 
-    def get_assumptions(self, control: clingo.Control, constants: Optional[Dict[str, str]] = None) -> Set[int]:
+    def get_assumptions(
+        self, control: clingo.Control, constants: Optional[List[str]] = None, symbols=False
+    ) -> Set[int]:
         """
         Returns the assumptions which were gathered during the transformation of the program. Has to be called after
         a program has already been transformed.
@@ -98,15 +100,16 @@ class AssumptionTransformer(_ast.Transformer):
                 "The get_assumptions method cannot be called before the control has been grounded"
             )
 
-        constants = constants if constants is not None else {}
+        constants = constants if constants is not None else []
 
-        all_constants = dict(self.program_constants)
-        all_constants.update(constants)
-        constant_strings = [f"-c {k}={v}" for k, v in all_constants.items()] if constants is not None else []
+        # Why program constants?
+        constant_strings = [f"-c {v}" for k, v in constants] if constants is not None else []
         fact_control = clingo.Control(constant_strings)
         fact_control.add("base", [], "\n".join(self.fact_rules))
         fact_control.ground([("base", [])])
         fact_symbols = [sym.symbol for sym in fact_control.symbolic_atoms if sym.is_fact]
 
         symbol_to_literal_lookup = {sym.symbol: sym.literal for sym in control.symbolic_atoms}
+        if symbols:
+            return fact_symbols
         return {symbol_to_literal_lookup[sym] for sym in fact_symbols if sym in symbol_to_literal_lookup}

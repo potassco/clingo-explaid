@@ -42,7 +42,7 @@ class ClingoExplaidApp(Application):
             m: getattr(self, f'_method_{m.replace("-", "_")}') for m in self.CLINGEXPLAID_METHODS
         }
         self.method_flags: Dict[str, Flag] = {m: Flag() for m in self.CLINGEXPLAID_METHODS}
-        self.argument_constants: Dict[str, str] = {}
+        self.argument_constants: List[str] = {}
 
         # SHOW DECISIONS
         self._show_decisions_decision_signatures: Dict[str, int] = {}

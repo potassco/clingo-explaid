@@ -87,4 +87,4 @@ def get_constants_from_arguments(argument_vector: List[str]) -> Dict[str, str]:
         if element in ("-c", "--const"):
             next_constant = True
 
-    return constants
+    return [f"{k}={v}" for k, v in constants.items()]
