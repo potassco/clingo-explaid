@@ -52,7 +52,7 @@ class TestTransformers(TestCase):
         """
         at = AssumptionTransformer()
         control = clingo.Control()
-        self.assertRaises(UntransformedException, lambda: at.get_assumptions(control))
+        self.assertRaises(UntransformedException, lambda: at.get_assumption_literals(control))
 
     def test_assumption_transformer_get_assumptions_before_grounding(self) -> None:
         """
@@ -62,7 +62,7 @@ class TestTransformers(TestCase):
         at = AssumptionTransformer()
         control = clingo.Control()
         at.parse_files([program_path])
-        self.assertRaises(NotGroundedException, lambda: at.get_assumptions(control))
+        self.assertRaises(NotGroundedException, lambda: at.get_assumption_literals(control))
 
     def test_assumption_transformer_visit_definition(self) -> None:
         """

@@ -88,3 +88,14 @@ def get_constants_from_arguments(argument_vector: List[str]) -> Dict[str, str]:
             next_constant = True
 
     return constants
+
+
+def get_constant_string(name: str, value: str, prefix: str = "") -> str:
+    """
+    Create a constant string of the format "{prefix}{name}={value}".
+    """
+    constant_name_pattern = re.compile(r"^[a-zA-Z_].*")
+    if not constant_name_pattern.match(name):
+        raise ValueError("constant name does not abide to the naming standard")
+    constr_string = f"{name}={value}"
+    return prefix + constr_string

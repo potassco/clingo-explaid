@@ -15,7 +15,7 @@ from clingo.application import Application, Flag
 from ..mus import CoreComputer
 from ..transformers import AssumptionTransformer, OptimizationRemover
 from ..unsat_constraints import UnsatConstraintComputer
-from ..utils import get_constants_from_arguments
+from ..utils import get_constant_string, get_constants_from_arguments
 from ..utils.logging import BACKGROUND_COLORS, COLORS
 from .textual_gui import ClingexplaidTextualApp
 
@@ -173,7 +173,9 @@ class ClingoExplaidApp(Application):
         control.add("base", [], program_transformed)
         control.ground([("base", [])])
 
-        assumptions = at.get_assumption_literals(control, constants=self.argument_constants)
+        assumptions = at.get_assumption_literals(
+            control, constants=[get_constant_string(c, v, prefix="-c ") for c, v in self.argument_constants.items()]
+        )
         cc = CoreComputer(control, assumptions)
 
         max_models = int(control.configuration.solve.models)  # type: ignore

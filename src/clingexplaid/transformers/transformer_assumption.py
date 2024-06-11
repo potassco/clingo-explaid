@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
 import clingo
 import clingo.ast as _ast
 
-from ..utils import match_ast_symbolic_atom_signature
+from ..utils import get_constant_string, match_ast_symbolic_atom_signature
 from .exceptions import NotGroundedException, UntransformedException
 
 
@@ -80,11 +80,11 @@ class AssumptionTransformer(_ast.Transformer):
         return "\n".join(out)
 
     def get_assumption_symbols(
-        self, control: clingo.Control, constants: Optional[Dict[str, str]] = None
+        self, control: clingo.Control, arguments: Optional[List[str]] = None
     ) -> Set[clingo.Symbol]:
         """
-        Returns the assumption symbols which were gathered during the transformation of the program. Has to be called after
-        a program has already been transformed.
+        Returns the assumption symbols which were gathered during the transformation of the program. Has to be called
+        after a program has already been transformed.
         """
         # Just taking the fact symbolic atoms of the control given doesn't work here since we anticipate that
         # this control is ground on the already transformed program. This means that all facts are now choice rules
@@ -100,18 +100,16 @@ class AssumptionTransformer(_ast.Transformer):
                 "The get_assumptions method cannot be called before the control has been grounded"
             )
 
-        constants = constants if constants is not None else {}
-
-        all_constants = dict(self.program_constants)
-        all_constants.update(constants)
-        constant_strings = [f"-c {k}={v}" for k, v in all_constants.items()] if constants is not None else []
-        fact_control = clingo.Control(constant_strings)
+        program_constant_strings = [get_constant_string(c, v, prefix="-c ") for c, v in self.program_constants.items()]
+        fact_control_arguments = arguments if arguments is not None else []
+        fact_control_arguments += program_constant_strings
+        fact_control = clingo.Control(fact_control_arguments)
         fact_control.add("base", [], "\n".join(self.fact_rules))
         fact_control.ground([("base", [])])
         fact_symbols = {sym.symbol for sym in fact_control.symbolic_atoms if sym.is_fact}
         return fact_symbols
 
-    def get_assumption_literals(self, control: clingo.Control, constants: Optional[Dict[str, str]] = None) -> Set[int]:
+    def get_assumption_literals(self, control: clingo.Control, constants: Optional[List[str]] = None) -> Set[int]:
         """
         Returns the assumption literals which were gathered during the transformation of the program. Has to be called
         after a program has already been transformed.

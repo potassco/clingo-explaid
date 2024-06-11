@@ -4,7 +4,7 @@ Tests for the utils package
 
 from unittest import TestCase
 
-from clingexplaid.utils import get_constants_from_arguments, get_signatures_from_model_string
+from clingexplaid.utils import get_constant_string, get_constants_from_arguments, get_signatures_from_model_string
 
 
 class TestUtils(TestCase):
@@ -27,3 +27,14 @@ class TestUtils(TestCase):
         self.assertEqual(get_constants_from_arguments(["-c", "a=42"]), {"a": "42"})
         self.assertEqual(get_constants_from_arguments(["test/dir/file.lp", "--const", "blob=value"]), {"blob": "value"})
         self.assertEqual(get_constants_from_arguments(["--const", "-a", "test/42"]), {})
+
+    def test_get_constant_strings(self) -> None:
+        """
+        Test getting constant strings
+        """
+        self.assertEqual(get_constant_string("test", "42"), "test=42")
+        self.assertEqual(get_constant_string("name", "value"), "name=value")
+        with self.assertRaises(ValueError):
+            get_constant_string("123", "value")
+        self.assertEqual(get_constant_string("name", "123", prefix="#const "), "#const name=123")
+        self.assertEqual(get_constant_string("name", "123", prefix="-c "), "-c name=123")

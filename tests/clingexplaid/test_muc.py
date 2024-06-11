@@ -31,7 +31,7 @@ def get_mus_of_program(
     ctl.add("base", [], transformed_program)
     ctl.ground([("base", [])])
 
-    assumptions = at.get_assumptions(ctl)
+    assumptions = at.get_assumption_literals(ctl)
 
     cc = CoreComputer(ctl, assumptions)
     ctl.solve(assumptions=list(assumptions), on_core=cc.shrink)
@@ -195,7 +195,7 @@ class TestMUS(TestCase):
         parsed = at.parse_files([program_path])
         ctl.add("base", [], parsed)
         ctl.ground([("base", [])])
-        cc = CoreComputer(ctl, at.get_assumptions(ctl))
+        cc = CoreComputer(ctl, at.get_assumption_literals(ctl))
 
         mus_generator = cc.get_multiple_minimal()
 
@@ -218,7 +218,7 @@ class TestMUS(TestCase):
         parsed = at.parse_files([program_path])
         ctl.add("base", [], parsed)
         ctl.ground([("base", [])])
-        cc = CoreComputer(ctl, at.get_assumptions(ctl))
+        cc = CoreComputer(ctl, at.get_assumption_literals(ctl))
 
         mus_generator = cc.get_multiple_minimal(max_mus=2)
 
