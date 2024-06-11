@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import itertools
 import re
+from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union, cast
 
@@ -14,6 +15,7 @@ from rich.text import Text
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import HorizontalScroll, Vertical, VerticalScroll
+from textual.screen import Screen
 from textual.validation import Number
 from textual.widget import Widget
 from textual.widgets import (
@@ -31,11 +33,31 @@ from textual.widgets import (
 )
 from textual.widgets.tree import TreeNode
 
+from ..mus import CoreComputer
 from ..propagators import SolverDecisionPropagator
 from ..propagators.propagator_solver_decisions import INTERNAL_STRING, Decision
+from ..transformers import AssumptionTransformer, OptimizationRemover
 from .textual_style import MAIN_CSS
 
+MODE_MUS = "Minimal Unsatisfiable Subsets"
+MODE_UNSAT_CONSTRAINTS = "Unsatisfiable Constraints"
+MODE_SHOW_DECISIONS = "Show Decisions"
+MODES = (
+    MODE_MUS,
+    MODE_UNSAT_CONSTRAINTS,
+    MODE_SHOW_DECISIONS,
+)
 ACTIVE_CLASS = "active"
+
+
+class ModelType(Enum):
+    """
+    Types of Model that can be found (Stable Model, MUS, ...)
+    """
+
+    MODEL = 1
+    UNSAT_CONSTRAINT = 2
+    MUS = 3
 
 
 def read_file(path: Union[Path, str]) -> str:
@@ -78,14 +100,18 @@ class SelectorWidget(Static):
         self.active = True
         self.value = ""
         self.update_value_function = update_value_function
+        # this is used when the value of the checkbox is set by the system to avoid the changed event callback
+        self.skip_checkbox_changed = False
 
         self.set_active_class()
 
-    def toggle_active(self) -> None:
+    def set_active(self, active: bool) -> None:
         """
-        Toggles the `SelectorWidget`'s active property.
+        Sets the active property to the provided value while updating the Selector's style
         """
-        self.active = not self.active
+        self.active = active
+        self.skip_checkbox_changed = True
+        self.query_one(Checkbox).value = active
         if self.active:
             self.apply_value_function()
         self.set_active_class()
@@ -120,8 +146,12 @@ class SelectorWidget(Static):
         """
         # Updating the UI to show the reasons why validation failed
         if event.checkbox == self.query_one(Checkbox):
-            self.toggle_active()
-            await self.run_action("app.update_config")
+            if self.skip_checkbox_changed:
+                self.skip_checkbox_changed = False
+            else:
+                self.active = event.checkbox.value
+                self.set_active_class()
+                await self.run_action("app.update_config")
 
 
 class LabelInputWidget(SelectorWidget):
@@ -276,7 +306,7 @@ class Sidebar(Static):
                 yield FilesWidget(self.files)
             with TabPane("Constants"):
                 yield ConstantsWidget(self.constants)
-            with TabPane("Decision Signatures"):
+            with TabPane("Signatures"):
                 sorted_signatures = list(sorted(self.signatures, key=lambda x: x[0]))
                 yield SignaturesWidget([INTERNAL_STRING] + [f"{name} / {arity}" for name, arity in sorted_signatures])
 
@@ -284,12 +314,20 @@ class Sidebar(Static):
 class ControlPanel(Static):
     """Widget for the clingexplaid sidebar"""
 
+    def __init__(self, classes: str = ""):
+        super().__init__(classes=classes)
+        self.input_valid = True
+
     def compose(self) -> ComposeResult:
         """
         Composes the `ControlPanel`'s components
         """
         yield Label("Mode")
-        yield Select(((line, line) for line in ["SHOW DECISIONS"]), allow_blank=False)
+        yield Select(
+            ((line, line) for line in MODES),
+            allow_blank=False,
+            id="mode-select",
+        )
         yield Label("Models")
         yield Input(
             placeholder="Number",
@@ -303,6 +341,14 @@ class ControlPanel(Static):
         yield Label("", classes="error")
         yield Button("SOLVE", id="solve-button", variant="primary")
 
+    @on(Select.Changed)
+    async def select_changed(self, event: Select.Changed) -> None:
+        """
+        Callback for when the `ControlPanel`'s Mode Select is changed.
+        """
+        if event.select == self.query_one("#mode-select"):
+            await self.run_action("app.update_mode")
+
     @on(Input.Changed)
     async def input_changed(self, event: Input.Changed) -> None:
         """
@@ -312,7 +358,8 @@ class ControlPanel(Static):
         if event.input == self.query_one("#model-number-input"):
             if event.validation_result is None:
                 return
-            if not event.validation_result.is_valid:
+            self.input_valid = event.validation_result.is_valid
+            if not self.input_valid:
                 self.add_class("error")
                 first_error = event.validation_result.failure_descriptions[0]
                 cast(Label, self.query_one("Label.error")).update(first_error)
@@ -320,6 +367,15 @@ class ControlPanel(Static):
                 self.remove_class("error")
                 cast(Label, self.query_one("Label.error")).update("")
                 await self.run_action("app.update_config")
+
+    @on(Input.Submitted)
+    async def input_submitted(self, event: Input.Submitted) -> None:
+        """
+        Callback for when the `ControlPanel`'s Input is submitted.
+        """
+        if event.input == self.query_one("#model-number-input"):
+            if self.input_valid:
+                await self.run_action("app.solve")
 
     @on(Button.Pressed)
     async def solve(self, event: Button.Pressed) -> None:
@@ -360,6 +416,7 @@ class ClingexplaidTextualApp(App[int]):
         self.tree_cursor: Optional[TreeNode[str]] = None
         self.model_count = 0
 
+        self._selected_mode: Optional[str] = None
         self._config_model_number = 1
         self._config_show_internal = True
         self._loaded_files: Set[str] = set()
@@ -396,9 +453,7 @@ class ClingexplaidTextualApp(App[int]):
         self.model_count += 1
         if self.tree_cursor is None:
             return
-        model_node = self.tree_cursor.add_leaf(f" MODEL  {self.model_count}  {' '.join(model)}")
-        cast(Text, model_node.label).stylize("#000000 on #CCCCCC", 0, 7)
-        cast(Text, model_node.label).stylize("#000000 on #999999", 7, 7 + 2 + len(str(self.model_count)))
+        await self.add_model_node(" ".join(model), ModelType.MODEL)
         # add some small sleep time to make ux seem more interactive
         await asyncio.sleep(0.1)
 
@@ -466,23 +521,67 @@ class ClingexplaidTextualApp(App[int]):
                 signatures.add((name, int(arity)))
         self._loaded_signatures = signatures
 
-    async def action_solve(self) -> None:
+    async def action_mode_mus(self) -> None:
         """
-        Action to exit the textual application
+        Action for MUS Mode
         """
-        self.refresh_bindings()
+        if not self._loaded_files:
+            # TODO: Maybe raise an exception here?
+            return
 
-        tree_view = self.query_one(SolverTreeView)
-        solve_button = self.query_one("#solve-button")
+        ctl = clingo.Control()
 
-        tree = tree_view.solve_tree
-        tree.reset(tree.root.label)
-        self.tree_cursor = tree.root
-        self.model_count = 0
+        # transform matching facts to choices to allow assumptions
+        at = AssumptionTransformer(signatures=self._loaded_signatures)
+        program_transformed = at.parse_files(list(self._loaded_files))
 
-        solve_button.disabled = True
-        tree_view.add_class("solving")
+        # remove optimization statements
+        opt_rm = OptimizationRemover()
+        program_no_opt = opt_rm.parse_string(program_transformed)
 
+        ctl.add("base", [], program_no_opt)
+        ctl.ground([("base", [])])
+
+        # get assumption set
+        assumptions = at.get_assumption_literals(ctl)
+        # TODO: add program constants
+        #  get_constant_string(c, v, prefix="-c ") for c, v in self.argument_constants.items()
+
+        cc = CoreComputer(ctl, assumptions)
+
+        # check if the program is unsat
+        program_unsat = False
+        with ctl.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
+            if not solve_handle.get().satisfiable:
+                program_unsat = True
+        if not program_unsat:
+            if self.tree_cursor is None:
+                return
+            self.tree_cursor.add_leaf("SATISFIABLE PROGRAM")
+            return
+
+        for mus in cc.get_multiple_minimal(max_mus=self._config_model_number):
+            self.model_count += 1
+            mus_string = " ".join(cc.mus_to_string(mus))
+            await self.add_model_node(mus_string, ModelType.MUS)
+
+        if not self.model_count:
+            if self.tree_cursor is None:
+                return
+            self.tree_cursor.add_leaf(
+                "NO MUS CONTAINED: The unsatisfiability of this program is not induced by the provided assumptions"
+            )
+
+    async def action_mode_unsat_constraints(self) -> None:
+        """
+        Action for Unsat Constraints Mode
+        """
+        return None
+
+    async def action_mode_show_decisions(self) -> None:
+        """
+        Action for Show Decisions Mode
+        """
         sdp = SolverDecisionPropagator(
             callback_propagate=self.on_propagate,
             callback_undo=self.on_undo,
@@ -508,12 +607,128 @@ class ClingexplaidTextualApp(App[int]):
                 exhausted = result.exhausted
                 if not exhausted:
                     solver_handle.resume()
+
+        await self.reset_tree_cursor()
+        end_string = "SAT" if self.model_count > 0 else "UNSAT"
+        if self.tree_cursor is None:
+            return
+        self.tree_cursor.add(end_string)
+
+    async def action_solve(self) -> None:
+        """
+        Action to exit the textual application
+        """
+        self.refresh_bindings()
+
+        tree_view = self.query_one(SolverTreeView)
+        tree = tree_view.solve_tree
+        await self.reset_solve_tree(str(tree.root.label))
+
+        solve_button = self.query_one("#solve-button")
+
+        self.model_count = 0
+
+        solve_button.disabled = True
+        tree_view.add_class("solving")
+
+        if self._selected_mode == MODE_MUS:
+            await self.action_mode_mus()
+        elif self._selected_mode == MODE_UNSAT_CONSTRAINTS:
+            pass
+        elif self._selected_mode == MODE_SHOW_DECISIONS:
+            await self.action_mode_show_decisions()
+
         tree_view.remove_class("solving")
         solve_button.disabled = False
 
+        await self.reset_tree_cursor()
+
+    async def action_update_mode(self) -> None:
+        """
+        Action that updates the currently selected mode
+        """
+        selected_mode = cast(Select[str], self.query_one("#mode-select")).value
+        self._selected_mode = str(selected_mode)
+        if selected_mode == MODE_MUS:
+            self.set_mode_class(self.query_one(Screen), "mode-mus")
+            await self.set_all_selectors(self.query_one(SignaturesWidget), False)
+            await self.reset_solve_tree("Minimal Unsatisfiable Subsets")
+        elif selected_mode == MODE_UNSAT_CONSTRAINTS:
+            self.set_mode_class(self.query_one(Screen), "mode-unsat-constraints")
+            await self.reset_solve_tree("Unsatisfiable Constraints")
+        elif selected_mode == MODE_SHOW_DECISIONS:
+            self.set_mode_class(self.query_one(Screen), "mode-show-decisions")
+            await self.set_all_selectors(self.query_one(SignaturesWidget), True)
+            await self.reset_solve_tree("Solver Decisions")
+
+    async def action_debug(self, msg: str) -> None:
+        """
+        Action to add a leaf with custom message to the solve tree for debugging purposes
+        """
+        if self.tree_cursor is None:
+            # TODO: Extract this into a function that does this once so I don't have to do it always >:(
+            return
+        self.tree_cursor.add_leaf(f"DEBUG: {msg}")
+
+    @staticmethod
+    def set_mode_class(widget: Widget, mode_class: str) -> None:
+        """
+        Sets the provided mode class on the provided widget
+        """
+        mode_classes = [c for c in widget.classes if c.startswith("mode-")]
+        for c in mode_classes:
+            widget.remove_class(c)
+        widget.add_class(mode_class)
+
+    @staticmethod
+    async def set_all_selectors(parent: Widget, value: bool) -> None:
+        """
+        Sets the values of all SelectorWidgets under the provided parent to value
+        """
+        for selector in parent.query(SelectorWidget):
+            selector.set_active(value)
+            selector.skip_checkbox_changed = False
+
+    async def add_model_node(self, value: str, model_type: ModelType) -> None:
+        """
+        Adds a model node of type model_type to the solver tree
+        """
+        match model_type:
+            case ModelType.MODEL:
+                color_fg, color_bg_1, color_bg_2 = ("#000000", "#CCCCCC", "#999999")
+            case ModelType.UNSAT_CONSTRAINT:
+                color_fg, color_bg_1, color_bg_2 = ("#f27573", "#7c1313", "#610f0f")
+            case ModelType.MUS:
+                color_fg, color_bg_1, color_bg_2 = ("#66bdff", "#004578", "#003761")
+            case _:
+                raise ValueError("Model type not supported")
+
+        model_name = model_type.name.replace("_", " ")
+        if self.tree_cursor is None:
+            # TODO: again extract this !!!
+            return
+        model_node = self.tree_cursor.add_leaf(f" {model_name}  {self.model_count}  {value}")
+        cast(Text, model_node.label).stylize(f"{color_fg} on {color_bg_1}", 0, len(model_name) + 2)
+        cast(Text, model_node.label).stylize(
+            f"{color_fg} on {color_bg_2}", len(model_name) + 2, len(model_name) + 4 + len(str(self.model_count))
+        )
+
+    async def reset_tree_cursor(self) -> None:
+        """
+        Resets the tree cursor to the SolverTree root
+        """
+        tree_view = self.query_one(SolverTreeView)
+        tree = tree_view.solve_tree
         self.tree_cursor = tree.root
-        end_string = "SAT" if self.model_count > 0 else "UNSAT"
-        self.tree_cursor.add(end_string)
+
+    async def reset_solve_tree(self, new_root_name: str) -> None:
+        """
+        Resets the SolverTree
+        """
+        tree_view = self.query_one(SolverTreeView)
+        tree = tree_view.solve_tree
+        tree.reset(new_root_name)
+        self.tree_cursor = tree.root
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """

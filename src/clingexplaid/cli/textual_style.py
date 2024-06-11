@@ -9,6 +9,7 @@ Screen {
     grid-columns: 1fr 2fr;
     grid-rows: 1fr auto;
 }
+
 #debug{
     column-span: 2;
 }
