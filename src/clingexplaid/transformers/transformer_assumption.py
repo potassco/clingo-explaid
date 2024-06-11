@@ -79,9 +79,11 @@ class AssumptionTransformer(_ast.Transformer):
         self.transformed = True
         return "\n".join(out)
 
-    def get_assumptions(self, control: clingo.Control, constants: Optional[Dict[str, str]] = None) -> Set[int]:
+    def get_assumption_symbols(
+        self, control: clingo.Control, constants: Optional[Dict[str, str]] = None
+    ) -> Set[clingo.Symbol]:
         """
-        Returns the assumptions which were gathered during the transformation of the program. Has to be called after
+        Returns the assumption symbols which were gathered during the transformation of the program. Has to be called after
         a program has already been transformed.
         """
         # Just taking the fact symbolic atoms of the control given doesn't work here since we anticipate that
@@ -106,7 +108,14 @@ class AssumptionTransformer(_ast.Transformer):
         fact_control = clingo.Control(constant_strings)
         fact_control.add("base", [], "\n".join(self.fact_rules))
         fact_control.ground([("base", [])])
-        fact_symbols = [sym.symbol for sym in fact_control.symbolic_atoms if sym.is_fact]
+        fact_symbols = {sym.symbol for sym in fact_control.symbolic_atoms if sym.is_fact}
+        return fact_symbols
 
+    def get_assumption_literals(self, control: clingo.Control, constants: Optional[Dict[str, str]] = None) -> Set[int]:
+        """
+        Returns the assumption literals which were gathered during the transformation of the program. Has to be called
+        after a program has already been transformed.
+        """
+        assumption_symbols = self.get_assumption_symbols(control, constants)
         symbol_to_literal_lookup = {sym.symbol: sym.literal for sym in control.symbolic_atoms}
-        return {symbol_to_literal_lookup[sym] for sym in fact_symbols if sym in symbol_to_literal_lookup}
+        return {symbol_to_literal_lookup[sym] for sym in assumption_symbols if sym in symbol_to_literal_lookup}

@@ -173,7 +173,7 @@ class ClingoExplaidApp(Application):
         control.add("base", [], program_transformed)
         control.ground([("base", [])])
 
-        assumptions = at.get_assumptions(control, constants=self.argument_constants)
+        assumptions = at.get_assumption_literals(control, constants=self.argument_constants)
         cc = CoreComputer(control, assumptions)
 
         max_models = int(control.configuration.solve.models)  # type: ignore
