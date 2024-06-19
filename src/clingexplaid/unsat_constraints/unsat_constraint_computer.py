@@ -3,7 +3,7 @@ Unsat Constraint Utilities
 """
 
 import re
-from typing import Dict, List, Optional
+from typing import Dict, Optional, Sequence
 
 import clingo
 from clingo.ast import Location
@@ -38,7 +38,7 @@ class UnsatConstraintComputer:
         self._file_constraint_lookup = ct.constraint_location_lookup
         self.initialized = True
 
-    def parse_files(self, files: List[str]) -> None:
+    def parse_files(self, files: Sequence[str]) -> None:
         """
         Method to parse a provided sequence of filenames
         """

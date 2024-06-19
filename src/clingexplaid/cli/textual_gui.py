@@ -37,6 +37,7 @@ from ..mus import CoreComputer
 from ..propagators import SolverDecisionPropagator
 from ..propagators.propagator_solver_decisions import INTERNAL_STRING, Decision
 from ..transformers import AssumptionTransformer, OptimizationRemover
+from ..unsat_constraints import UnsatConstraintComputer
 from .textual_style import MAIN_CSS
 
 MODE_MUS = "Minimal Unsatisfiable Subsets"
@@ -302,11 +303,11 @@ class Sidebar(Static):
         Composes the `Sidebar`'s components
         """
         with TabbedContent():
-            with TabPane("Files"):
+            with TabPane("Files", id="tab-files"):
                 yield FilesWidget(self.files)
-            with TabPane("Constants"):
+            with TabPane("Constants", id="tab-constants"):
                 yield ConstantsWidget(self.constants)
-            with TabPane("Signatures"):
+            with TabPane("Signatures", id="tab-signatures"):
                 sorted_signatures = list(sorted(self.signatures, key=lambda x: x[0]))
                 yield SignaturesWidget([INTERNAL_STRING] + [f"{name} / {arity}" for name, arity in sorted_signatures])
 
@@ -576,7 +577,31 @@ class ClingexplaidTextualApp(App[int]):
         """
         Action for Unsat Constraints Mode
         """
-        return None
+        control = clingo.Control()
+        ucc = UnsatConstraintComputer(control=control)
+        ucc.parse_files(list(self._loaded_files))
+        unsat_constraints = ucc.get_unsat_constraints()
+
+        for cid, constraint in unsat_constraints.items():
+            self.model_count += 1
+            location = ucc.get_constraint_location(cid)
+            if location is None:
+                await self.add_model_node("UNKNOWN CONSTRAINT LOCATION", ModelType.UNSAT_CONSTRAINT)
+                continue
+            relative_file_path = location.begin.filename
+            absolute_file_path = str(Path(relative_file_path).absolute().resolve())
+            line_beginning = location.begin.line
+            line_end = location.end.line
+            constraint_string = constraint
+            line_string = (
+                f" (line {line_beginning})" if line_beginning == line_end else f" (lines {line_beginning}-{line_end})"
+            )
+            constraint_string += line_string
+            node = await self.add_model_node(constraint_string, ModelType.UNSAT_CONSTRAINT)
+            if node is not None:
+                cast(Text, node.label).stylize("#666666", -len(line_string))
+                node.expand()
+                node.add_leaf(f"File: {absolute_file_path}")
 
     async def action_mode_show_decisions(self) -> None:
         """
@@ -634,7 +659,7 @@ class ClingexplaidTextualApp(App[int]):
         if self._selected_mode == MODE_MUS:
             await self.action_mode_mus()
         elif self._selected_mode == MODE_UNSAT_CONSTRAINTS:
-            pass
+            await self.action_mode_unsat_constraints()
         elif self._selected_mode == MODE_SHOW_DECISIONS:
             await self.action_mode_show_decisions()
 
@@ -653,13 +678,16 @@ class ClingexplaidTextualApp(App[int]):
             self.set_mode_class(self.query_one(Screen), "mode-mus")
             await self.set_all_selectors(self.query_one(SignaturesWidget), False)
             await self.reset_solve_tree("Minimal Unsatisfiable Subsets")
+            await self.update_selector_tabs(disabled=["tab-constants"])
         elif selected_mode == MODE_UNSAT_CONSTRAINTS:
             self.set_mode_class(self.query_one(Screen), "mode-unsat-constraints")
             await self.reset_solve_tree("Unsatisfiable Constraints")
+            await self.update_selector_tabs(disabled=["tab-constants", "tab-signatures"])
         elif selected_mode == MODE_SHOW_DECISIONS:
             self.set_mode_class(self.query_one(Screen), "mode-show-decisions")
             await self.set_all_selectors(self.query_one(SignaturesWidget), True)
             await self.reset_solve_tree("Solver Decisions")
+            await self.update_selector_tabs(disabled=["tab-constants"])
 
     async def action_debug(self, msg: str) -> None:
         """
@@ -689,7 +717,7 @@ class ClingexplaidTextualApp(App[int]):
             selector.set_active(value)
             selector.skip_checkbox_changed = False
 
-    async def add_model_node(self, value: str, model_type: ModelType) -> None:
+    async def add_model_node(self, value: str, model_type: ModelType) -> Optional[TreeNode[str]]:
         """
         Adds a model node of type model_type to the solver tree
         """
@@ -706,12 +734,13 @@ class ClingexplaidTextualApp(App[int]):
         model_name = model_type.name.replace("_", " ")
         if self.tree_cursor is None:
             # TODO: again extract this !!!
-            return
-        model_node = self.tree_cursor.add_leaf(f" {model_name}  {self.model_count}  {value}")
+            return None
+        model_node = self.tree_cursor.add(f" {model_name}  {self.model_count}  {value}")
         cast(Text, model_node.label).stylize(f"{color_fg} on {color_bg_1}", 0, len(model_name) + 2)
         cast(Text, model_node.label).stylize(
             f"{color_fg} on {color_bg_2}", len(model_name) + 2, len(model_name) + 4 + len(str(self.model_count))
         )
+        return model_node
 
     async def reset_tree_cursor(self) -> None:
         """
@@ -729,6 +758,25 @@ class ClingexplaidTextualApp(App[int]):
         tree = tree_view.solve_tree
         tree.reset(new_root_name)
         self.tree_cursor = tree.root
+
+    async def update_selector_tabs(self, disabled: Optional[Iterable[str]] = None) -> None:
+        """
+        Updates the selector tabs in the Sidebar depending on the provided `disabled` list.
+        """
+        if disabled is None:
+            disabled = []
+        sidebar = self.query_one(Sidebar)
+        tabbed_content = sidebar.query_one(TabbedContent)
+        tabs = sidebar.query(TabPane)
+        for tab in tabs:
+            if tab.id is None:
+                continue
+            if tab.id in disabled:
+                tab.disabled = True
+            else:
+                tab.disabled = False
+        if tabbed_content.active in disabled:
+            tabbed_content.active = str(tabs[0].id)
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """
