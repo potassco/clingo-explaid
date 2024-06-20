@@ -50,6 +50,20 @@ MODES = (
 )
 ACTIVE_CLASS = "active"
 
+COLORS = {
+    "BLACK": "#000000",
+    "GRAY-DARK": "#666666",
+    "GRAY": "#999999",
+    "GRAY-LIGHT": "#CCCCCC",
+    "RED": "#E53935",
+}
+
+
+class NoFilesException(Exception):
+    """
+    Exception raised if a method requiring input files is called without any
+    """
+
 
 class ModelType(Enum):
     """
@@ -407,6 +421,7 @@ class ClingexplaidTextualApp(App[int]):
     """A textual app for a terminal GUI to use the clingexplaid functionality"""
 
     # pylint: disable=too-many-instance-attributes
+    # pylint: disable=duplicate-code
 
     CSS = MAIN_CSS
 
@@ -456,7 +471,7 @@ class ClingexplaidTextualApp(App[int]):
             return
         await self.add_model_node(" ".join(model), ModelType.MODEL)
         # add some small sleep time to make ux seem more interactive
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.01)
 
     def on_propagate(self, decisions: List[Union[Decision, List[Decision]]]) -> None:
         """
@@ -469,7 +484,7 @@ class ClingexplaidTextualApp(App[int]):
                 for literal in element:
                     if literal.matches_any(self._loaded_signatures, show_internal=self._config_show_internal):
                         entailment = self.tree_cursor.add_leaf(str(literal)).expand()
-                        cast(Text, entailment.label).stylize("#666666")
+                        cast(Text, entailment.label).stylize(COLORS["GRAY-DARK"])
             else:
                 new_node = self.tree_cursor.add(str(element))
                 new_node.expand()
@@ -482,7 +497,7 @@ class ClingexplaidTextualApp(App[int]):
         if self.tree_cursor is None:
             return
         undo = self.tree_cursor.add_leaf(f"UNDO {self.tree_cursor.label}")
-        cast(Text, undo.label).stylize("#E53935")
+        cast(Text, undo.label).stylize(COLORS["RED"])
         self.tree_cursor = self.tree_cursor.parent
 
     async def action_update_config(self) -> None:
@@ -527,8 +542,7 @@ class ClingexplaidTextualApp(App[int]):
         Action for MUS Mode
         """
         if not self._loaded_files:
-            # TODO: Maybe raise an exception here?
-            return
+            raise NoFilesException("No files are loaded so there is no MUS to be found")
 
         ctl = clingo.Control()
 
@@ -545,7 +559,7 @@ class ClingexplaidTextualApp(App[int]):
 
         # get assumption set
         assumptions = at.get_assumption_literals(ctl)
-        # TODO: add program constants
+        # FIX: add program constants
         #  get_constant_string(c, v, prefix="-c ") for c, v in self.argument_constants.items()
 
         cc = CoreComputer(ctl, assumptions)
@@ -555,10 +569,10 @@ class ClingexplaidTextualApp(App[int]):
         with ctl.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
             if not solve_handle.get().satisfiable:
                 program_unsat = True
+
+        tree_cursor = await self.get_tree_cursor()
         if not program_unsat:
-            if self.tree_cursor is None:
-                return
-            self.tree_cursor.add_leaf("SATISFIABLE PROGRAM")
+            tree_cursor.add_leaf("SATISFIABLE PROGRAM")
             return
 
         for mus in cc.get_multiple_minimal(max_mus=self._config_model_number):
@@ -567,9 +581,7 @@ class ClingexplaidTextualApp(App[int]):
             await self.add_model_node(mus_string, ModelType.MUS)
 
         if not self.model_count:
-            if self.tree_cursor is None:
-                return
-            self.tree_cursor.add_leaf(
+            tree_cursor.add_leaf(
                 "NO MUS CONTAINED: The unsatisfiability of this program is not induced by the provided assumptions"
             )
 
@@ -599,7 +611,7 @@ class ClingexplaidTextualApp(App[int]):
             constraint_string += line_string
             node = await self.add_model_node(constraint_string, ModelType.UNSAT_CONSTRAINT)
             if node is not None:
-                cast(Text, node.label).stylize("#666666", -len(line_string))
+                cast(Text, node.label).stylize(COLORS["GRAY-DARK"], -len(line_string))
                 node.expand()
                 node.add_leaf(f"File: {absolute_file_path}")
 
@@ -657,7 +669,11 @@ class ClingexplaidTextualApp(App[int]):
         tree_view.add_class("solving")
 
         if self._selected_mode == MODE_MUS:
-            await self.action_mode_mus()
+            try:
+                await self.action_mode_mus()
+            except NoFilesException as e:
+                tree_cursor = await self.get_tree_cursor()
+                tree_cursor.add_leaf(e.args[0])
         elif self._selected_mode == MODE_UNSAT_CONSTRAINTS:
             await self.action_mode_unsat_constraints()
         elif self._selected_mode == MODE_SHOW_DECISIONS:
@@ -693,10 +709,8 @@ class ClingexplaidTextualApp(App[int]):
         """
         Action to add a leaf with custom message to the solve tree for debugging purposes
         """
-        if self.tree_cursor is None:
-            # TODO: Extract this into a function that does this once so I don't have to do it always >:(
-            return
-        self.tree_cursor.add_leaf(f"DEBUG: {msg}")
+        tree_cursor = await self.get_tree_cursor()
+        tree_cursor.add_leaf(f"DEBUG: {msg}")
 
     @staticmethod
     def set_mode_class(widget: Widget, mode_class: str) -> None:
@@ -723,7 +737,7 @@ class ClingexplaidTextualApp(App[int]):
         """
         match model_type:
             case ModelType.MODEL:
-                color_fg, color_bg_1, color_bg_2 = ("#000000", "#CCCCCC", "#999999")
+                color_fg, color_bg_1, color_bg_2 = (COLORS["BLACK"], COLORS["GRAY-LIGHT"], COLORS["GRAY"])
             case ModelType.UNSAT_CONSTRAINT:
                 color_fg, color_bg_1, color_bg_2 = ("#f27573", "#7c1313", "#610f0f")
             case ModelType.MUS:
@@ -732,10 +746,8 @@ class ClingexplaidTextualApp(App[int]):
                 raise ValueError("Model type not supported")
 
         model_name = model_type.name.replace("_", " ")
-        if self.tree_cursor is None:
-            # TODO: again extract this !!!
-            return None
-        model_node = self.tree_cursor.add(f" {model_name}  {self.model_count}  {value}")
+        tree_cursor = await self.get_tree_cursor()
+        model_node = tree_cursor.add(f" {model_name}  {self.model_count}  {value}")
         cast(Text, model_node.label).stylize(f"{color_fg} on {color_bg_1}", 0, len(model_name) + 2)
         cast(Text, model_node.label).stylize(
             f"{color_fg} on {color_bg_2}", len(model_name) + 2, len(model_name) + 4 + len(str(self.model_count))
@@ -758,6 +770,14 @@ class ClingexplaidTextualApp(App[int]):
         tree = tree_view.solve_tree
         tree.reset(new_root_name)
         self.tree_cursor = tree.root
+
+    async def get_tree_cursor(self) -> TreeNode[str]:
+        """
+        Returns the current tree cursor or initializes it if it is set to None
+        """
+        if self.tree_cursor is None:
+            self.tree_cursor = self.query_one(SolverTreeView).solve_tree.root
+        return self.tree_cursor
 
     async def update_selector_tabs(self, disabled: Optional[Iterable[str]] = None) -> None:
         """

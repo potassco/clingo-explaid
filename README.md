@@ -27,6 +27,35 @@ Run the following for basic usage information:
 clingexplaid -h
 ```
 
+### Interactive Mode
+
+We provide an interactive terminal user interface (textual) where all modes are
+accessible in an interactive format. You can start this mode by using the
+command below.
+
+```bash
+clingexplaid <files> --interactive
+```
+
+#### Example: MUS Sudoku
+
+Below is one Example call using our [Sudoku Example](examples/sudoku).
+
+```bash
+clingexplaid examples/sudoku/encoding.lp examples/sudoku/instance.lp --interactive
+```
+
+![](example_mus.png)
+
+#### Example: Show Decisions
+
+This Example shows the interactive Solver Decision Tree generated from
+[`examples/misc/sat_simple.lp`](examples/misc/sat_simple.lp).
+
+![](example_show_decisions.png)
+
+### Clingo Application Class
+
 The clingexplaid CLI (based on the `clingo.Application` class) extends clingo
 with `<method>` and `<options>`.
 

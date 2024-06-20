@@ -32,7 +32,7 @@ class ClingoExplaidApp(Application):
     CLINGEXPLAID_METHODS = {
         "mus": "Description for MUS method",
         "unsat-constraints": "Description for unsat-constraints method",
-        "show-decisions": "Visualize the decision process of clingo during solving",
+        "interactive": "Interactive terminal user interface to interact with all modes",
     }
 
     def __init__(self, name: str) -> None:
@@ -296,7 +296,7 @@ class ClingoExplaidApp(Application):
         print(prefix_passive)
         self._show_decisions_model_id += 1
 
-    def _method_show_decisions(
+    def _method_interactive(
         self,
         control: clingo.Control,
         files: List[str],
