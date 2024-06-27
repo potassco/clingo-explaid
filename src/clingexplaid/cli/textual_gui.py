@@ -14,7 +14,7 @@ import clingo
 from rich.text import Text
 from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import HorizontalScroll, Vertical, VerticalScroll
+from textual.containers import Horizontal, HorizontalScroll, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.validation import Number
 from textual.widget import Widget
@@ -29,6 +29,7 @@ from textual.widgets import (
     Static,
     TabbedContent,
     TabPane,
+    TextArea,
     Tree,
 )
 from textual.widgets.tree import TreeNode
@@ -40,14 +41,6 @@ from ..transformers import AssumptionTransformer, OptimizationRemover
 from ..unsat_constraints import UnsatConstraintComputer
 from .textual_style import MAIN_CSS
 
-MODE_MUS = "Minimal Unsatisfiable Subsets"
-MODE_UNSAT_CONSTRAINTS = "Unsatisfiable Constraints"
-MODE_SHOW_DECISIONS = "Show Decisions"
-MODES = (
-    MODE_MUS,
-    MODE_UNSAT_CONSTRAINTS,
-    MODE_SHOW_DECISIONS,
-)
 ACTIVE_CLASS = "active"
 
 COLORS = {
@@ -57,6 +50,21 @@ COLORS = {
     "GRAY-LIGHT": "#CCCCCC",
     "RED": "#E53935",
 }
+
+
+class Modes(Enum):
+    MODE_MUS = "Minimal Unsatisfiable Subsets"
+    MODE_UNSAT_CONSTRAINTS = "Unsatisfiable Constraints"
+    MODE_SHOW_DECISIONS = "Show Decisions"
+    MODE_EXPLAIN = "Explain"
+
+
+MODES = (
+    Modes.MODE_EXPLAIN,
+    Modes.MODE_MUS,
+    Modes.MODE_UNSAT_CONSTRAINTS,
+    Modes.MODE_SHOW_DECISIONS,
+)
 
 
 class NoFilesException(Exception):
@@ -339,7 +347,7 @@ class ControlPanel(Static):
         """
         yield Label("Mode")
         yield Select(
-            ((line, line) for line in MODES),
+            ((line.value, line.value) for line in MODES),
             allow_blank=False,
             id="mode-select",
         )
@@ -449,9 +457,20 @@ class ClingexplaidTextualApp(App[int]):
             Sidebar(files=self.files, constants=self.constants, classes="box tabs"),
             id="top-cell",
         )
-        yield VerticalScroll(
-            SolverTreeView(),
-            classes="box",
+        input_answer_set = TextArea()
+        input_answer_set.border_title = "Answer Set"
+        input_query_atoms = TextArea()
+        input_query_atoms.border_title = "Query Atoms"
+
+        yield Vertical(
+            VerticalScroll(SolverTreeView(), classes="box"),
+            Horizontal(
+                input_answer_set,
+                input_query_atoms,
+                classes="box",
+                id="explanation-inputs",
+            ),
+            id="content",
         )
         yield Label(id="debug")
         yield Footer()
@@ -651,6 +670,10 @@ class ClingexplaidTextualApp(App[int]):
             return
         self.tree_cursor.add(end_string)
 
+    async def action_mode_explain(self) -> None:
+        # TODO: Add implementation
+        pass
+
     async def action_solve(self) -> None:
         """
         Action to exit the textual application
@@ -668,16 +691,19 @@ class ClingexplaidTextualApp(App[int]):
         solve_button.disabled = True
         tree_view.add_class("solving")
 
-        if self._selected_mode == MODE_MUS:
-            try:
-                await self.action_mode_mus()
-            except NoFilesException as e:
-                tree_cursor = await self.get_tree_cursor()
-                tree_cursor.add_leaf(e.args[0])
-        elif self._selected_mode == MODE_UNSAT_CONSTRAINTS:
-            await self.action_mode_unsat_constraints()
-        elif self._selected_mode == MODE_SHOW_DECISIONS:
-            await self.action_mode_show_decisions()
+        match self._selected_mode:
+            case Modes.MODE_MUS.value:
+                try:
+                    await self.action_mode_mus()
+                except NoFilesException as e:
+                    tree_cursor = await self.get_tree_cursor()
+                    tree_cursor.add_leaf(e.args[0])
+            case Modes.MODE_UNSAT_CONSTRAINTS.value:
+                await self.action_mode_unsat_constraints()
+            case Modes.MODE_SHOW_DECISIONS.value:
+                await self.action_mode_show_decisions()
+            case Modes.MODE_EXPLAIN.value:
+                await self.action_mode_explain()
 
         tree_view.remove_class("solving")
         solve_button.disabled = False
@@ -690,20 +716,24 @@ class ClingexplaidTextualApp(App[int]):
         """
         selected_mode = cast(Select[str], self.query_one("#mode-select")).value
         self._selected_mode = str(selected_mode)
-        if selected_mode == MODE_MUS:
-            self.set_mode_class(self.query_one(Screen), "mode-mus")
-            await self.set_all_selectors(self.query_one(SignaturesWidget), False)
-            await self.reset_solve_tree("Minimal Unsatisfiable Subsets")
-            await self.update_selector_tabs(disabled=["tab-constants"])
-        elif selected_mode == MODE_UNSAT_CONSTRAINTS:
-            self.set_mode_class(self.query_one(Screen), "mode-unsat-constraints")
-            await self.reset_solve_tree("Unsatisfiable Constraints")
-            await self.update_selector_tabs(disabled=["tab-constants", "tab-signatures"])
-        elif selected_mode == MODE_SHOW_DECISIONS:
-            self.set_mode_class(self.query_one(Screen), "mode-show-decisions")
-            await self.set_all_selectors(self.query_one(SignaturesWidget), True)
-            await self.reset_solve_tree("Solver Decisions")
-            await self.update_selector_tabs(disabled=["tab-constants"])
+        match selected_mode:
+            case Modes.MODE_MUS.value:
+                self.set_mode_class(self.query_one(Screen), "mode-mus")
+                await self.set_all_selectors(self.query_one(SignaturesWidget), False)
+                await self.reset_solve_tree("Minimal Unsatisfiable Subsets")
+                await self.update_selector_tabs(disabled=["tab-constants"])
+            case Modes.MODE_UNSAT_CONSTRAINTS.value:
+                self.set_mode_class(self.query_one(Screen), "mode-unsat-constraints")
+                await self.reset_solve_tree("Unsatisfiable Constraints")
+                await self.update_selector_tabs(disabled=["tab-constants", "tab-signatures"])
+            case Modes.MODE_SHOW_DECISIONS.value:
+                self.set_mode_class(self.query_one(Screen), "mode-show-decisions")
+                await self.set_all_selectors(self.query_one(SignaturesWidget), True)
+                await self.reset_solve_tree("Solver Decisions")
+                await self.update_selector_tabs(disabled=["tab-constants"])
+            case Modes.MODE_EXPLAIN.value:
+                self.set_mode_class(self.query_one(Screen), "mode-explain")
+                await self.reset_solve_tree("Explanation")
 
     async def action_debug(self, msg: str) -> None:
         """

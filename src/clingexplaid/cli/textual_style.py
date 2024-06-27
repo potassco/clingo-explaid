@@ -138,4 +138,30 @@ SolverTreeView LoadingIndicator{
 SolverTreeView.solving LoadingIndicator{
     display: block;
 }
+
+#content{
+    layout: grid;
+    grid-size: 1 2;
+    grid-rows: 1fr auto;
+}
+
+#explanation-inputs{
+    layout: grid;
+    grid-size: 2 1;
+    grid-columns: 2fr 1fr;
+    display: none;
+}
+
+.mode-explain #explanation-inputs{
+    display: block;
+}
+
+#explanation-inputs TextArea{
+    border: tall #455A64;
+    background: #000;
+    border-title-color: #FFF;
+    border-title-background: #000;
+    min-height: 7;
+    max-height: 7;
+}
 """
