@@ -111,7 +111,7 @@ class ClingoExplaidApp(Application):
         for method, description in self.CLINGEXPLAID_METHODS.items():
             options.add_flag(
                 group=group,
-                option=method,
+                option=f"{method},{method[0]}",  # only works when none of the method's initial letter don't overlap
                 description=description,
                 target=self.method_flags[method],
             )
