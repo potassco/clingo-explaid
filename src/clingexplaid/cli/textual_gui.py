@@ -319,8 +319,8 @@ class Sidebar(Static):
         with TabbedContent():
             with TabPane("Files", id="tab-files"):
                 yield FilesWidget(self.files)
-            with TabPane("Constants", id="tab-constants"):
-                yield ConstantsWidget(self.constants)
+            # with TabPane("Constants", id="tab-constants"):
+            #     yield ConstantsWidget(self.constants)
             with TabPane("Signatures", id="tab-signatures"):
                 sorted_signatures = list(sorted(self.signatures, key=lambda x: x[0]))
                 yield SignaturesWidget([INTERNAL_STRING] + [f"{name} / {arity}" for name, arity in sorted_signatures])
