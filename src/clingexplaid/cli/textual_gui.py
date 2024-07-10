@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union, cast
 
 import clingo
+from rich.style import Style
 from rich.text import Text
 from textual import on
 from textual.app import App, ComposeResult
@@ -34,6 +35,8 @@ from textual.widgets import (
 )
 from textual.widgets.tree import TreeNode
 
+from ..explain import get_explanation_factbase
+from ..explain.textual import textualize_clingraph_factbase
 from ..mus import CoreComputer
 from ..propagators import SolverDecisionPropagator
 from ..propagators.propagator_solver_decisions import INTERNAL_STRING, Decision
@@ -65,6 +68,8 @@ MODES = (
     Modes.MODE_UNSAT_CONSTRAINTS,
     Modes.MODE_SHOW_DECISIONS,
 )
+
+REASON_STRING_LACK_OF_SUPPORT = "No rule can support"
 
 
 class NoFilesException(Exception):
@@ -670,9 +675,54 @@ class ClingexplaidTextualApp(App[int]):
             return
         self.tree_cursor.add(end_string)
 
+    @staticmethod
+    async def _build_nested_explanation_tree(
+        node: TreeNode, nested_list: List, level: int = 0, auto_expand_level: int = 2
+    ) -> None:
+        new_node = None
+        for elem in nested_list:
+            if isinstance(elem, list):
+                await ClingexplaidTextualApp._build_nested_explanation_tree(
+                    new_node, elem, level + 1, auto_expand_level=auto_expand_level
+                )
+            else:
+                if elem.name == "root":
+                    # skip root node
+                    new_node = node
+                else:
+                    node_title = f" {elem.name} "
+                    if elem.incoming_rule is not None:
+                        node_title += f" ({elem.incoming_rule})"
+                    new_node = node.add(node_title)
+                    new_node.label.stylize(
+                        Style(bgcolor=str(elem.color)),
+                        0,
+                        len(elem.name) + 2,
+                    )
+                    new_node.label.stylize("#888888", len(elem.name) + 3)
+
+                    if level <= auto_expand_level:
+                        new_node.expand()
+                    reason_string = str(elem.reason).replace('"', "")
+                    is_lack_of_support = reason_string == REASON_STRING_LACK_OF_SUPPORT
+                    rule_string = str(elem.rule).replace('"', "")
+                    reason = new_node.add_leaf(f"Reason: {reason_string}")
+                    reason.label.stylize("bold #0087D7", 0, 7)
+                    if not is_lack_of_support:
+                        rule = new_node.add_leaf(f"Rule: {rule_string}")
+                        rule.label.stylize("bold #0087D7", 0, 5)
+                        rule.label.stylize("#888888", 6)
+
     async def action_mode_explain(self) -> None:
-        # TODO: Add implementation
-        pass
+        fb = get_explanation_factbase(
+            files=[str(Path(__file__).parent.parent.parent.parent.joinpath("examples/example5.lp"))],
+            query="p(a).",
+            answer_set="q(a,b). q(b,a). p(a). r(a).",
+            false_atoms=[],
+        )
+        nested, expand_depth = textualize_clingraph_factbase(fb, 2)  # TODO: removed fixed expand depth
+        tree_cursor = await self.get_tree_cursor()
+        await self._build_nested_explanation_tree(tree_cursor, nested)
 
     async def action_solve(self) -> None:
         """

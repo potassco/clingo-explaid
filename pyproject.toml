@@ -19,8 +19,11 @@ dynamic = [ "version" ]
 readme = "README.md"
 dependencies = [
 	"clingo>=5.7.1",
+    "clingraph==1.1.2",
+    "clorm==1.6.0",
     "autoflake",
     "textual==0.65.1",
+    "dumbo-asp==0.3.8",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

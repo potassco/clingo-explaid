@@ -17,7 +17,9 @@ from ..transformers import AssumptionTransformer, OptimizationRemover
 from ..unsat_constraints import UnsatConstraintComputer
 from ..utils import get_constant_string, get_constants_from_arguments
 from ..utils.logging import BACKGROUND_COLORS, COLORS
-from .textual_gui import ClingexplaidTextualApp
+
+# from .textual_gui import ClingexplaidTextualApp
+from .textual_new import ClingexplaidTextualApp
 
 HYPERLINK_MASK = "\033]8;{};{}\033\\{}\033]8;;\033\\"
 
