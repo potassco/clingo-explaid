@@ -5,8 +5,8 @@ Module containing TCSS style strings for the textual TUI
 MAIN_CSS = """
 Screen{
     layout: grid;
-    grid-size: 1 2;
-    grid-rows: auto 1fr;
+    grid-size: 1 3;
+    grid-rows: auto 1fr 7;
 }
 #header{
     layout: grid;
@@ -38,5 +38,10 @@ Screen{
     width: 100%;
     padding: 1 2;
     background: $background;
+}
+
+Log{
+    padding: 1 2;
+    height: 100%;
 }
 """
