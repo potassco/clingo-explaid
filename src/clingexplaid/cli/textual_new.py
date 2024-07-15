@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, List, Optional, Type
+from typing import Any, Dict, Iterable, List, Optional, Type
 
 import clingo
 from textual import on
@@ -8,7 +8,14 @@ from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Footer, Label, Log, Tab, Tabs
 
-from .textual_modes import AbstractMode, MinimalUnsatisfiableSubsetMode, SolvingMode, UnsatisfiableConstraintsMode
+from .modes import (
+    AbstractMode,
+    ExplanationMode,
+    MinimalUnsatisfiableSubsetMode,
+    SolverDecisionsMode,
+    SolvingMode,
+    UnsatisfiableConstraintsMode,
+)
 from .textual_style_new import MAIN_CSS
 
 
@@ -17,22 +24,25 @@ class Content(Widget):
 
     mode = reactive(None, recompose=True)
 
-    def __init__(self, modes: Dict[str, Type[AbstractMode]], id: Optional[str] = None) -> None:
+    def __init__(
+        self, modes: Dict[str, Type[AbstractMode]], files: Iterable[str], log: Log, id: Optional[str] = None
+    ) -> None:
         super().__init__(id=id)
         self.modes: Dict[str, Type[AbstractMode]] = modes
+        self.mode_kwargs: Dict[str, Any] = {"files": files, "log": log}
 
     def compose(self) -> ComposeResult:
         if self.mode is None:
             yield Label(f"No mode currently loaded")
         else:
-            yield self.modes[str(self.mode)]()
+            yield self.modes[str(self.mode)](**self.mode_kwargs)
 
 
 class ClingexplaidTextualApp(App[int]):
     """A textual app for a terminal GUI to use the clingexplaid functionality"""
 
     CSS = MAIN_CSS
-    MODES_SAT = {mode.mode_id: mode for mode in {SolvingMode}}
+    MODES_SAT = {mode.mode_id: mode for mode in {SolvingMode, ExplanationMode, SolverDecisionsMode}}
     MODES_UNSAT = {mode.mode_id: mode for mode in {MinimalUnsatisfiableSubsetMode, UnsatisfiableConstraintsMode}}
 
     def __init__(self, files: List[str], constants: Dict[str, str]) -> None:
@@ -52,15 +62,16 @@ class ClingexplaidTextualApp(App[int]):
         """
         satisfiability_class = ("unsat", "sat")[self._program_satisfiability]
         satisfiability_string = ("UNSAT", "SAT")[self._program_satisfiability]
+
+        log = Log()
+        log.write("DEBUG\n")
+
         yield Horizontal(
             Tabs(*self._compose_tabs()),
             Label(satisfiability_string, id="sat-indicator", classes=satisfiability_class),
             id="header",
         )
-        # yield Vertical(*self._get_mode().compose(), id="content")
-        yield Content(self._get_mode_dict(), id="content")
-        log = Log()
-        log.write("DEBUG\n")
+        yield Content(modes=self._get_mode_dict(), files=self.files, log=log, id="content")
         yield log
         yield Footer()
 
@@ -69,6 +80,10 @@ class ClingexplaidTextualApp(App[int]):
         Action to exit the textual application
         """
         self.exit(0)
+
+    async def action_switch_mode(self, mode_id: str) -> None:
+        self.query_one(Log).write(f"{mode_id}\n")
+        self._set_mode(mode_id)
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """

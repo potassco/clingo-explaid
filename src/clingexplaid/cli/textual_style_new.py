@@ -44,4 +44,37 @@ Log{
     padding: 1 2;
     height: 100%;
 }
+
+Collapsible.model Collapsible{
+    margin-right: 4;
+    border-top: blank;
+}
+
+Collapsible.model Horizontal{
+    height: auto;
+    layout: grid;
+    grid-size: 3 1;
+    grid-columns: 1fr auto auto;
+    padding-top: 1;
+    grid-gutter: 2;
+}
+
+Collapsible.model Horizontal Button{
+    padding: 0;
+    border: round $primary-lighten-1;
+    background: transparent;
+}
+
+Button.outlined{
+    background: transparent;
+    border: none;
+    width: 100%;
+    border: round $background-lighten-3;
+    color: #fff;
+    margin-bottom: 1;
+}
+
+Button.hidden{
+    display: none;
+}
 """
