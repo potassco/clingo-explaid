@@ -7,6 +7,7 @@ from textual.containers import Horizontal, VerticalScroll
 from textual.reactive import reactive
 from textual.widgets import Button, Collapsible, Log, Static
 
+from ..style.solving import MODE_SOLVING_STYLE
 from ..util import Atom, StableModel
 from .base import AbstractMode
 
@@ -37,6 +38,7 @@ class StableModelWidget(Static):
 
 class SolvingMode(Static, AbstractMode):
 
+    mode_css = MODE_SOLVING_STYLE
     mode_name = "Solving"
     mode_id = "solving"
     order = 1

@@ -28,3 +28,8 @@ class AbstractMode(ABC, metaclass=ModeABCMeta):
     @abstractmethod
     def order(self) -> int:
         pass
+
+    @property
+    @abstractmethod
+    def mode_css(self) -> str:
+        pass

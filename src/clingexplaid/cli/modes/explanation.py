@@ -7,6 +7,7 @@ from .base import AbstractMode
 
 class ExplanationMode(Static, AbstractMode):
 
+    mode_css = ""
     mode_name = "Explanation"
     mode_id = "explanation"
     order = 3

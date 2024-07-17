@@ -9,6 +9,7 @@ from .base import AbstractMode
 
 class UnsatisfiableConstraintsMode(Static, AbstractMode):
 
+    mode_css = ""
     mode_name = "Unsatisfiable Constraints"
     mode_id = "unsat_constraints"
     order = 2

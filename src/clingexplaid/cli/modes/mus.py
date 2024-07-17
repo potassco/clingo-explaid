@@ -9,6 +9,7 @@ from .base import AbstractMode
 
 class MinimalUnsatisfiableSubsetMode(Static, AbstractMode):
 
+    mode_css = ""
     mode_name = "Minimal Unsatisfiable Subsets"
     mode_id = "mus"
     order = 1

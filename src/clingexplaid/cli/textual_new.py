@@ -18,6 +18,23 @@ from .modes import (
 )
 from .textual_style_new import MAIN_CSS
 
+MODES = {
+    SolvingMode,
+    ExplanationMode,
+    SolverDecisionsMode,
+    UnsatisfiableConstraintsMode,
+    MinimalUnsatisfiableSubsetMode,
+}
+MODES_SAT = {
+    SolvingMode,
+    ExplanationMode,
+    SolverDecisionsMode,
+}
+MODES_UNSAT = {
+    UnsatisfiableConstraintsMode,
+    MinimalUnsatisfiableSubsetMode,
+}
+
 
 class Content(Widget):
     """Generates a greeting."""
@@ -41,9 +58,9 @@ class Content(Widget):
 class ClingexplaidTextualApp(App[int]):
     """A textual app for a terminal GUI to use the clingexplaid functionality"""
 
-    CSS = MAIN_CSS
-    MODES_SAT = {mode.mode_id: mode for mode in {SolvingMode, ExplanationMode, SolverDecisionsMode}}
-    MODES_UNSAT = {mode.mode_id: mode for mode in {MinimalUnsatisfiableSubsetMode, UnsatisfiableConstraintsMode}}
+    MODES_SAT = {mode.mode_id: mode for mode in MODES_SAT}
+    MODES_UNSAT = {mode.mode_id: mode for mode in MODES_UNSAT}
+    CSS = "\n".join([MAIN_CSS] + [str(mode.mode_css) for mode in MODES])
 
     def __init__(self, files: List[str], constants: Dict[str, str]) -> None:
         super().__init__()
@@ -130,10 +147,20 @@ class ClingexplaidTextualApp(App[int]):
         if mode_id not in mode_dict:
             raise KeyError("The provided mode ID is not in the registered modes")
         self._mode = mode_dict[mode_id]
-        self.query_one(Content).mode = mode_id
+        content = self.query_one(Content)
+        content.mode = mode_id
+        self._toggle_mode_class(content, mode_id)
         self._set_active_tab(mode_id)
 
     def _set_active_tab(self, mode_id: str) -> None:
         if mode_id not in self._get_mode_dict():
             raise KeyError("The provided mode ID is not in the registered modes")
         self.query_one(Tabs).active = mode_id
+
+    def _toggle_mode_class(self, content_widget: Content, mode_id: str) -> None:
+        if mode_id not in self._get_mode_dict():
+            raise KeyError("The provided mode ID is not in the registered modes")
+        for c in content_widget.classes:
+            if c.startswith("mode-"):
+                content_widget.remove_class(c)
+        content_widget.add_class(f"mode-{mode_id}")
