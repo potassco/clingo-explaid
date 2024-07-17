@@ -131,3 +131,9 @@ class ClingexplaidTextualApp(App[int]):
             raise KeyError("The provided mode ID is not in the registered modes")
         self._mode = mode_dict[mode_id]
         self.query_one(Content).mode = mode_id
+        self._set_active_tab(mode_id)
+
+    def _set_active_tab(self, mode_id: str) -> None:
+        if mode_id not in self._get_mode_dict():
+            raise KeyError("The provided mode ID is not in the registered modes")
+        self.query_one(Tabs).active = mode_id
