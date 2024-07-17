@@ -67,4 +67,9 @@ Button.outlined Label{
 Button.hidden{
     display: none;
 }
+
+Tooltip{
+    padding: 1 2;
+    color: #FFF;
+}
 """

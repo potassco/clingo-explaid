@@ -32,3 +32,9 @@ class StableModel:
         return f"<Model {self.model_id}: [{", ".join([str(atom) for atom in self.atoms])}]>"
 
     __repr__ = __str__
+
+    def get_facts_string(self):
+        out = []
+        for atom in self.atoms:
+            out.append(f"{str(atom.symbol)}.")
+        return " ".join(out)

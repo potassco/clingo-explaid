@@ -7,7 +7,7 @@ from textual.containers import Horizontal, VerticalScroll
 from textual.reactive import reactive
 from textual.widgets import Button, Collapsible, Log, Static
 
-from ..style.solving import MODE_SOLVING_STYLE
+from ..style import MODE_SOLVING_STYLE
 from ..util import Atom, StableModel
 from .base import AbstractMode
 
@@ -80,8 +80,9 @@ class SolvingMode(Static, AbstractMode):
                 self.logger.write(f"exhause: {self.exhausted}\n")
         elif event.button.id.startswith("explain-"):
             model_id = int(event.button.id.removeprefix("explain-"))
-            self.logger.write(f"Used Model {model_id}\n")
-            await self.run_action("app.switch_mode('explanation')")
+            model = self.models[model_id - 1]
+            self.logger.write(f"Used Model {model_id}: {model}\n")
+            await self.run_action(f"app.switch_mode('explanation', '{model.get_facts_string()}')")
             self.logger.write("Switched\n")
             self.logger.write("HERE THE TABS SHOULD ALSO BE UPDATED!\n")
 

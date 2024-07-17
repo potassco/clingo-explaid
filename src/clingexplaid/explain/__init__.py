@@ -8,7 +8,7 @@ authors:
     + Hannes Weichelt: <mail@hweichelt.de>
 """
 
-from typing import List
+from typing import Iterable
 
 from clingraph.orm import Factbase
 from dumbo_asp.primitives.models import Model as DumboModel
@@ -20,7 +20,7 @@ from .textual import textualize_clingraph_factbase
 from .ucorexplain import program_from_files, save_graph, visualize
 
 
-def get_explanation_factbase(files: List[str], query: str, answer_set: str, false_atoms: List[str]) -> Factbase:
+def get_explanation_factbase(files: Iterable[str], query: str, answer_set: str, false_atoms: Iterable[str]) -> Factbase:
     query = DumboModel.of_program(query)
     answer_set = DumboModel.of_program(answer_set)
     program = program_from_files([f for f in files])

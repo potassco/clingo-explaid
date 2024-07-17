@@ -9,7 +9,7 @@ from textual.widgets.tree import TreeNode
 
 from ...propagators import SolverDecisionPropagator
 from ...propagators.propagator_solver_decisions import Decision
-from ..style.solver_decisions import MODE_SOLVER_DECISIONS_STYLE
+from ..style import MODE_SOLVER_DECISIONS_STYLE
 from .base import AbstractMode
 
 

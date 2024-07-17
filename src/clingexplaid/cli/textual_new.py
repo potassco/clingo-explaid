@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, List, Optional, Type
+from typing import Any, Dict, Iterable, List, Optional, Type, cast
 
 import clingo
 from textual import on
@@ -47,12 +47,23 @@ class Content(Widget):
         super().__init__(id=id)
         self.modes: Dict[str, Type[AbstractMode]] = modes
         self.mode_kwargs: Dict[str, Any] = {"files": files, "log": log}
+        self.dynamic_kwargs: Dict[str, Any] = {}
 
     def compose(self) -> ComposeResult:
         if self.mode is None:
             yield Label(f"No mode currently loaded")
         else:
-            yield self.modes[str(self.mode)](**self.mode_kwargs)
+            kwargs = self.mode_kwargs.copy()
+            kwargs.update(self._pop_dynamic_kwargs())
+            yield self.modes[str(self.mode)](**kwargs)
+
+    def set_dynamic_kwarg(self, key: str, value: Any) -> None:
+        self.dynamic_kwargs[key] = value
+
+    def _pop_dynamic_kwargs(self) -> Dict[str, Any]:
+        kwargs = self.dynamic_kwargs.copy()
+        self.dynamic_kwargs = {}
+        return kwargs
 
 
 class ClingexplaidTextualApp(App[int]):
@@ -98,8 +109,9 @@ class ClingexplaidTextualApp(App[int]):
         """
         self.exit(0)
 
-    async def action_switch_mode(self, mode_id: str) -> None:
-        self.query_one(Log).write(f"{mode_id}\n")
+    async def action_switch_mode(self, mode_id: str, answer_set: Optional[str] = None) -> None:
+        if answer_set is not None:
+            cast(Content, self.query_one("#content")).set_dynamic_kwarg("answer_set", answer_set)
         self._set_mode(mode_id)
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
