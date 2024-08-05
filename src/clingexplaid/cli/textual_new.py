@@ -16,6 +16,8 @@ class CoolCheckbox(Checkbox):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.BUTTON_INNER = " ● "
+        self.BUTTON_LEFT = ""
+        self.BUTTON_RIGHT = ""
 
 
 class Header(Static):
