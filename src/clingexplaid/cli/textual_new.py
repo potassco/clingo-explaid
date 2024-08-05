@@ -3,10 +3,10 @@ from typing import Dict, List
 import clingo
 from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Button, Footer, Label, Log, Static, Tab, Tabs
+from textual.widgets import Button, Checkbox, Footer, Label, Log, Select, Static, Tab, Tabs, TextArea
 
 from .textual_style_new import MAIN_CSS
 
@@ -34,10 +34,26 @@ class Models(Static):
         yield Static("MODEL 1")
 
 
+class Filters(Static):
+
+    def compose(self) -> ComposeResult:
+        yield Checkbox("All Atoms")
+        yield Checkbox("Shown Atoms", value=True)
+        yield Checkbox("Theory Atoms")
+
+
 class Actions(Static):
 
     def compose(self) -> ComposeResult:
-        yield Static("ACTIONS")
+        text_area = TextArea()
+        text_area.border_title = "Atoms"
+        yield VerticalScroll(
+            Select([("Filter", 1)], allow_blank=False),
+            Filters(),
+            Vertical(text_area, id="inputs"),
+        )
+        yield Button("Apply", id="apply")
+        yield Button("Clear History", id="clear-history")
 
 
 class ClingexplaidTextualApp(App[int]):
