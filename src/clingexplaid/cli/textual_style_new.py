@@ -5,10 +5,12 @@ Module containing TCSS style strings for the textual TUI
 MAIN_CSS = """
 $bg: #0A0E0F;
 $bg-1: #141D1F;
+$bg-optimal: #232400;
 $sec: #37474F;
 $sec-l: #546E7A;
 $pr: #6666FF;
 $pr-d: #40409E;
+$pr-d2: #12122E;
 
 $green: #558B2F;
 $green-d: #33691E;
@@ -122,6 +124,73 @@ Actions Button#clear-history{
     border: tall $red;
     color: #FFF;
 }
+
+/* --- MODELS --- */
+
+Model{
+    align: right top;
+    background: $bg-1;
+    margin-bottom: 1;
+    border: tall transparent;
+}
+
+Model.optimal{
+    background: $bg-optimal;
+}
+
+Model.selected{
+    background: $pr-d2;
+    border: tall $pr;
+}
+
+
+Model > Collapsible{
+    background: transparent;
+    border: hidden;
+    margin-right: 1;
+}
+
+Model Collapsible.result{
+    background: rgba(255,255,255,0.05);
+    border: none;
+    padding: 1;
+    margin-right: 1;
+}
+
+ModelHeader{
+    layer: above;
+    offset: 15 -1;
+    layout: grid;
+    grid-size: 4;
+    grid-columns: 1fr auto auto 15;
+}
+
+ModelHeader Label.model-cost{
+    margin: 1 0;
+    padding: 0 1;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.5);
+}
+
+ModelHeader Label.optimality-indicator{
+    margin: 1 0;
+}
+
+
+ModelHeader Label.hidden{
+    display: none;
+}
+
+
+ModelHeader Checkbox{
+    background: transparent;
+}
+
+ModelHeader Checkbox:focus{
+    border: tall transparent;
+}
+
+
 
 Log{
     background: black;
