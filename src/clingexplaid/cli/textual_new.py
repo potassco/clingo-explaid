@@ -11,6 +11,13 @@ from textual.widgets import Button, Checkbox, Collapsible, Footer, Label, Log, S
 from .textual_style_new import MAIN_CSS
 
 
+class CoolCheckbox(Checkbox):
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.BUTTON_INNER = " ● "
+
+
 class Header(Static):
 
     def compose(self) -> ComposeResult:
@@ -79,7 +86,7 @@ class ModelHeader(Static):
         if self._optimal:
             optimal_label.remove_class("hidden")
         yield optimal_label
-        yield Checkbox(classes="model-selector")
+        yield CoolCheckbox(classes="model-selector")
         yield Static()
 
     @on(Checkbox.Changed)
@@ -102,9 +109,9 @@ class Models(Static):
 class Filters(Static):
 
     def compose(self) -> ComposeResult:
-        yield Checkbox("All Atoms")
-        yield Checkbox("Shown Atoms", value=True)
-        yield Checkbox("Theory Atoms")
+        yield CoolCheckbox("All Atoms")
+        yield CoolCheckbox("Shown Atoms", value=True)
+        yield CoolCheckbox("Theory Atoms")
 
 
 class Actions(Static):

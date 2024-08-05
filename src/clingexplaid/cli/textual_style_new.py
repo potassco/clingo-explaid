@@ -186,6 +186,7 @@ ModelHeader Checkbox{
     background: transparent;
 }
 
+
 ModelHeader Checkbox:focus{
     border: tall transparent;
 }
