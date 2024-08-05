@@ -66,7 +66,7 @@ SolverActions{
 SolverActions Button{
     width: 100%;
     background: $sec;
-    border: $sec;
+    border: blank;
 }
 
 Actions{
