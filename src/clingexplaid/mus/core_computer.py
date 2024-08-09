@@ -75,12 +75,15 @@ class CoreComputer:
 
         return mus_members
 
-    def shrink(self, assumptions: Optional[AssumptionSet] = None) -> None:
+    def shrink(self, assumptions: Optional[AssumptionSet] = None) -> AssumptionSet:
         """
         This function applies the unsatisfiable subset minimization (`self._compute_single_minimal`) on the assumptions
         set `assumptions` and stores the resulting MUS inside `self.minimal`.
+
+        Returns the MUS as a set of assumptions.
         """
         self.minimal = self._compute_single_minimal(assumptions=assumptions)
+        return self.minimal
 
     def get_multiple_minimal(self, max_mus: Optional[int] = None) -> Generator[AssumptionSet, None, None]:
         """
