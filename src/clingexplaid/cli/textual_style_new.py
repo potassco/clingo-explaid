@@ -184,6 +184,7 @@ ModelHeader Label.hidden{
 
 ModelHeader Checkbox{
     background: transparent;
+    border: blank;
 }
 
 
