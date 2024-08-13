@@ -53,6 +53,8 @@ COLORS = {
 
 
 class Modes(Enum):
+    """Representation of the Clingo-Explaid Modes"""
+
     MODE_MUS = "Minimal Unsatisfiable Subsets"
     MODE_UNSAT_CONSTRAINTS = "Unsatisfiable Constraints"
     MODE_SHOW_DECISIONS = "Show Decisions"
@@ -429,6 +431,7 @@ class ClingexplaidTextualApp(App[int]):
     """A textual app for a terminal GUI to use the clingexplaid functionality"""
 
     # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-public-methods
     # pylint: disable=duplicate-code
 
     CSS = MAIN_CSS
@@ -671,8 +674,8 @@ class ClingexplaidTextualApp(App[int]):
         self.tree_cursor.add(end_string)
 
     async def action_mode_explain(self) -> None:
-        # TODO: Add implementation
-        pass
+        """Action for Explain Mode"""
+        # Add implementation
 
     async def action_solve(self) -> None:
         """

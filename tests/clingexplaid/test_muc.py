@@ -3,7 +3,7 @@ Tests for the mus package
 """
 
 import random
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Sequence, Set, Tuple
 from unittest import TestCase
 
 import clingo
@@ -34,7 +34,11 @@ def get_mus_of_program(
     assumptions = at.get_assumption_literals(ctl)
 
     cc = CoreComputer(ctl, assumptions)
-    ctl.solve(assumptions=list(assumptions), on_core=cc.shrink)
+
+    def shrink_on_model(core: Sequence[int]) -> None:
+        _ = cc.shrink(core)
+
+    ctl.solve(assumptions=list(assumptions), on_core=shrink_on_model)
 
     # if the instance was satisfiable and the on_core function wasn't called an empty set is returned, else the mus.
     result = cc.minimal if cc.minimal is not None else set()

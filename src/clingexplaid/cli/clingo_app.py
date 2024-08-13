@@ -183,7 +183,11 @@ class ClingoExplaidApp(Application):
 
         # Case: Finding a single MUS
         if max_models == -1:
-            control.solve(assumptions=list(assumptions), on_core=cc.shrink)
+
+            def shrink_on_model(core: Sequence[int]) -> None:
+                _ = cc.shrink(core)
+
+            control.solve(assumptions=list(assumptions), on_core=shrink_on_model)
 
             if cc.minimal is None:
                 print("SATISFIABLE: Instance has no MUS")
