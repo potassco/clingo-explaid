@@ -1,12 +1,15 @@
-from typing import Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional
 
 import clingo
+from rich.jupyter import display
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, VerticalScroll
+from textual.reactive import reactive
 from textual.widgets import Button, Checkbox, Collapsible, Footer, Label, Log, Select, Static, TextArea
 
 from .textual_style_new import MAIN_CSS
+from .util import StableModel
 
 
 class CoolCheckbox(Checkbox):
@@ -37,9 +40,10 @@ class SolverActions(Static):
 
 class Model(Static):
 
-    def __init__(self, model_id, weight: Optional[int] = None, optimal: bool = False, selected: bool = False):
+    def __init__(self, model: StableModel, weight: Optional[int] = None, optimal: bool = False, selected: bool = False):
         super().__init__()
-        self._model_id = model_id
+        self._model = model
+        self._model_id = model.model_id
         self._weight = weight
         self._optimal = optimal
         self.collapsed: bool = False
@@ -52,7 +56,7 @@ class Model(Static):
 
     def compose(self) -> ComposeResult:
         yield Collapsible(
-            Collapsible(title="Shown Atoms", classes="result"),
+            Collapsible(Label(" ".join([str(s) for s in self._model.atoms])), title="Shown Atoms", classes="result"),
             title=f"Model {self._model_id}",
             collapsed=self.collapsed,
         )
@@ -95,17 +99,6 @@ class ModelHeader(Static):
             self._model.toggle_selected()
 
 
-class Models(Static):
-
-    def compose(self) -> ComposeResult:
-        yield VerticalScroll(
-            Model(1, weight=230),
-            Model(2, weight=180),
-            Model(3, weight=120, optimal=True),
-            Model(4, weight=120, optimal=True),
-        )
-
-
 class Filters(Static):
 
     def compose(self) -> ComposeResult:
@@ -140,34 +133,92 @@ class ClingexplaidTextualApp(App[int]):
         self.constants: Dict[str, str] = constants
 
         self._program_satisfiability = self._check_satisfiability()
+        self._control = clingo.Control()
+        if self.files:
+            for file in self.files:
+                self._control.load(file)
+        else:
+            self._control.load("-")
+        self._control.ground([("base", [])])
 
-        self.bind("ctrl+x", "exit", description="Exit", key_display="CTRL+X")
+        self._model_generator = self.get_models()
+        self._models = set()
+
+        self.actions = {
+            "exit": {"keys": "ctrl+x", "description": "Exit", "display": "CTRL+X", "active": True},
+            "models_find_next": {"keys": "ctrl+n", "description": "Next Model", "display": "CTRL+N", "active": True},
+            "models_find_all": {"keys": "ctrl+a", "description": "All Models", "display": "CTRL+A", "active": True},
+        }
+        for name, action in self.actions.items():
+            self.bind(action["keys"], name, description=action["description"], key_display=action["display"])
 
     def compose(self) -> ComposeResult:
         """
         Composes the `ClingexplaidTextualApp`'s components
         """
-        ("unsat", "sat")[self._program_satisfiability]
-        ("UNSAT", "SAT")[self._program_satisfiability]
-
         log = Log()
         log.write("DEBUG\n")
 
-        yield Vertical(Header(), SolverActions(), Models(), Actions(), id="content")
+        yield Vertical(Header(), SolverActions(), Models(self), Actions(), id="content")
         yield log
         yield Footer()
 
-    def action_exit(self) -> None:
+    async def get_models(self) -> AsyncGenerator[StableModel, None]:
+        self._control.configuration.solve.models = 0
+        with self._control.solve(yield_=True) as solve_handle:
+            while True:
+                result = solve_handle.get()
+                if result.exhausted or not result.satisfiable:
+                    break
+                symbols = [s for s in solve_handle.model().symbols(atoms=True)]
+                self.query_one(Log).write(f"model [{symbols}] {result.satisfiable} {result.exhausted}\n")
+                yield StableModel(len(self._models), solve_handle.model())
+                solve_handle.resume()
+                if solve_handle.get().exhausted:
+                    self.query_one(Log).write("EXHAUSTED/n")
+                    # disable action bindings for model finding actions
+                    for action in self.actions.keys():
+                        if not action.startswith("models_find_"):
+                            continue
+                        self.actions[action]["active"] = False
+                    self.refresh_bindings()
+
+    async def action_exit(self) -> None:
         """
         Action to exit the textual application
         """
         self.exit(0)
 
+    async def action_models_find_next(self) -> None:
+        """
+        Action to compute the next stable model
+        """
+        try:
+            next_model = await anext(self._model_generator)
+        except StopAsyncIteration:
+            return
+        self._register_computed_model(next_model)
+
+    async def action_models_find_all(self) -> None:
+        """
+        Action to compute all remaining stable models
+        """
+        async for model in aiter(self._model_generator):
+            self._register_computed_model(model)
+
+    def _register_computed_model(self, model: StableModel):
+        self._models.add(model)
+        models_widget = self.query_one(Models)
+        models_widget.models = models_widget.models + 1
+
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """
         Check if any action may run
         """
-        return True
+        if action in self.actions:
+            return self.actions[action]["active"]
+        else:
+            return True
 
     def _check_satisfiability(self) -> bool:
         control = clingo.Control()
@@ -179,3 +230,17 @@ class ClingexplaidTextualApp(App[int]):
             if result.satisfiable:
                 return True
         return False
+
+
+class Models(Static):
+
+    models = reactive(0, recompose=True)
+
+    def __init__(self, app: ClingexplaidTextualApp):
+        super().__init__()
+        self.app_handle = app
+
+    def compose(self) -> ComposeResult:
+        yield VerticalScroll(
+            *[Model(model, weight=230) for model in self.app_handle._models],
+        )

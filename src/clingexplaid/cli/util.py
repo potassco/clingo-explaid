@@ -28,6 +28,16 @@ class StableModel:
     model_id: int
     atoms: Set[Atom]
 
+    def __init__(self, model_id: int, model: clingo.Model):
+        self.model_id = model_id
+        self.atoms = set()
+        for symbol in model.symbols(atoms=True):
+            atom = Atom(42, 42, symbol, True)  # TODO: Fix this
+            self.atoms.add(atom)
+
+    def __hash__(self):
+        return hash((self.model_id, "_".join([str(a.symbol) for a in self.atoms])))
+
     def __str__(self):
         return f"<Model {self.model_id}: [{", ".join([str(atom) for atom in self.atoms])}]>"
 
