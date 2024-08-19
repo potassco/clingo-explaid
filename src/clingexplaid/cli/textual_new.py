@@ -27,8 +27,15 @@ class Header(Static):
     def compose(self) -> ComposeResult:
         yield Label("SAT", id="sat-indicator")
         yield Static()
-        yield Button("Select All")
-        yield Button("Clear Selection")
+        yield Button("Select All", id="select-all-button")
+        yield Button("Clear Selection", id="clear-selection-button")
+
+    @on(Button.Pressed)
+    async def button_pressed(self, event: Button.Pressed) -> None:
+        if event.button == self.query_one("#select-all-button"):
+            await self.run_action("app.models_select_all()")
+        elif event.button == self.query_one("#clear-selection-button"):
+            await self.run_action("app.models_select_clear()")
 
 
 class SolverActions(Static):
@@ -47,6 +54,7 @@ class Model(Static):
         self._model_id = model.model_id
         self._weight = weight
         self._optimal = optimal
+        self._skip_next_checkbox_change = False
         self.collapsed: bool = False
         self.selected: bool = selected
 
@@ -63,18 +71,30 @@ class Model(Static):
         )
         yield ModelHeader(self, weight=self._weight, optimal=self._optimal)
 
-    def set_selected(self, selected: bool):
+    def set_selected(self, selected: bool, update_checkbox: bool = False):
         self.selected = selected
         if selected:
             self.add_class("selected")
         else:
             self.remove_class("selected")
+        if update_checkbox:
+            # Update Checkbox value
+            self.query_one(Checkbox).value = selected
+            self._skip_next_checkbox_change = True
 
     def get_model_id(self) -> int:
         return self._model_id
 
     def toggle_selected(self):
         self.set_selected(not self.selected)
+
+    @on(Checkbox.Changed)
+    def checkbox_changed(self, event: Checkbox.Changed) -> None:
+        if event.checkbox == self.query_one(Checkbox):
+            if self._skip_next_checkbox_change:
+                self._skip_next_checkbox_change = False
+                return
+            self.toggle_selected()
 
 
 class ModelHeader(Static):
@@ -96,11 +116,6 @@ class ModelHeader(Static):
         yield optimal_label
         yield CoolCheckbox(classes="model-selector")
         yield Static()
-
-    @on(Checkbox.Changed)
-    def checkbox_changed(self, event: Checkbox.Changed) -> None:
-        if event.checkbox == self.query_one(Checkbox):
-            self._model.toggle_selected()
 
 
 class Filters(Static):
@@ -204,6 +219,14 @@ class ClingexplaidTextualApp(App[int]):
         Action to exit the textual application
         """
         self.exit(0)
+
+    async def action_models_select_all(self):
+        for model in self.query(Model):
+            model.set_selected(True, update_checkbox=True)
+
+    async def action_models_select_clear(self):
+        for model in self.query(Model):
+            model.set_selected(False, update_checkbox=True)
 
     async def action_models_find_next(self) -> None:
         """
