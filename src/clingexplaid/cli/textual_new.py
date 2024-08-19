@@ -85,9 +85,11 @@ class Model(Static):
         else:
             self.remove_class("selected")
         if update_checkbox:
-            # Update Checkbox value
-            self.query_one(Checkbox).value = selected
-            self._skip_next_checkbox_change = True
+            # Update Checkbox value if its value differs from the target value
+            checkbox = self.query_one(Checkbox)
+            if checkbox.value != selected:
+                self._skip_next_checkbox_change = True
+                checkbox.value = selected
 
     def get_model_id(self) -> int:
         return self._model_id
