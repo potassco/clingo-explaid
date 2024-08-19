@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import AsyncGenerator, Dict, List, Optional
 
 import clingo
@@ -121,6 +122,14 @@ class Actions(Static):
         yield Button("Clear History", id="clear-history")
 
 
+@dataclass
+class BindingAction:
+    keys: str
+    keys_display: Optional[str]
+    description: Optional[str]
+    active: bool = True
+
+
 class ClingexplaidTextualApp(App[int]):
     """A textual app for a terminal GUI to use the clingexplaid functionality"""
 
@@ -145,12 +154,12 @@ class ClingexplaidTextualApp(App[int]):
         self._models = set()
 
         self.actions = {
-            "exit": {"keys": "ctrl+x", "description": "Exit", "display": "CTRL+X", "active": True},
-            "models_find_next": {"keys": "ctrl+n", "description": "Next Model", "display": "CTRL+N", "active": True},
-            "models_find_all": {"keys": "ctrl+a", "description": "All Models", "display": "CTRL+A", "active": True},
+            "exit": BindingAction(keys="ctrl+x", keys_display="CTRL+X", description="Exit"),
+            "models_find_next": BindingAction(keys="ctrl+n", keys_display="CTRL+N", description="Next Model"),
+            "models_find_all": BindingAction(keys="ctrl+a", keys_display="CTRL+A", description="All Models"),
         }
         for name, action in self.actions.items():
-            self.bind(action["keys"], name, description=action["description"], key_display=action["display"])
+            self.bind(action.keys, name, description=action.description, key_display=action.keys_display)
 
     def compose(self) -> ComposeResult:
         """
@@ -180,7 +189,7 @@ class ClingexplaidTextualApp(App[int]):
                     for action in self.actions.keys():
                         if not action.startswith("models_find_"):
                             continue
-                        self.actions[action]["active"] = False
+                        self.actions[action].active = False
                     self.refresh_bindings()
 
     async def action_exit(self) -> None:
@@ -216,7 +225,7 @@ class ClingexplaidTextualApp(App[int]):
         Check if any action may run
         """
         if action in self.actions:
-            return self.actions[action]["active"]
+            return self.actions[action].active
         else:
             return True
 
