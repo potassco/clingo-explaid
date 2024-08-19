@@ -178,22 +178,26 @@ class ClingexplaidTextualApp(App[int]):
     async def get_models(self) -> AsyncGenerator[StableModel, None]:
         self._control.configuration.solve.models = 0
         with self._control.solve(yield_=True) as solve_handle:
+            exhausted = False
             while True:
-                result = solve_handle.get()
-                if result.exhausted or not result.satisfiable:
-                    break
-                symbols = [s for s in solve_handle.model().symbols(atoms=True)]
-                self.query_one(Log).write(f"model [{symbols}] {result.satisfiable} {result.exhausted}\n")
-                yield StableModel(len(self._models), solve_handle.model())
+                self.query_one(Log).write(
+                    f"model [{[s for s in solve_handle.model().symbols(atoms=True)]}] {solve_handle.get().satisfiable} {solve_handle.get().exhausted}\n"
+                )
+                stable_model = StableModel(len(self._models) + 1, solve_handle.model())
                 solve_handle.resume()
                 if solve_handle.get().exhausted:
-                    self.query_one(Log).write("EXHAUSTED/n")
+                    exhausted = True
+                    self.query_one(Log).write("EXHAUSTED\n")
                     # disable action bindings for model finding actions
                     for action in self.actions.keys():
                         if not action.startswith("models_find_"):
                             continue
                         self.actions[action].active = False
                     self.refresh_bindings()
+
+                yield stable_model
+                if exhausted:
+                    break
 
     async def action_exit(self) -> None:
         """
@@ -249,7 +253,7 @@ class ClingexplaidTextualApp(App[int]):
 
 class Models(Static):
 
-    models = reactive(0, recompose=True)
+    models = reactive(1, recompose=True)
 
     def __init__(self, app: ClingexplaidTextualApp):
         super().__init__()
