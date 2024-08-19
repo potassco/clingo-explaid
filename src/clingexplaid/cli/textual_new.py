@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import AsyncGenerator, Dict, List, Optional
+from typing import AsyncGenerator, Dict, Iterable, List, Optional
 
 import clingo
 from rich.jupyter import display
@@ -69,6 +69,9 @@ class Model(Static):
             self.add_class("selected")
         else:
             self.remove_class("selected")
+
+    def get_model_id(self) -> int:
+        return self._model_id
 
     def toggle_selected(self):
         self.set_selected(not self.selected)
@@ -220,6 +223,9 @@ class ClingexplaidTextualApp(App[int]):
         models_widget = self.query_one(Models)
         models_widget.models = models_widget.models + 1
 
+    def get_computed_models(self) -> Iterable[StableModel]:
+        return self._models
+
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """
         Check if any action may run
@@ -252,6 +258,7 @@ class Models(Static):
     def compose(self) -> ComposeResult:
         yield VerticalScroll(
             *sorted(
-                [Model(model, weight=230) for model in self.app_handle._models], key=lambda model: -model._model_id
+                [Model(model, weight=230) for model in self.app_handle.get_computed_models()],
+                key=lambda model: -model.get_model_id(),
             ),
         )
