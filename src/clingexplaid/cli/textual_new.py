@@ -3,10 +3,8 @@ from typing import Dict, List, Optional
 import clingo
 from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.reactive import reactive
-from textual.widget import Widget
-from textual.widgets import Button, Checkbox, Collapsible, Footer, Label, Log, Select, Static, Tab, Tabs, TextArea
+from textual.containers import Vertical, VerticalScroll
+from textual.widgets import Button, Checkbox, Collapsible, Footer, Label, Log, Select, Static, TextArea
 
 from .textual_style_new import MAIN_CSS
 
