@@ -251,5 +251,7 @@ class Models(Static):
 
     def compose(self) -> ComposeResult:
         yield VerticalScroll(
-            *[Model(model, weight=230) for model in self.app_handle._models],
+            *sorted(
+                [Model(model, weight=230) for model in self.app_handle._models], key=lambda model: -model._model_id
+            ),
         )
