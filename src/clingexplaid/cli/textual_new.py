@@ -42,8 +42,15 @@ class SolverActions(Static):
 
     def compose(self) -> ComposeResult:
         yield Button("Last")
-        yield Button("Next")
-        yield Button("All")
+        yield Button("Next", id="models-next-button")
+        yield Button("All", id="models-all-button")
+
+    @on(Button.Pressed)
+    async def button_pressed(self, event: Button.Pressed) -> None:
+        if event.button == self.query_one("#models-next-button"):
+            await self.run_action("app.models_find_next()")
+        elif event.button == self.query_one("#models-all-button"):
+            await self.run_action("app.models_find_all()")
 
 
 class Model(Static):
