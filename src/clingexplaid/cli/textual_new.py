@@ -8,6 +8,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.events import Compose, Load, Mount
 from textual.message import Message
 from textual.reactive import reactive
+from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Collapsible, Footer, Label, Log, Select, Static, TextArea
 
 from .textual_style_new import MAIN_CSS
@@ -194,9 +195,9 @@ class ClingexplaidTextualApp(App[int]):
             "exit": BindingAction(keys="ctrl+x", keys_display="CTRL+X", description="Exit"),
             "models_find_next": BindingAction(keys="ctrl+n", keys_display="CTRL+N", description="Next Model"),
             "models_find_all": BindingAction(keys="ctrl+a", keys_display="CTRL+A", description="All Models"),
+            "log_toggle": BindingAction(keys="ctrl+l", keys_display="CTRL+L", description="Show Log"),
         }
-        for name, action in self.actions.items():
-            self.bind(action.keys, name, description=action.description, key_display=action.keys_display)
+        self._refresh_action_bindings()
 
     def compose(self) -> ComposeResult:
         """
@@ -211,6 +212,8 @@ class ClingexplaidTextualApp(App[int]):
 
     @on(Mount)
     async def initialization(self) -> None:
+        # Hide log when app is started
+        self.query_one(Screen).add_class("log-hidden")
         # load first model when application is initialized
         await self.run_action("app.models_find_next()")
 
@@ -290,6 +293,16 @@ class ClingexplaidTextualApp(App[int]):
         async for model in aiter(self._model_generator):
             self._register_computed_model(model)
 
+    async def action_log_toggle(self) -> None:
+        screen = self.query_one(Screen)
+        if screen.has_class("log-hidden"):
+            screen.remove_class("log-hidden")
+            self.actions["log_toggle"].description = "Hide Log"
+        else:
+            screen.add_class("log-hidden")
+            self.actions["log_toggle"].description = "Show Log"
+        self.refresh_bindings()
+
     def _register_computed_model(self, model: StableModel):
         self._models.add(model)
         models_widget = self.query_one(Models)
@@ -303,9 +316,14 @@ class ClingexplaidTextualApp(App[int]):
         Check if any action may run
         """
         if action in self.actions:
+            self._refresh_action_bindings()
             return self.actions[action].active
         else:
             return True
+
+    def _refresh_action_bindings(self):
+        for name, action in self.actions.items():
+            self.bind(action.keys, name, description=action.description, key_display=action.keys_display)
 
     def _check_satisfiability(self) -> bool:
         control = clingo.Control()

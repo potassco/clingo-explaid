@@ -22,6 +22,11 @@ Screen{
     grid-rows: 1fr 7;
     background: $bg;
 }
+
+Screen.log-hidden{
+    grid-size: 1 1;
+}
+
 #content{
     layout: grid;
     grid-size: 2 2;
@@ -203,5 +208,9 @@ ModelHeader Checkbox:focus{
 
 Log{
     background: black;
+}
+
+Screen.log-hidden Log{
+    display: none;
 }
 """
