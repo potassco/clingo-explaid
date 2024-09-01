@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import AsyncGenerator, Dict, Iterable, List, Optional
 
 import clingo
-from rich.jupyter import display
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, VerticalScroll
+from textual.events import Compose, Load, Mount
 from textual.reactive import reactive
 from textual.widgets import Button, Checkbox, Collapsible, Footer, Label, Log, Select, Static, TextArea
 
@@ -198,6 +198,11 @@ class ClingexplaidTextualApp(App[int]):
         yield Vertical(Header(), SolverActions(), Models(self), Actions(), id="content")
         yield log
         yield Footer()
+
+    @on(Mount)
+    async def initialization(self) -> None:
+        # load first model when application is initialized
+        await self.run_action("app.models_find_next()")
 
     async def get_models(self) -> AsyncGenerator[StableModel, None]:
         self._control.configuration.solve.models = 0
