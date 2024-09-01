@@ -6,6 +6,7 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, VerticalScroll
 from textual.events import Compose, Load, Mount
+from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Button, Checkbox, Collapsible, Footer, Label, Log, Select, Static, TextArea
 
@@ -40,10 +41,12 @@ class Header(Static):
 
 class SolverActions(Static):
 
+    models_exhausted = reactive(False, recompose=True)
+
     def compose(self) -> ComposeResult:
-        yield Button("Last")
-        yield Button("Next", id="models-next-button")
-        yield Button("All", id="models-all-button")
+        yield Button("Last", disabled=self.models_exhausted)
+        yield Button("Next", disabled=self.models_exhausted, id="models-next-button")
+        yield Button("All", disabled=self.models_exhausted, id="models-all-button")
 
     @on(Button.Pressed)
     async def button_pressed(self, event: Button.Pressed) -> None:
@@ -162,6 +165,9 @@ class ClingexplaidTextualApp(App[int]):
 
     CSS = MAIN_CSS
 
+    class ModelsExhausted(Message):
+        """The Model-Search-Space was exhausted"""
+
     def __init__(self, files: List[str], constants: Dict[str, str]) -> None:
         super().__init__()
 
@@ -204,6 +210,17 @@ class ClingexplaidTextualApp(App[int]):
         # load first model when application is initialized
         await self.run_action("app.models_find_next()")
 
+    @on(ModelsExhausted)
+    def on_models_exhausted(self):
+        # disable action bindings for model finding actions
+        for action in self.actions.keys():
+            if not action.startswith("models_find_"):
+                continue
+            self.actions[action].active = False
+        self.refresh_bindings()
+        self.query_one(SolverActions).models_exhausted = True
+        self.query_one(Log).write("MODELS EXHAUSTED\n")
+
     async def get_models(self) -> AsyncGenerator[StableModel, None]:
         self._control.configuration.solve.models = 0
         with self._control.solve(yield_=True) as solve_handle:
@@ -216,14 +233,8 @@ class ClingexplaidTextualApp(App[int]):
                 solve_handle.resume()
                 if solve_handle.get().exhausted:
                     exhausted = True
-                    self.query_one(Log).write("EXHAUSTED\n")
-                    # disable action bindings for model finding actions
-                    for action in self.actions.keys():
-                        if not action.startswith("models_find_"):
-                            continue
-                        self.actions[action].active = False
-                    self.refresh_bindings()
-
+                    # After search space is exhausted post appropriate message
+                    self.post_message(self.ModelsExhausted())
                 yield stable_model
                 if exhausted:
                     break
