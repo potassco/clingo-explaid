@@ -59,12 +59,12 @@ class SolverActions(Static):
 
 class Model(Static):
 
-    def __init__(self, model: StableModel, selected: bool = False):
+    def __init__(self, model: StableModel, selected: bool = False, collapsed: bool = False):
         super().__init__()
         self._model = model
         self._model_id = model.model_id
         self._skip_next_checkbox_change = False
-        self.collapsed: bool = False
+        self.collapsed: bool = collapsed
         self.selected: bool = selected
         self.cost: Optional[Iterable[int]] = model.cost
         self.optimal: bool = model.optimal
@@ -76,7 +76,12 @@ class Model(Static):
 
     def compose(self) -> ComposeResult:
         yield Collapsible(
-            Collapsible(Label(" ".join([str(s) for s in self._model.atoms])), title="Shown Atoms", classes="result"),
+            Collapsible(
+                Label(" ".join([str(s) for s in self._model.atoms])),
+                title="Shown Atoms",
+                classes="result",
+                collapsed=False,
+            ),
             title=f"Model {self._model_id}",
             collapsed=self.collapsed,
         )
@@ -346,9 +351,9 @@ class Models(Static):
         self.app_handle = app
 
     def compose(self) -> ComposeResult:
-        yield VerticalScroll(
-            *sorted(
-                [Model(model) for model in self.app_handle.get_computed_models()],
-                key=lambda model: -model.get_model_id(),
-            ),
-        )
+        model_widgets = [Model(model, collapsed=True) for model in self.app_handle.get_computed_models()]
+        model_widgets_sorted = sorted(model_widgets, key=lambda model: -model.get_model_id())
+        if model_widgets_sorted:
+            # Expand only first model
+            model_widgets_sorted[0].collapsed = False
+        yield VerticalScroll(*model_widgets_sorted)
