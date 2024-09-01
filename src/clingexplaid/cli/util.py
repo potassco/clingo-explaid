@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Set, Tuple
+from typing import Iterable, Optional, Set, Tuple
 
 import clingo
 
@@ -27,9 +27,13 @@ class Atom:
 class StableModel:
     model_id: int
     atoms: Set[Atom]
+    cost: Optional[Iterable[int]] = None
+    optimal: bool = False
 
-    def __init__(self, model_id: int, model: clingo.Model):
+    def __init__(self, model_id: int, model: clingo.Model, cost: Optional[Iterable[int]] = None, optimal: bool = False):
         self.model_id = model_id
+        self.cost = cost if cost else None
+        self.optimal = optimal
         self.atoms = set()
         for symbol in model.symbols(atoms=True):
             atom = Atom(42, 42, symbol, True)  # TODO: Fix this

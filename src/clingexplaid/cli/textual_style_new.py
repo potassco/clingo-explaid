@@ -176,6 +176,13 @@ ModelHeader Label.optimality-indicator{
     margin: 1 0;
 }
 
+ModelHeader Horizontal.costs{
+    height: auto;
+}
+
+ModelHeader Horizontal.costs > Label{
+    border-right: thick transparent;
+}
 
 ModelHeader Label.hidden{
     display: none;

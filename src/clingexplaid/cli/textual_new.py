@@ -4,7 +4,7 @@ from typing import AsyncGenerator, Dict, Iterable, List, Optional
 import clingo
 from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import Vertical, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.events import Compose, Load, Mount
 from textual.message import Message
 from textual.reactive import reactive
@@ -58,17 +58,17 @@ class SolverActions(Static):
 
 class Model(Static):
 
-    def __init__(self, model: StableModel, weight: Optional[int] = None, optimal: bool = False, selected: bool = False):
+    def __init__(self, model: StableModel, selected: bool = False):
         super().__init__()
         self._model = model
         self._model_id = model.model_id
-        self._weight = weight
-        self._optimal = optimal
         self._skip_next_checkbox_change = False
         self.collapsed: bool = False
         self.selected: bool = selected
+        self.cost: Optional[Iterable[int]] = model.cost
+        self.optimal: bool = model.optimal
 
-        if self._optimal:
+        if model.optimal:
             self.add_class("optimal")
         if self.selected:
             self.add_class("selected")
@@ -79,7 +79,7 @@ class Model(Static):
             title=f"Model {self._model_id}",
             collapsed=self.collapsed,
         )
-        yield ModelHeader(self, weight=self._weight, optimal=self._optimal)
+        yield ModelHeader(self)
 
     def set_selected(self, selected: bool, update_checkbox: bool = False):
         self.selected = selected
@@ -111,21 +111,25 @@ class Model(Static):
 
 class ModelHeader(Static):
 
-    def __init__(self, model: Model, weight: Optional[int] = None, optimal: bool = False):
+    def __init__(self, model: Model):
         super().__init__()
         self._model = model
-        self._weight = weight
-        self._optimal = optimal
+        self._cost = model.cost
+        self._optimal = model.optimal
 
     def compose(self) -> ComposeResult:
-        weight_label = Label(str(self._weight), classes="model-cost")
-        if self._weight is None:
-            weight_label.add_class("hidden")
-        yield weight_label
+        # COST LABELS
+        cost_labels = []
+        if self._cost is not None:
+            for cost in self._cost:
+                cost_labels.append(Label(str(cost), classes="model-cost"))
+        yield Horizontal(*cost_labels, classes="costs")
+        # OPTIMALITY LABEL
         optimal_label = Label(f"⭐", classes="optimality-indicator hidden")
         if self._optimal:
             optimal_label.remove_class("hidden")
         yield optimal_label
+        # SELECTION CHECKBOX
         yield CoolCheckbox(classes="model-selector")
         yield Static()
 
@@ -223,19 +227,35 @@ class ClingexplaidTextualApp(App[int]):
 
     async def get_models(self) -> AsyncGenerator[StableModel, None]:
         self._control.configuration.solve.models = 0
+        self._control.configuration.solve.opt_mode = "optN"
         with self._control.solve(yield_=True) as solve_handle:
             exhausted = False
             while True:
                 self.query_one(Log).write(
-                    f"model [{[s for s in solve_handle.model().symbols(atoms=True)]}] {solve_handle.get().satisfiable} {solve_handle.get().exhausted}\n"
+                    f"[{solve_handle.model().cost}][{solve_handle.model().optimality_proven}] model [{[s for s in solve_handle.model().symbols(atoms=True)]}] {solve_handle.get().satisfiable} {solve_handle.get().exhausted}\n"
                 )
-                stable_model = StableModel(len(self._models) + 1, solve_handle.model())
+                stable_model = StableModel(
+                    model_id=len(self._models) + 1,
+                    model=solve_handle.model(),
+                    cost=solve_handle.model().cost,
+                    optimal=solve_handle.model().optimality_proven,
+                )
                 solve_handle.resume()
+
+                yield_model = True
+                if solve_handle.model() is not None:
+                    # If the next stable model is optimal and the current model is not.
+                    # In clingo the first optimal model is found twice so we skip the first one
+                    if stable_model.optimal != solve_handle.model().optimality_proven:
+                        yield_model = False
+
                 if solve_handle.get().exhausted:
                     exhausted = True
                     # After search space is exhausted post appropriate message
                     self.post_message(self.ModelsExhausted())
-                yield stable_model
+
+                if yield_model:
+                    yield stable_model
                 if exhausted:
                     break
 
@@ -310,7 +330,7 @@ class Models(Static):
     def compose(self) -> ComposeResult:
         yield VerticalScroll(
             *sorted(
-                [Model(model, weight=230) for model in self.app_handle.get_computed_models()],
+                [Model(model) for model in self.app_handle.get_computed_models()],
                 key=lambda model: -model.get_model_id(),
             ),
         )
