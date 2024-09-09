@@ -157,7 +157,7 @@ class SymbolContainer(Static):
 
     def __init__(self, symbols: Iterable[SymbolWidget]):
         super().__init__()
-        self._symbols = list(symbols)
+        self._symbols = list(symbols) if symbols else [SymbolWidget("Empty", classes="empty")]
         self._width = SYMBOL_CONTAINER_DEFAULT_WIDTH
 
     def compose(self) -> ComposeResult:

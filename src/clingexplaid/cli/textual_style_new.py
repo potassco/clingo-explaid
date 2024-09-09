@@ -225,6 +225,11 @@ SymbolWidget{
     background: rgba(255,255,255,0.1);
 }
 
+SymbolWidget.empty{
+    color: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+}
+
 /* --- LOG --- */
 
 Log{
