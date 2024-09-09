@@ -14,6 +14,11 @@ from textual.widgets import Button, Checkbox, Collapsible, Footer, Label, Log, S
 from .textual_style_new import MAIN_CSS
 from .util import StableModel
 
+SYMBOL_PADDING = 1
+SYMBOL_MARGIN = 1
+SYMBOL_CONTAINER_PADDING_RIGHT = 10
+SYMBOL_CONTAINER_DEFAULT_WIDTH = 50
+
 
 class CoolCheckbox(Checkbox):
 
@@ -77,7 +82,7 @@ class Model(Static):
     def compose(self) -> ComposeResult:
         yield Collapsible(
             Collapsible(
-                Label(" ".join([str(s) for s in self._model.atoms])),
+                SymbolContainer(symbols=[SymbolWidget(str(atom.symbol)) for atom in self._model.atoms]),
                 title="Shown Atoms",
                 classes="result",
                 collapsed=False,
@@ -138,6 +143,43 @@ class ModelHeader(Static):
         # SELECTION CHECKBOX
         yield CoolCheckbox(classes="model-selector")
         yield Static()
+
+
+class SymbolWidget(Label):
+
+    def get_text_width(self) -> int:
+        return len(str(self.renderable))
+
+
+class SymbolContainer(Static):
+
+    size_changes = reactive(default=0, recompose=True)
+
+    def __init__(self, symbols: Iterable[SymbolWidget]):
+        super().__init__()
+        self._symbols = list(symbols)
+        self._width = SYMBOL_CONTAINER_DEFAULT_WIDTH
+
+    def compose(self) -> ComposeResult:
+        yield Vertical(*self.symbols_as_nested_horizontals())
+
+    def on_resize(self, event):
+        self.size_changes += 1
+        self._width = self.size.width - SYMBOL_CONTAINER_PADDING_RIGHT
+
+    def symbols_as_nested_horizontals(self) -> List[Horizontal]:
+        horizontal_list = []
+        current_space_left = self._width
+        current_horizontal = Horizontal()
+        for symbol in self._symbols:
+            current_space_left -= symbol.get_text_width() + 2 * SYMBOL_PADDING + SYMBOL_MARGIN
+            current_horizontal._add_child(symbol)
+            if current_space_left <= 0:
+                horizontal_list.append(current_horizontal)
+                current_horizontal = Horizontal()
+                current_space_left = self._width
+        horizontal_list.append(current_horizontal)
+        return horizontal_list
 
 
 class Filters(Static):

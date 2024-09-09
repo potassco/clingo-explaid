@@ -162,6 +162,7 @@ Model Collapsible.result{
     margin-right: 1;
 }
 
+
 ModelHeader{
     layer: above;
     offset: 15 -1;
@@ -204,7 +205,27 @@ ModelHeader Checkbox:focus{
     border: tall transparent;
 }
 
+SymbolContainer Vertical{
+    height: auto;
+}
 
+SymbolContainer Vertical Horizontal{
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+}
+
+SymbolContainer SymbolWidget{
+    padding: 0 1;
+    margin-right: 1;
+}
+
+SymbolWidget{
+    width: auto;
+    background: rgba(255,255,255,0.1);
+}
+
+/* --- LOG --- */
 
 Log{
     background: black;
