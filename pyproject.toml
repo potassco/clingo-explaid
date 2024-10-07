@@ -20,7 +20,6 @@ readme = "README.md"
 dependencies = [
 	"clingo>=5.7.1",
     "autoflake",
-    "textual==0.65.1",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -50,9 +49,6 @@ typecheck = [ "types-setuptools", "mypy" ]
 test = [ "coverage[toml]" ]
 doc = [ "sphinx", "furo", "nbsphinx", "sphinx_copybutton", "myst-parser" ]
 dev = [ "clingexplaid[test,typecheck,lint_pylint]" ]
-
-[project.scripts]
-clingexplaid = "clingexplaid.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -97,8 +93,6 @@ good-names = ["_"]
 [tool.coverage.run]
 source = ["clingexplaid", "tests"]
 omit = [
-    "*/clingexplaid/__main__.py",
-    "*/clingexplaid/cli/*",
     "*/clingexplaid/propagators/*",
     "*/clingexplaid/transformers/__init__.py",
     "*/clingexplaid/muc/__init__.py",
