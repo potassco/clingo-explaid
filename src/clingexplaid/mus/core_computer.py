@@ -2,6 +2,7 @@
 MUS Module: Core Computer to get Minimal Unsatisfiable Subsets
 """
 
+import warnings
 from itertools import chain, combinations
 from typing import Dict, Generator, List, Optional, Set, Tuple
 
@@ -49,7 +50,7 @@ class CoreComputer:
 
         # check that the assumption set isn't empty
         if not assumptions:
-            raise ValueError("A minimal unsatisfiable subset cannot be computed on an empty assumption set")
+            warnings.warn("A minimal unsatisfiable subset cannot be computed on an empty assumption set")
 
         # check if the problem with the full assumption set is unsatisfiable in the first place, and if not skip the
         # rest of the algorithm and return an empty set.
