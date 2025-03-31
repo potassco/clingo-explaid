@@ -11,7 +11,7 @@ import datetime
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("."))
+sys.path.insert(0, os.path.abspath(".."))
 # modules that autodock should mock
 # useful if some external dependencies are not satisfied at doc build time.
 autodoc_mock_imports = []
@@ -50,7 +50,10 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx_copybutton",
     "myst_parser",
+    "autoapi.extension",
 ]
+
+autoapi_dirs = ["../src"]
 
 autosummary_generate = True
 
