@@ -25,6 +25,8 @@ Here are two example for using `clingexplaid`'s API.
 
 ### Minimal Unsatisfiable Subsets (MUS)
 
+Getting a single MUS:
+
 ```python
 import clingo
 from clingexplaid.transformers import AssumptionTransformer
@@ -58,6 +60,33 @@ def shrink_on_core(core) -> None:
 
 
 control.solve(assumptions=list(assumptions), on_core=shrink_on_core)
+```
+
+Getting multiple MUS:
+
+```python
+import clingo
+from clingexplaid.transformers import AssumptionTransformer
+from clingexplaid.mus import CoreComputer
+
+PROGRAM = """
+a(1..3).
+b(1..3).
+
+:- a(X), b(X).
+"""
+
+at = AssumptionTransformer()
+transformed_program = at.parse_string(PROGRAM)
+control = clingo.Control()
+control.add("base", [], transformed_program)
+control.ground([("base", [])])
+assumptions = at.get_assumption_literals(control)
+cc = CoreComputer(control, assumptions)
+
+mus_generator = cc.get_multiple_minimal()
+for i, mus in enumerate(mus_generator):
+    print(f"MUS {i}:", cc.mus_to_string(mus))
 ```
 
 ### Unsatisfiable Constraints
