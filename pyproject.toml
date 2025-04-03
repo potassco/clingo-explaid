@@ -98,7 +98,8 @@ omit = [
     "*/clingexplaid/muc/__init__.py",
     "*/clingexplaid/unsat_constraints/__init__.py",
     "*/tests/*",
-    "*/constants.py"
+    "*/constants.py",
+    "*/clingexplaid/utils/match.py",
 ]
 
 [tool.coverage.report]

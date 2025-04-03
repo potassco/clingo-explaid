@@ -12,7 +12,7 @@ import re
 from abc import abstractmethod
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Iterator, Sequence
+from typing import Dict, Iterator, List, Sequence
 
 # from clingo.core import Library
 from clingo.symbol import Infimum, Number, Supremum, Symbol, parse_term
@@ -63,7 +63,7 @@ class Matcher:
         Returns:
             The match result.
         """
-        assignment = {}
+        assignment: Dict[str, Symbol] = {}
         if self.match(symbol, assignment):
             return Match(assignment)
         return None
@@ -203,7 +203,7 @@ class _Tokenizer:
         self._token = next(self._tokens)
 
     @staticmethod
-    def _tokenize(expression: str, regex: re.Pattern) -> Iterator[_Token]:
+    def _tokenize(expression: str, regex: re.Pattern[str]) -> Iterator[_Token]:
         """
         Tokenize the input expression using the given regular.
 
@@ -381,7 +381,7 @@ class _Parser:
         """
         if not self._tokenizer.match("PUN", "("):
             return FunctionMatcher(name, [], positive)
-        args = []
+        args: List[Matcher] = []
         trail = bool(name)
 
         if not trail and self._tokenizer.match("PUN", ","):
@@ -441,13 +441,15 @@ def match(expression: str, symbol: Symbol) -> Match | None:
     return compile_matcher(expression)(symbol)
 
 
-def main():
+def main() -> None:
     """
     Some tests for exposition.
     """
 
     m = match("(,)", parse_term("(1,2)"))
-    assert m and not m.assignment  # TODO: does not match, probably a parser problem ('(_,_)' works instead of '(,)')
+    assert (
+        m and not m.assignment
+    )  # TODO: does not match, probably a parser problem ('(_,_)' works instead of '(,)')  # pylint: disable=fixme
     m = match("(#sup,#inf)", parse_term("(#sup,#inf)"))
     assert m
     m = match("f(X,(a))", parse_term("f(1,(a))"))
