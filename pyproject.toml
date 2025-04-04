@@ -13,7 +13,7 @@ authors = [
 ]
 maintainers = [{ name = "Hannes Weichelt", email = "hweichelt@uni-potsdam.de" }]
 description = "Tools to aid the development of explanation systems using clingo"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {file = "LICENSE"}
 dynamic = [ "version" ]
 readme = "README.md"
@@ -28,7 +28,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
