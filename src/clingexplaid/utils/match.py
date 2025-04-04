@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict, Iterator, List, Sequence
 
+import clingo
+
 # from clingo.core import Library
 from clingo.symbol import Infimum, Number, Supremum, Symbol, parse_term
 
@@ -427,7 +429,7 @@ def compile_matcher(expression: str) -> Matcher:
     return _Parser(expression).parse()
 
 
-def match(expression: str, symbol: Symbol) -> Match | None:
+def match(expression: str, symbol: clingo.Symbol) -> Match | None:
     """
     Convenience function to compile an expression and match it against a symbol.
     Args:

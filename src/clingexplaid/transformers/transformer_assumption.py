@@ -2,14 +2,38 @@
 Transformer Module: Assumption Transformer for converting facts to choices that can be assumed
 """
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Sequence, Set, Union
 
 import clingo
 import clingo.ast as _ast
 
 from ..utils import get_constant_string, match_ast_symbolic_atom_signature
+from ..utils.match import match
+from ..utils.symbols import ast_symbolic_atom_to_symbol
 from .exceptions import NotGroundedException, UntransformedException
+
+
+@dataclass
+class FilterSignature:
+    """Filters the facts converted to assumptions by signature"""
+
+    name: str
+    arity: int
+
+    def __hash__(self) -> int:
+        return hash((self.name, self.arity))
+
+
+@dataclass
+class FilterPattern:
+    """Filters the facts converted to assumptions by pattern"""
+
+    pattern: str
+
+    def __hash__(self) -> int:
+        return hash(self.pattern)
 
 
 class AssumptionTransformer(_ast.Transformer):
@@ -18,11 +42,21 @@ class AssumptionTransformer(_ast.Transformer):
     into choice rules and also provides the according assumptions for them.
     """
 
-    def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None):
-        self.signatures = signatures if signatures is not None else set()
+    def __init__(self, filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None):
+        self.filters: Set[Union[FilterPattern, FilterSignature]] = set(filters) if filters is not None else set()
         self.fact_rules: List[str] = []
         self.transformed: bool = False
         self.program_constants: Dict[str, str] = {}
+
+    def _filters_apply(self, ast_symbol: _ast.ASTType.SymbolicAtom) -> bool:
+        applies = False
+        for symbol_filter in self.filters:
+            match symbol_filter:
+                case FilterPattern(pattern=pattern):
+                    applies |= bool(match(pattern, ast_symbolic_atom_to_symbol(ast_symbol)))
+                case FilterSignature(name=name, arity=arity):
+                    applies |= match_ast_symbolic_atom_signature(ast_symbol, (name, arity))
+        return applies
 
     def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
         """
@@ -32,11 +66,9 @@ class AssumptionTransformer(_ast.Transformer):
             return node
         if node.body:
             return node
-        has_matching_signature = any(
-            match_ast_symbolic_atom_signature(node.head.atom, (name, arity)) for (name, arity) in self.signatures
-        )
-        # if signatures are defined only transform facts that match them, else transform all facts
-        if self.signatures and not has_matching_signature:
+        filters_apply = self._filters_apply(node.head.atom)
+        # if filters are defined only transform facts that match them, else transform all facts
+        if self.filters and not filters_apply:
             return node
 
         self.fact_rules.append(str(node))

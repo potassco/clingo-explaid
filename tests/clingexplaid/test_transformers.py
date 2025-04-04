@@ -15,6 +15,7 @@ from clingexplaid.transformers import (
     RuleSplitter,
 )
 from clingexplaid.transformers.exceptions import NotGroundedException, UntransformedException
+from clingexplaid.transformers.transformer_assumption import FilterPattern, FilterSignature
 
 from .test_main import TEST_DIR, read_file
 
@@ -32,7 +33,8 @@ class TestTransformers(TestCase):
         """
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_certain_signatures.lp")
-        at = AssumptionTransformer(signatures={(c, 1) for c in "abcdef"})
+        filters = [FilterSignature(c, 1) for c in "abcdef"]
+        at = AssumptionTransformer(filters=filters)
         result = at.parse_files([program_path])
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
@@ -43,6 +45,16 @@ class TestTransformers(TestCase):
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_all.lp")
         at = AssumptionTransformer()
+        result = at.parse_files([program_path])
+        self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
+
+    def test_assumption_transformer_parse_pattern_filter(self) -> None:
+        """
+        Test the AssumptionTransformer's `parse_file` method with no signatures provided.
+        """
+        program_path = TEST_DIR.joinpath("res/test_program_pattern.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_pattern.lp")
+        at = AssumptionTransformer(filters={FilterPattern("a(_,value,_)")})
         result = at.parse_files([program_path])
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
