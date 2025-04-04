@@ -3,13 +3,14 @@ Tests for the mus package
 """
 
 import random
-from typing import List, Optional, Sequence, Set, Tuple
+from typing import Iterable, List, Optional, Sequence, Set, Tuple, Union
 from unittest import TestCase
 
 import clingo
 
 from clingexplaid.mus import CoreComputer
 from clingexplaid.transformers import AssumptionTransformer
+from clingexplaid.transformers.transformer_assumption import FilterPattern, FilterSignature
 from clingexplaid.utils.types import AssumptionSet
 
 from .test_main import TEST_DIR
@@ -17,15 +18,21 @@ from .test_main import TEST_DIR
 
 def get_mus_of_program(
     program_string: str,
-    assumption_signatures: Set[Tuple[str, int]],
+    assumption_filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None,
     control: Optional[clingo.Control] = None,
 ) -> Tuple[AssumptionSet, CoreComputer]:
     """
     Helper function to directly get the MUS of a given program string.
     """
+
+    if assumption_filters is None:
+        assumption_filters = set()
+    else:
+        assumption_filters = set(assumption_filters)
+
     ctl = control if control is not None else clingo.Control()
 
-    at = AssumptionTransformer(signatures=assumption_signatures)
+    at = AssumptionTransformer(filters=assumption_filters)
     transformed_program = at.parse_string(program_string)
 
     ctl.add("base", [], transformed_program)
@@ -74,9 +81,9 @@ class TestMUS(TestCase):
             a(1..5).
             :- a(1), a(4), a(5).
             """
-        signatures = {("a", 1)}
+        filters = {FilterSignature("a", 1)}
 
-        mus, cc = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
         if cc.minimal is None:
             self.fail()
@@ -93,9 +100,9 @@ class TestMUS(TestCase):
             a(1..5).
             :- a(3).
             """
-        signatures = {("a", 1)}
+        filters = {FilterSignature("a", 1)}
 
-        mus, cc = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
         if cc.minimal is None:
             self.fail()
@@ -114,9 +121,9 @@ class TestMUS(TestCase):
             :- a(5).
             :- a(9).
             """
-        signatures = {("a", 1)}
+        filters = {FilterSignature("a", 1)}
 
-        mus, cc = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
         if cc.minimal is None:
             self.fail()
@@ -135,9 +142,9 @@ class TestMUS(TestCase):
             :- a(5), a(1), a(2).
             :- a(9), a(2), a(7).
             """
-        signatures = {("a", 1)}
+        filters = {FilterSignature("a", 1)}
 
-        mus, cc = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
         if cc.minimal is None:
             self.fail()
@@ -163,9 +170,9 @@ class TestMUS(TestCase):
             a(1..{n_assumptions}).
             :- {', '.join([f"a({i})" for i in random_core])}.
             """
-        signatures = {("a", 1)}
+        filters = {FilterSignature("a", 1)}
 
-        mus, cc = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
         if cc.minimal is None:
             self.fail()
@@ -181,9 +188,9 @@ class TestMUS(TestCase):
         program = """
             a(1..5).
             """
-        signatures = {("a", 1)}
+        filters = {FilterSignature("a", 1)}
 
-        mus, _ = get_mus_of_program(program_string=program, assumption_signatures=signatures, control=ctl)
+        mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
         self.assertEqual(mus, set())
 
@@ -195,7 +202,7 @@ class TestMUS(TestCase):
         ctl = clingo.Control()
 
         program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
-        at = AssumptionTransformer(signatures={("a", 1)})
+        at = AssumptionTransformer(filters={FilterSignature("a", 1)})
         parsed = at.parse_files([program_path])
         ctl.add("base", [], parsed)
         ctl.ground([("base", [])])
@@ -218,7 +225,7 @@ class TestMUS(TestCase):
         ctl = clingo.Control()
 
         program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
-        at = AssumptionTransformer(signatures={("a", 1)})
+        at = AssumptionTransformer(filters={FilterSignature("a", 1)})
         parsed = at.parse_files([program_path])
         ctl.add("base", [], parsed)
         ctl.ground([("base", [])])

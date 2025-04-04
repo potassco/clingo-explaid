@@ -1,3 +1,5 @@
+from clingexplaid.transformers.transformer_assumption import FilterSignature
+
 # clingexplaid
 
 API to aid the development of explanation systems using clingo
@@ -30,6 +32,7 @@ Getting a single MUS:
 ```python
 import clingo
 from clingexplaid.transformers import AssumptionTransformer
+from clingexplaid.transformers.transformer_assumption import FilterSignature
 from clingexplaid.mus import CoreComputer
 
 PROGRAM = """
@@ -42,7 +45,7 @@ a(X) :- b(X).
 """
 
 control = clingo.Control()
-at = AssumptionTransformer(signatures={("a", 1)})
+at = AssumptionTransformer(filters={FilterSignature("a", 1)})
 
 transformed_program = at.parse_string(PROGRAM)
 
