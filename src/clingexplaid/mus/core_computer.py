@@ -36,7 +36,8 @@ class CoreComputer:
         self.assumption_set = assumption_set
         self.literal_lookup = get_solver_literal_lookup(control=self.control)
         self.minimal: Optional[UnsatisfiableSubset] = None
-        self._shrinking_progress: Set[Assumption] = set()
+        self._assumptions_minimal: Set[Assumption] = set()
+        self._assumptions_removed: Set[Assumption] = set()
 
     def _solve(self, assumptions: Optional[AssumptionSet] = None) -> Tuple[bool, SymbolSet, SymbolSet]:
         """
@@ -63,7 +64,7 @@ class CoreComputer:
             assumptions = self.assumption_set
 
         # Reset progress set
-        self._shrinking_progress = set()
+        self._assumptions_minimal = set()
 
         # check that the assumption set isn't empty
         if not assumptions:
@@ -81,19 +82,22 @@ class CoreComputer:
             # remove the current assumption from the working set
             working_set.remove(assumption)
 
-            satisfiable, _, _ = self._solve(assumptions=working_set.union(self._shrinking_progress))
+            satisfiable, _, _ = self._solve(assumptions=working_set.union(self._assumptions_minimal))
             # if the working set now becomes satisfiable without the assumption it is added to the mus_members
             if satisfiable:
-                self._shrinking_progress.add(assumption)
+                self._assumptions_minimal.add(assumption)
                 # every time we discover a new mus member we also check if all currently found mus members already
                 # suffice to make the instance unsatisfiable. If so we can stop the search sice we found our mus.
-                if not self._solve(assumptions=self._shrinking_progress)[0]:
+                if not self._solve(assumptions=self._assumptions_minimal)[0]:
                     break
+            else:
+                # Remove the current assumption since it's not part of the mus
+                self._assumptions_removed.add(assumption)
 
             # Do a very short wait every time to allow for async timeout interruption
             await asyncio.sleep(0.0000001)
 
-        return UnsatisfiableSubset(self._shrinking_progress, minimal=True)
+        return UnsatisfiableSubset(self._assumptions_minimal, minimal=True)
 
     async def _shrink_unsatisfiable_subset(
         self, assumptions: Optional[AssumptionSet] = None, timeout: Optional[float] = None
@@ -101,15 +105,19 @@ class CoreComputer:
         timeout_occurred = False
         try:
             await asyncio.wait_for(self._compute_single_minimal(assumptions=assumptions), timeout=timeout)
+            unsat_subset = self._assumptions_minimal
         except TimeoutError:
             timeout_occurred = True
             warnings.warn(
                 "Timeout encountered while computing unsatisfiable subset, "
                 "intermediate unsatisfiable subset is returned"
             )
+            # Remove the already excluded assumptions from the original set and return them
+            provided_assumptions = set(assumptions) if assumptions is not None else set(self.assumption_set)
+            unsat_subset = provided_assumptions.difference(self._assumptions_removed)
         # TODO: Theoretically even if a timeout occurred it could be the MUS but it's not  # pylint: disable=fixme
         #  guaranteed (Maybe add a state struct?)
-        return UnsatisfiableSubset(self._shrinking_progress, minimal=not timeout_occurred)
+        return UnsatisfiableSubset(unsat_subset, minimal=not timeout_occurred)
 
     def shrink(
         self, assumptions: Optional[AssumptionSet] = None, timeout: Optional[float] = None
