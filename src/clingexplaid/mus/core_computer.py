@@ -115,8 +115,6 @@ class CoreComputer:
             # Remove the already excluded assumptions from the original set and return them
             provided_assumptions = set(assumptions) if assumptions is not None else set(self.assumption_set)
             unsat_subset = provided_assumptions.difference(self._assumptions_removed)
-        # TODO: Theoretically even if a timeout occurred it could be the MUS but it's not  # pylint: disable=fixme
-        #  guaranteed (Maybe add a state struct?)
         return UnsatisfiableSubset(unsat_subset, minimal=not timeout_occurred)
 
     def shrink(
