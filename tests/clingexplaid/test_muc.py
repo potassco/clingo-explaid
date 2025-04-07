@@ -2,6 +2,7 @@
 Tests for the mus package
 """
 
+import asyncio
 import random
 from typing import Iterable, List, Optional, Sequence, Set, Tuple, Union
 from unittest import TestCase
@@ -9,9 +10,9 @@ from unittest import TestCase
 import clingo
 
 from clingexplaid.mus import CoreComputer
+from clingexplaid.mus.core_computer import UnsatisfiableSubset
 from clingexplaid.transformers import AssumptionTransformer
 from clingexplaid.transformers.transformer_assumption import FilterPattern, FilterSignature
-from clingexplaid.utils.types import AssumptionSet
 
 from .test_main import TEST_DIR
 
@@ -20,7 +21,8 @@ def get_mus_of_program(
     program_string: str,
     assumption_filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None,
     control: Optional[clingo.Control] = None,
-) -> Tuple[AssumptionSet, CoreComputer]:
+    timeout: Optional[float] = None,
+) -> Tuple[UnsatisfiableSubset, CoreComputer]:
     """
     Helper function to directly get the MUS of a given program string.
     """
@@ -43,12 +45,12 @@ def get_mus_of_program(
     cc = CoreComputer(ctl, assumptions)
 
     def shrink_on_model(core: Sequence[int]) -> None:
-        _ = cc.shrink(core)
+        _ = cc.shrink(core, timeout=timeout)
 
     ctl.solve(assumptions=list(assumptions), on_core=shrink_on_model)
 
     # if the instance was satisfiable and the on_core function wasn't called an empty set is returned, else the mus.
-    result = cc.minimal if cc.minimal is not None else set()
+    result = cc.minimal if cc.minimal is not None else UnsatisfiableSubset(set())
 
     return result, cc
 
@@ -178,6 +180,25 @@ class TestMUS(TestCase):
             self.fail()
         self._assert_mus(cc.mus_to_string(mus), [{f"a({i})" for i in random_core}])
 
+    def test_core_computer_shrink_timeout(self) -> None:
+        """
+        Test the CoreComputer's `shrink` function with a satisfiable assumption set.
+        """
+
+        ctl = clingo.Control()
+
+        n_assumptions = 3000
+        random_core = random.choices(range(1, n_assumptions), k=500)
+        program = f"""
+                    a(1..{n_assumptions}).
+                    :- {', '.join([f"a({i})" for i in random_core])}.
+                    """
+        filters = {FilterSignature("a", 1)}
+
+        mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl, timeout=1)
+
+        self.assertEqual(mus.minimal, False)
+
     def test_core_computer_shrink_satisfiable(self) -> None:
         """
         Test the CoreComputer's `shrink` function with a satisfiable assumption set.
@@ -192,7 +213,7 @@ class TestMUS(TestCase):
 
         mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
-        self.assertEqual(mus, set())
+        self.assertEqual(mus, UnsatisfiableSubset(set()))
 
     def test_core_computer_get_multiple_minimal(self) -> None:
         """
@@ -265,8 +286,8 @@ class TestMUS(TestCase):
         control.ground([("base", [])])
         assumptions = {(clingo.parse_term(c), True) for c in "abc"}
         cc = CoreComputer(control, assumptions)
-        mus = cc._compute_single_minimal()  # pylint: disable=W0212
-        self.assertEqual(mus, set())
+        mus = asyncio.run(cc._compute_single_minimal())  # pylint: disable=W0212
+        self.assertEqual(mus, UnsatisfiableSubset(set()))
 
     def test_core_computer_internal_compute_single_minimal_no_assumptions(self) -> None:
         """
@@ -276,7 +297,8 @@ class TestMUS(TestCase):
         control = clingo.Control()
         cc = CoreComputer(control, set())
         # Disabled exception assertion due to change in error handling
-        # self.assertRaises(ValueError, cc._compute_single_minimal)  # pylint: disable=W0212
+        mus = asyncio.run(cc._compute_single_minimal(assumptions=None))  # pylint: disable=W0212
+        self.assertEqual(mus, UnsatisfiableSubset(set()))
         cc.shrink([])
 
     def test_core_computer_mus_to_string(self) -> None:
