@@ -9,6 +9,7 @@ from unittest import TestCase
 import clingo
 
 from clingexplaid.mus import CoreComputer
+from clingexplaid.mus.core_computer import UnsatisfiableSubset
 from clingexplaid.transformers import AssumptionTransformer
 from clingexplaid.transformers.transformer_assumption import FilterPattern, FilterSignature
 from clingexplaid.utils.types import AssumptionSet
@@ -266,7 +267,7 @@ class TestMUS(TestCase):
         assumptions = {(clingo.parse_term(c), True) for c in "abc"}
         cc = CoreComputer(control, assumptions)
         mus = cc._compute_single_minimal()  # pylint: disable=W0212
-        self.assertEqual(mus, set())
+        self.assertEqual(mus, UnsatisfiableSubset(set()))
 
     def test_core_computer_internal_compute_single_minimal_no_assumptions(self) -> None:
         """

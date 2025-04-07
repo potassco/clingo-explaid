@@ -3,13 +3,25 @@ MUS Module: Core Computer to get Minimal Unsatisfiable Subsets
 """
 
 import warnings
+from dataclasses import dataclass
 from itertools import chain, combinations
-from typing import Dict, Generator, List, Optional, Set, Tuple
+from typing import Dict, Generator, Iterable, Iterator, List, Optional, Set, Tuple, Union
 
 import clingo
 
 from ..utils import get_solver_literal_lookup
 from ..utils.types import Assumption, AssumptionSet, SymbolSet
+
+
+@dataclass
+class UnsatisfiableSubset:
+    """Container class for unsatisfiable subsets"""
+
+    assumptions: Set[Assumption]
+    minimal: bool = False
+
+    def __iter__(self) -> Iterator[Union[tuple[clingo.Symbol, bool], int]]:
+        return self.assumptions.__iter__()
 
 
 class CoreComputer:
@@ -38,7 +50,7 @@ class CoreComputer:
 
         return satisfiable, set(model), core
 
-    def _compute_single_minimal(self, assumptions: Optional[AssumptionSet] = None) -> AssumptionSet:
+    def _compute_single_minimal(self, assumptions: Optional[AssumptionSet] = None) -> UnsatisfiableSubset:
         """
         Function to compute a single minimal unsatisfiable subset from the passed set of assumptions and the program of
         the CoreComputer. If there is no minimal unsatisfiable subset, since for example the program with assumptions
@@ -56,7 +68,7 @@ class CoreComputer:
         # rest of the algorithm and return an empty set.
         satisfiable, _, _ = self._solve(assumptions=assumptions)
         if satisfiable:
-            return set()
+            return UnsatisfiableSubset(set())
 
         mus_members: Set[Assumption] = set()
         working_set = set(assumptions)
@@ -74,9 +86,9 @@ class CoreComputer:
                 if not self._solve(assumptions=mus_members)[0]:
                     break
 
-        return mus_members
+        return UnsatisfiableSubset(mus_members, minimal=True)
 
-    def shrink(self, assumptions: Optional[AssumptionSet] = None) -> AssumptionSet:
+    def shrink(self, assumptions: Optional[AssumptionSet] = None) -> UnsatisfiableSubset:
         """
         This function applies the unsatisfiable subset minimization (`self._compute_single_minimal`) on the assumptions
         set `assumptions` and stores the resulting MUS inside `self.minimal`.
@@ -86,7 +98,7 @@ class CoreComputer:
         self.minimal = self._compute_single_minimal(assumptions=assumptions)
         return self.minimal
 
-    def get_multiple_minimal(self, max_mus: Optional[int] = None) -> Generator[AssumptionSet, None, None]:
+    def get_multiple_minimal(self, max_mus: Optional[int] = None) -> Generator[UnsatisfiableSubset, None, None]:
         """
         This function generates all minimal unsatisfiable subsets of the provided assumption set. It implements the
         generator pattern since finding all mus of an assumption set is exponential in nature and the search might not
@@ -127,7 +139,11 @@ class CoreComputer:
                 if max_mus is not None and len(found_mucs) == max_mus:
                     break
 
-    def mus_to_string(self, muc: AssumptionSet, literal_lookup: Optional[Dict[int, clingo.Symbol]] = None) -> Set[str]:
+    def mus_to_string(
+        self,
+        muc: Iterable[Union[Tuple[clingo.Symbol, bool], int]],
+        literal_lookup: Optional[Dict[int, clingo.Symbol]] = None,
+    ) -> Set[str]:
         """
         Converts a MUS into a set containing the string representations of the contained assumptions
         """
