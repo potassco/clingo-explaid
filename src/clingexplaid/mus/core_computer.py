@@ -35,7 +35,7 @@ class CoreComputer:
         self.control = control
         self.assumption_set = assumption_set
         self.literal_lookup = get_solver_literal_lookup(control=self.control)
-        self.minimal: Optional[AssumptionSet] = None
+        self.minimal: Optional[UnsatisfiableSubset] = None
         self._shrinking_progress: Set[Assumption] = set()
 
     def _solve(self, assumptions: Optional[AssumptionSet] = None) -> Tuple[bool, SymbolSet, SymbolSet]:
@@ -107,8 +107,8 @@ class CoreComputer:
                 "Timeout encountered while computing unsatisfiable subset, "
                 "intermediate unsatisfiable subset is returned"
             )
-        # TODO: Theoretically even if a timeout occurred it could be the MUS but it's not guaranteed
-        #  (Maybe add a state struct?)
+        # TODO: Theoretically even if a timeout occurred it could be the MUS but it's not  # pylint: disable=fixme
+        #  guaranteed (Maybe add a state struct?)
         return UnsatisfiableSubset(self._shrinking_progress, minimal=not timeout_occurred)
 
     def shrink(

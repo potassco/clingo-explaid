@@ -50,7 +50,7 @@ def get_mus_of_program(
     ctl.solve(assumptions=list(assumptions), on_core=shrink_on_model)
 
     # if the instance was satisfiable and the on_core function wasn't called an empty set is returned, else the mus.
-    result = cc.minimal if cc.minimal is not None else set()
+    result = cc.minimal if cc.minimal is not None else UnsatisfiableSubset(set())
 
     return result, cc
 
@@ -213,7 +213,7 @@ class TestMUS(TestCase):
 
         mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
-        self.assertEqual(mus, set())
+        self.assertEqual(mus, UnsatisfiableSubset(set()))
 
     def test_core_computer_get_multiple_minimal(self) -> None:
         """
@@ -297,8 +297,8 @@ class TestMUS(TestCase):
         control = clingo.Control()
         cc = CoreComputer(control, set())
         # Disabled exception assertion due to change in error handling
-        mus = asyncio.run(cc._compute_single_minimal(assumptions=None))
-        self.assertEqual(mus, UnsatisfiableSubset(set()))  # pylint: disable=W0212
+        mus = asyncio.run(cc._compute_single_minimal(assumptions=None))  # pylint: disable=W0212
+        self.assertEqual(mus, UnsatisfiableSubset(set()))
         cc.shrink([])
 
     def test_core_computer_mus_to_string(self) -> None:
