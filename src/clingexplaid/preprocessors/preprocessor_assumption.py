@@ -4,7 +4,7 @@ Transformer Module: Assumption Transformer for converting facts to choices that 
 
 import warnings
 from dataclasses import dataclass
-from typing import Iterable, Optional, Set, Union
+from typing import Iterable, List, Optional, Set, Union
 
 import clingo
 from clingo.ast import ProgramBuilder, parse_string
@@ -50,6 +50,7 @@ class AssumptionPreprocessor:
         self.filters: Set[Union[FilterPattern, FilterSignature]] = set(filters) if filters is not None else set()
         self._processed = False
         self._fail_on_unprocessed = fail_on_unprocessed
+        self._parsed_rules: List[str] = []
 
     @staticmethod
     def _to_symbol(symbol: clingo.ast.ASTType.SymbolicAtom) -> Optional[Set[clingo.Symbol]]:
@@ -71,7 +72,7 @@ class AssumptionPreprocessor:
             # Case range in ast symbol (i.e. 1..10)
             # TODO : solved using grounding but if possible I'd rather avoid this
             _control = clingo.Control()
-            _control.add(str(ast_symbol))
+            _control.add(str(ast_symbol) + ".")
             _control.ground([("base", [])])
             with _control.solve(yield_=True) as solve_handle:
                 result = solve_handle.get()
@@ -100,27 +101,17 @@ class AssumptionPreprocessor:
             if self.filters and not filters_apply:
                 atoms_retained.add(atom)
                 continue
-            # TODO : do the same AST construction from below here
-            new_choice_literal = clingo.ast.ConditionalLiteral(location=rule.location, literal=atom, condition=[])
-            atoms_choice.add(new_choice_literal)
+            ast_atom = []
+            parse_string(str(atom) + ".", lambda x: ast_atom.append(x))
+            ast_choice_literal = clingo.ast.ConditionalLiteral(
+                location=rule.location, literal=ast_atom[1].head, condition=[]
+            )
+            atoms_choice.add(ast_choice_literal)
         atoms_retained_ast = set()
         for atom in atoms_retained:
-            atoms_retained_ast.add(
-                clingo.ast.Literal(
-                    location=rule.location,
-                    sign=clingo.ast.Sign.NoSign,
-                    atom=clingo.ast.SymbolicAtom(
-                        clingo.ast.Function(
-                            location=rule.location,
-                            name=atom.name,
-                            arguments=atom.arguments,
-                            external=False,
-                        )
-                    ),
-                ),
-            )
-
-        print("ATOMS", atoms_choice, atoms_retained_ast)
+            ast_atom = []
+            parse_string(str(atom) + ".", lambda x: ast_atom.append(x))
+            atoms_retained_ast.add(ast_atom[1])
 
         if len(atoms_choice) > 0:
             choice_rule = clingo.ast.Rule(
@@ -137,7 +128,7 @@ class AssumptionPreprocessor:
         else:
             return atoms_retained_ast
 
-    def process(self, program_string: str) -> None:
+    def process(self, program_string: str) -> str:
         control = clingo.Control("0")
         ast_list = []
         with ProgramBuilder(control) as builder:
@@ -147,16 +138,17 @@ class AssumptionPreprocessor:
                     for new_ast in self._transform_rule(ast):
                         if new_ast.ast_type != clingo.ast.ASTType.Rule:
                             new_rule = clingo.ast.Rule(location=ast.location, head=new_ast, body=[])
-                            print(new_rule)  # TODO : Rule Recording
+                            self._parsed_rules.append(str(new_rule))
                             builder.add(new_rule)
                         else:
-                            print(new_ast)  # TODO : Rule Recording
+                            self._parsed_rules.append(str(new_ast))
                             builder.add(new_ast)
                 elif ast.ast_type == clingo.ast.ASTType.Definition:
                     warnings.warn("TO BE IMPLEMENTED")  # TODO : Implement
                 else:
                     builder.add(ast)
         self._processed = True
+        return "\n".join(self._parsed_rules)
 
     @property
     def assumptions(self) -> Set[clingo.Symbol]:
