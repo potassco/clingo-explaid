@@ -4,7 +4,7 @@ Transformer Module: Assumption Transformer for converting facts to choices that 
 
 import warnings
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, Set, Union
+from typing import Dict, Iterable, List, Optional, Set, Union
 
 import clingo
 from clingo.ast import ProgramBuilder, parse_string
@@ -51,10 +51,18 @@ class AssumptionPreprocessor:
         self._processed = False
         self._fail_on_unprocessed = fail_on_unprocessed
         self._parsed_rules: List[str] = []
+        self._constants: Dict[str, clingo.Symbol] = {}
 
     @staticmethod
     def _to_symbol(symbol: clingo.ast.ASTType.SymbolicAtom) -> Optional[Set[clingo.Symbol]]:
         return {clingo.parse_term(str(symbol))}
+
+    @staticmethod
+    def _to_ast(symbol: Union[str, clingo.Symbol]) -> clingo.ast.AST:
+        parsed_ast = []
+        parse_string(f"{symbol}.", lambda x: parsed_ast.append(x))
+        ast_symbol = parsed_ast[1]  # return AST symbol (parsed_ast[0] = '#program base.')
+        return ast_symbol
 
     def _any_filters_apply(self, symbol: clingo.Symbol):
         applies = False
@@ -72,7 +80,7 @@ class AssumptionPreprocessor:
             # Case range in ast symbol (i.e. 1..10)
             # TODO : solved using grounding but if possible I'd rather avoid this
             _control = clingo.Control()
-            _control.add(str(ast_symbol) + ".")
+            _control.add(f"{ast_symbol}.")
             _control.ground([("base", [])])
             with _control.solve(yield_=True) as solve_handle:
                 result = solve_handle.get()
@@ -92,7 +100,7 @@ class AssumptionPreprocessor:
         if rule.body:
             return rule
 
-        atoms_unpooled = AssumptionPreprocessor._unpool(rule.head)  # rule.head.unpool()
+        atoms_unpooled = AssumptionPreprocessor._unpool(rule.head)
         atoms_choice = set()
         atoms_retained = set()
         for atom in atoms_unpooled:
@@ -101,17 +109,12 @@ class AssumptionPreprocessor:
             if self.filters and not filters_apply:
                 atoms_retained.add(atom)
                 continue
-            ast_atom = []
-            parse_string(str(atom) + ".", lambda x: ast_atom.append(x))
-            ast_choice_literal = clingo.ast.ConditionalLiteral(
-                location=rule.location, literal=ast_atom[1].head, condition=[]
-            )
+            ast = AssumptionPreprocessor._to_ast(atom)
+            ast_choice_literal = clingo.ast.ConditionalLiteral(location=rule.location, literal=ast.head, condition=[])
             atoms_choice.add(ast_choice_literal)
         atoms_retained_ast = set()
         for atom in atoms_retained:
-            ast_atom = []
-            parse_string(str(atom) + ".", lambda x: ast_atom.append(x))
-            atoms_retained_ast.add(ast_atom[1])
+            atoms_retained_ast.add(AssumptionPreprocessor._to_ast(atom))
 
         if len(atoms_choice) > 0:
             choice_rule = clingo.ast.Rule(
@@ -128,6 +131,12 @@ class AssumptionPreprocessor:
         else:
             return atoms_retained_ast
 
+    def register_ast(self, ast: clingo.ast.AST, builder: clingo.ast.ProgramBuilder) -> None:
+        if ast.ast_type == clingo.ast.ASTType.Definition:
+            self._constants[ast.name] = ast.value.symbol
+        self._parsed_rules.append(str(ast))
+        builder.add(ast)
+
     def process(self, program_string: str) -> str:
         control = clingo.Control("0")
         ast_list = []
@@ -138,15 +147,14 @@ class AssumptionPreprocessor:
                     for new_ast in self._transform_rule(ast):
                         if new_ast.ast_type != clingo.ast.ASTType.Rule:
                             new_rule = clingo.ast.Rule(location=ast.location, head=new_ast, body=[])
-                            self._parsed_rules.append(str(new_rule))
-                            builder.add(new_rule)
+                            self.register_ast(new_rule, builder)
                         else:
-                            self._parsed_rules.append(str(new_ast))
-                            builder.add(new_ast)
+                            self.register_ast(new_ast, builder)
                 elif ast.ast_type == clingo.ast.ASTType.Definition:
-                    warnings.warn("TO BE IMPLEMENTED")  # TODO : Implement
+                    # TODO : Here was some special handling before, maybe this needs to be reimplemented
+                    self.register_ast(ast, builder)
                 else:
-                    builder.add(ast)
+                    self.register_ast(ast, builder)
         self._processed = True
         return "\n".join(self._parsed_rules)
 
