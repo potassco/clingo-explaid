@@ -52,19 +52,38 @@ class AssumptionPreprocessor:
         self._fail_on_unprocessed = fail_on_unprocessed
 
     @staticmethod
-    def _to_symbol(symbol: clingo.ast.ASTType.SymbolicAtom) -> clingo.Symbol:
-        return clingo.parse_term(str(symbol))
+    def _to_symbol(symbol: clingo.ast.ASTType.SymbolicAtom) -> Optional[Set[clingo.Symbol]]:
+        return {clingo.parse_term(str(symbol))}
 
-    def _any_filters_apply(self, ast_symbol: clingo.ast.ASTType.SymbolicAtom):
+    def _any_filters_apply(self, symbol: clingo.Symbol):
         applies = False
         for symbol_filter in self.filters:
             match symbol_filter:
                 case FilterPattern(pattern=pattern):
-                    applies |= bool(match(pattern, AssumptionPreprocessor._to_symbol(ast_symbol)))
+                    applies |= bool(match(pattern, symbol))
                 case FilterSignature(name=name, arity=arity):
-                    symbol = AssumptionPreprocessor._to_symbol(ast_symbol)
                     applies |= len(symbol.arguments) == arity and symbol.name == name
         return applies
+
+    @staticmethod
+    def _unpool(ast_symbol: clingo.ast.ASTType.SymbolicAtom) -> Optional[Set[clingo.Symbol]]:
+        if ".." in str(ast_symbol):
+            # Case range in ast symbol (i.e. 1..10)
+            # TODO : solved using grounding but if possible I'd rather avoid this
+            _control = clingo.Control()
+            _control.add(str(ast_symbol))
+            _control.ground([("base", [])])
+            with _control.solve(yield_=True) as solve_handle:
+                result = solve_handle.get()
+                if result.satisfiable:
+                    model = solve_handle.model()
+                    return set(model.symbols(atoms=True))
+                else:
+                    return None
+        else:
+            # Case default
+            atoms_unpooled = ast_symbol.unpool()
+            return {clingo.parse_term(str(a)) for a in atoms_unpooled}
 
     def _transform_rule(self, rule: clingo.ast.ASTType.Rule):
         if rule.head.ast_type != clingo.ast.ASTType.Literal:
@@ -72,7 +91,7 @@ class AssumptionPreprocessor:
         if rule.body:
             return rule
 
-        atoms_unpooled = rule.head.unpool()
+        atoms_unpooled = AssumptionPreprocessor._unpool(rule.head)  # rule.head.unpool()
         atoms_choice = set()
         atoms_retained = set()
         for atom in atoms_unpooled:
@@ -81,8 +100,27 @@ class AssumptionPreprocessor:
             if self.filters and not filters_apply:
                 atoms_retained.add(atom)
                 continue
+            # TODO : do the same AST construction from below here
             new_choice_literal = clingo.ast.ConditionalLiteral(location=rule.location, literal=atom, condition=[])
             atoms_choice.add(new_choice_literal)
+        atoms_retained_ast = set()
+        for atom in atoms_retained:
+            atoms_retained_ast.add(
+                clingo.ast.Literal(
+                    location=rule.location,
+                    sign=clingo.ast.Sign.NoSign,
+                    atom=clingo.ast.SymbolicAtom(
+                        clingo.ast.Function(
+                            location=rule.location,
+                            name=atom.name,
+                            arguments=atom.arguments,
+                            external=False,
+                        )
+                    ),
+                ),
+            )
+
+        print("ATOMS", atoms_choice, atoms_retained_ast)
 
         if len(atoms_choice) > 0:
             choice_rule = clingo.ast.Rule(
@@ -95,9 +133,9 @@ class AssumptionPreprocessor:
                 ),
                 body=[],
             )
-            return [choice_rule, *atoms_retained]
+            return [choice_rule, *atoms_retained_ast]
         else:
-            return atoms_retained
+            return atoms_retained_ast
 
     def process(self, program_string: str) -> None:
         control = clingo.Control("0")
