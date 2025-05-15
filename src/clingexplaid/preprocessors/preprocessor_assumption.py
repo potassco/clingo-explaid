@@ -60,18 +60,18 @@ class AssumptionPreprocessor:
 
     @staticmethod
     def _to_ast(symbol: Union[str, clingo.Symbol]) -> clingo.ast.AST:
-        parsed_ast = []
+        parsed_ast: List[clingo.ast.AST] = []
         parse_string(f"{symbol}.", parsed_ast.append)
         ast_symbol = parsed_ast[1]  # return AST symbol (parsed_ast[0] = '#program base.')
         return ast_symbol
 
-    def _add_assumption(self, symbol: clingo.Symbol, positive: bool):
+    def _add_assumption(self, symbol: clingo.Symbol, positive: bool) -> None:
         self._assumptions.add((symbol, positive))
 
-    def _add_assumption_string(self, string: str, positive: bool):
+    def _add_assumption_string(self, string: str, positive: bool) -> None:
         self._add_assumption(clingo.parse_term(string), positive)
 
-    def _any_filters_apply(self, symbol: clingo.Symbol):
+    def _any_filters_apply(self, symbol: clingo.Symbol) -> bool:
         applies = False
         for symbol_filter in self.filters:
             match symbol_filter:
@@ -82,7 +82,7 @@ class AssumptionPreprocessor:
         return applies
 
     @staticmethod
-    def _unpool(ast_symbol: clingo.ast.ASTType.SymbolicAtom) -> Optional[Set[clingo.Symbol]]:
+    def _unpool(ast_symbol: clingo.ast.ASTType.SymbolicAtom) -> Set[clingo.Symbol]:
         if ".." in str(ast_symbol):
             # Case range in ast symbol (i.e. 1..10)
             # TODO : solved using grounding but if possible I'd rather avoid this
@@ -94,7 +94,7 @@ class AssumptionPreprocessor:
                 if result.satisfiable:
                     model = solve_handle.model()
                     return set(model.symbols(atoms=True))
-                return None
+                raise ValueError("Provided AST symbol does not follow valid ASP syntax")
         # Case default
         atoms_unpooled = ast_symbol.unpool()
         return {clingo.parse_term(str(a)) for a in atoms_unpooled}
@@ -106,8 +106,8 @@ class AssumptionPreprocessor:
             return [rule]
 
         atoms_unpooled = AssumptionPreprocessor._unpool(rule.head)
-        atoms_choice = set()
-        atoms_retained = set()
+        atoms_choice: Set[clingo.ast.AST] = set()
+        atoms_retained: Set[clingo.Symbol] = set()
         for atom in atoms_unpooled:
             filters_apply = self._any_filters_apply(atom)
             # if filters are defined, only transform facts that match them, else transform all facts
@@ -117,14 +117,14 @@ class AssumptionPreprocessor:
             ast = AssumptionPreprocessor._to_ast(atom)
             ast_choice_literal = clingo.ast.ConditionalLiteral(location=rule.location, literal=ast.head, condition=[])
             atoms_choice.add(ast_choice_literal)
-        atoms_retained_ast = set()
+        atoms_retained_ast: Set[clingo.ast.AST] = set()
         for atom in atoms_retained:
             atoms_retained_ast.add(AssumptionPreprocessor._to_ast(atom))
 
         if len(atoms_choice) > 0:
             # Add all choice atoms to the assumption list
-            for atom in atoms_choice:
-                self._add_assumption_string(str(atom), True)
+            for a_choice in atoms_choice:
+                self._add_assumption_string(str(a_choice), True)
 
             choice_rule = clingo.ast.Rule(
                 location=rule.location,
@@ -151,7 +151,7 @@ class AssumptionPreprocessor:
     def process(self, program_string: str) -> str:
         """Processes the provided program string and returns the transformed program string (control is also updated)"""
         control = clingo.Control("0")
-        ast_list = []
+        ast_list: List[clingo.ast.AST] = []
         with ProgramBuilder(control) as builder:
             parse_string(program_string, ast_list.append)
             for ast in ast_list:
