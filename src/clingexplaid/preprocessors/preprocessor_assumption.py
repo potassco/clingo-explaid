@@ -4,7 +4,7 @@ Transformer Module: Assumption Transformer for converting facts to choices that 
 
 import warnings
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Set, Union
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import clingo
 from clingo.ast import ProgramBuilder, parse_string
@@ -52,6 +52,7 @@ class AssumptionPreprocessor:
         self._fail_on_unprocessed = fail_on_unprocessed
         self._parsed_rules: List[str] = []
         self._constants: Dict[str, clingo.Symbol] = {}
+        self._assumptions: Set[Tuple[clingo.Symbol, bool]] = set()
 
     @staticmethod
     def _to_symbol(symbol: clingo.ast.ASTType.SymbolicAtom) -> Optional[Set[clingo.Symbol]]:
@@ -63,6 +64,12 @@ class AssumptionPreprocessor:
         parse_string(f"{symbol}.", lambda x: parsed_ast.append(x))
         ast_symbol = parsed_ast[1]  # return AST symbol (parsed_ast[0] = '#program base.')
         return ast_symbol
+
+    def _add_assumption(self, symbol: clingo.Symbol, positive: bool):
+        self._assumptions.add((symbol, positive))
+
+    def _add_assumption_string(self, string: str, positive: bool):
+        self._add_assumption(clingo.parse_term(string), positive)
 
     def _any_filters_apply(self, symbol: clingo.Symbol):
         applies = False
@@ -94,18 +101,18 @@ class AssumptionPreprocessor:
             atoms_unpooled = ast_symbol.unpool()
             return {clingo.parse_term(str(a)) for a in atoms_unpooled}
 
-    def _transform_rule(self, rule: clingo.ast.ASTType.Rule):
+    def _transform_rule(self, rule: clingo.ast.ASTType.Rule) -> List[clingo.ast.ASTType.Rule]:
         if rule.head.ast_type != clingo.ast.ASTType.Literal:
-            return rule
+            return [rule]
         if rule.body:
-            return rule
+            return [rule]
 
         atoms_unpooled = AssumptionPreprocessor._unpool(rule.head)
         atoms_choice = set()
         atoms_retained = set()
         for atom in atoms_unpooled:
             filters_apply = self._any_filters_apply(atom)
-            # if filters are defined only transform facts that match them, else transform all facts
+            # if filters are defined, only transform facts that match them, else transform all facts
             if self.filters and not filters_apply:
                 atoms_retained.add(atom)
                 continue
@@ -117,6 +124,10 @@ class AssumptionPreprocessor:
             atoms_retained_ast.add(AssumptionPreprocessor._to_ast(atom))
 
         if len(atoms_choice) > 0:
+            # Add all choice atoms to the assumption list
+            for atom in atoms_choice:
+                self._add_assumption_string(str(atom), True)
+
             choice_rule = clingo.ast.Rule(
                 location=rule.location,
                 head=clingo.ast.Aggregate(
@@ -129,12 +140,13 @@ class AssumptionPreprocessor:
             )
             return [choice_rule, *atoms_retained_ast]
         else:
-            return atoms_retained_ast
+            return list(atoms_retained_ast)
 
     def register_ast(self, ast: clingo.ast.AST, builder: clingo.ast.ProgramBuilder) -> None:
         if ast.ast_type == clingo.ast.ASTType.Definition:
             self._constants[ast.name] = ast.value.symbol
         self._parsed_rules.append(str(ast))
+        # TODO: For some reason the builder add doesn't seem to work here since it's not added to the controls base program
         builder.add(ast)
 
     def process(self, program_string: str) -> str:
@@ -159,7 +171,7 @@ class AssumptionPreprocessor:
         return "\n".join(self._parsed_rules)
 
     @property
-    def assumptions(self) -> Set[clingo.Symbol]:
+    def assumptions(self) -> Set[Tuple[clingo.Symbol, bool]]:
         if not self._processed:
             if self._fail_on_unprocessed:
                 raise UnprocessedException(
@@ -170,5 +182,4 @@ class AssumptionPreprocessor:
                     "Unprocessed Error: It is impossible to retrieve assumptions without invoking the "
                     "'process' function first"
                 )
-        warnings.warn("Not Implemented")
-        return set()
+        return set(self._assumptions)
