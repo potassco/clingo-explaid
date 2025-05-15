@@ -142,7 +142,7 @@ class AssumptionPreprocessor:
     def register_ast(self, ast: clingo.ast.AST, builder: clingo.ast.ProgramBuilder) -> None:
         """Registers the provided AST to the builder and the parsed rules list"""
         if ast.ast_type == clingo.ast.ASTType.Definition:
-            self._constants[ast.name] = ast.value.symbol
+            self._add_constant(str(ast.name), ast.value.symbol)
         self._parsed_rules.append(str(ast))
         warnings.warn(
             "Currently the ProgramBuilder does not fill the control. Please add the processed programm manually."
@@ -164,7 +164,6 @@ class AssumptionPreprocessor:
                         else:
                             self.register_ast(new_ast, builder)
                 elif ast.ast_type == clingo.ast.ASTType.Definition:
-                    # TODO : Here was some special handling before, maybe this needs to be reimplemented
                     self.register_ast(ast, builder)
                 else:
                     self.register_ast(ast, builder)
