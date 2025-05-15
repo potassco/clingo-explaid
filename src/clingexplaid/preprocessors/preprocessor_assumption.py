@@ -71,8 +71,12 @@ class AssumptionPreprocessor:
     def _add_assumption_string(self, string: str, positive: bool) -> None:
         self._add_assumption(clingo.parse_term(string), positive)
 
+    def _add_constant(self, name: str, symbol: clingo.Symbol) -> None:
+        self._constants[name] = symbol
+
     def _any_filters_apply(self, symbol: clingo.Symbol) -> bool:
         applies = False
+        # TODO : if filters is none always false
         for symbol_filter in self.filters:
             match symbol_filter:
                 case FilterPattern(pattern=pattern):
@@ -131,7 +135,7 @@ class AssumptionPreprocessor:
                 head=clingo.ast.Aggregate(
                     location=rule.location,
                     left_guard=None,
-                    elements=list(atoms_choice),
+                    elements=list(sorted(atoms_choice, key=lambda x: str(x))),
                     right_guard=None,
                 ),
                 body=[],
@@ -196,6 +200,4 @@ class AssumptionPreprocessor:
                 "Unprocessed Error: It is impossible to retrieve constants without invoking the "
                 "`process function first`"
             )
-        # TODO: Implement!
-        warnings.warn("Unimplemented!")
-        return {}
+        return self._constants
