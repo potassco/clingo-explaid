@@ -85,7 +85,7 @@ class AssumptionPreprocessor:
     def _unpool(ast_symbol: clingo.ast.ASTType.SymbolicAtom) -> Set[clingo.Symbol]:
         if ".." in str(ast_symbol):
             # Case range in ast symbol (i.e. 1..10)
-            # TODO : solved using grounding but if possible I'd rather avoid this
+            # Solved using grounding, but if possible, I'd rather avoid this if possible
             unpool_control = clingo.Control()
             unpool_control.add(f"{ast_symbol}.")
             unpool_control.ground([("base", [])])
@@ -131,7 +131,7 @@ class AssumptionPreprocessor:
                 head=clingo.ast.Aggregate(
                     location=rule.location,
                     left_guard=None,
-                    elements=list(sorted(atoms_choice, key=lambda x: str(x))),
+                    elements=list(sorted(atoms_choice, key=str)),
                     right_guard=None,
                 ),
                 body=[],

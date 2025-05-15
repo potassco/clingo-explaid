@@ -2,6 +2,7 @@
 Tests for the utils package
 """
 
+from typing import List
 from unittest import TestCase
 
 import clingo
@@ -43,11 +44,11 @@ class TestUtils(TestCase):
         self.assertEqual(get_constant_string("name", "123", prefix="#const "), "#const name=123")
         self.assertEqual(get_constant_string("name", "123", prefix="-c "), "-c name=123")
 
-    def test_ast_to_symbol(self):
+    def test_ast_to_symbol(self) -> None:
         """
         Test converting an AST to a symbol.
         """
-        ast_list = []
+        ast_list: List[clingo.ast.AST] = []
         parse_string(
             """
             test(1).
