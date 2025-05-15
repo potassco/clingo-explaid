@@ -55,10 +55,6 @@ class AssumptionPreprocessor:
         self._assumptions: Set[Tuple[clingo.Symbol, bool]] = set()
 
     @staticmethod
-    def _to_symbol(symbol: clingo.ast.ASTType.SymbolicAtom) -> Optional[Set[clingo.Symbol]]:
-        return {clingo.parse_term(str(symbol))}
-
-    @staticmethod
     def _to_ast(symbol: Union[str, clingo.Symbol]) -> clingo.ast.AST:
         parsed_ast: List[clingo.ast.AST] = []
         parse_string(f"{symbol}.", parsed_ast.append)
