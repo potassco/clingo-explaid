@@ -148,8 +148,9 @@ class AssumptionPreprocessor:
         if ast.ast_type == clingo.ast.ASTType.Definition:
             self._constants[ast.name] = ast.value.symbol
         self._parsed_rules.append(str(ast))
-        # TODO: For some reason the builder add doesn't seem to work here since it's not added to the controls base
-        #  program
+        warnings.warn(
+            "Currently the ProgramBuilder does not fill the control. Please add the processed programm manually."
+        )
         builder.add(ast)
 
     def process(self, program_string: str) -> str:
