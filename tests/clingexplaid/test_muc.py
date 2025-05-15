@@ -11,8 +11,7 @@ import clingo
 
 from clingexplaid.mus import CoreComputer
 from clingexplaid.mus.core_computer import UnsatisfiableSubset
-from clingexplaid.transformers import AssumptionTransformer
-from clingexplaid.transformers.transformer_assumption import FilterPattern, FilterSignature
+from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
 
 from .test_main import TEST_DIR
 
@@ -34,20 +33,18 @@ def get_mus_of_program(
 
     ctl = control if control is not None else clingo.Control()
 
-    at = AssumptionTransformer(filters=assumption_filters)
-    transformed_program = at.parse_string(program_string)
+    ap = AssumptionPreprocessor(filters=assumption_filters)
+    transformed_program = ap.process(program_string)
 
     ctl.add("base", [], transformed_program)
     ctl.ground([("base", [])])
 
-    assumptions = at.get_assumption_literals(ctl)
-
-    cc = CoreComputer(ctl, assumptions)
+    cc = CoreComputer(ctl, ap.assumptions)
 
     def shrink_on_model(core: Sequence[int]) -> None:
         _ = cc.shrink(core, timeout=timeout)
 
-    ctl.solve(assumptions=list(assumptions), on_core=shrink_on_model)
+    ctl.solve(assumptions=list(ap.assumptions), on_core=shrink_on_model)
 
     # if the instance was satisfiable and the on_core function wasn't called an empty set is returned, else the mus.
     result = cc.minimal if cc.minimal is not None else UnsatisfiableSubset(set())
@@ -223,11 +220,12 @@ class TestMUS(TestCase):
         ctl = clingo.Control()
 
         program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
-        at = AssumptionTransformer(filters={FilterSignature("a", 1)})
-        parsed = at.parse_files([program_path])
+        ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
+        with open(program_path, "r", encoding="utf-8") as file:
+            parsed = ap.process(file.read())
         ctl.add("base", [], parsed)
         ctl.ground([("base", [])])
-        cc = CoreComputer(ctl, at.get_assumption_literals(ctl))
+        cc = CoreComputer(ctl, ap.assumptions)
 
         mus_generator = cc.get_multiple_minimal()
 
@@ -246,11 +244,12 @@ class TestMUS(TestCase):
         ctl = clingo.Control()
 
         program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
-        at = AssumptionTransformer(filters={FilterSignature("a", 1)})
-        parsed = at.parse_files([program_path])
+        ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
+        with open(program_path, "r", encoding="utf-8") as file:
+            parsed = ap.process(file.read())
         ctl.add("base", [], parsed)
         ctl.ground([("base", [])])
-        cc = CoreComputer(ctl, at.get_assumption_literals(ctl))
+        cc = CoreComputer(ctl, ap.assumptions)
 
         mus_generator = cc.get_multiple_minimal(max_mus=2)
 

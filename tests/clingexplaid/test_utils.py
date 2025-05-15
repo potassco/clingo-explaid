@@ -2,9 +2,14 @@
 Tests for the utils package
 """
 
+from typing import List
 from unittest import TestCase
 
+import clingo
+from clingo.ast import parse_string
+
 from clingexplaid.utils import get_constant_string, get_constants_from_arguments, get_signatures_from_model_string
+from clingexplaid.utils.symbols import ast_symbolic_atom_to_symbol
 
 
 class TestUtils(TestCase):
@@ -38,3 +43,25 @@ class TestUtils(TestCase):
             get_constant_string("123", "value")
         self.assertEqual(get_constant_string("name", "123", prefix="#const "), "#const name=123")
         self.assertEqual(get_constant_string("name", "123", prefix="-c "), "-c name=123")
+
+    def test_ast_to_symbol(self) -> None:
+        """
+        Test converting an AST to a symbol.
+        """
+        ast_list: List[clingo.ast.AST] = []
+        parse_string(
+            """
+            test(1).
+            atom.
+            variables(1,2,3,4,5).
+        """,
+            ast_list.append,
+        )
+        results = [
+            clingo.parse_term("test(1)"),
+            clingo.parse_term("atom"),
+            clingo.parse_term("variables(1,2,3,4,5)"),
+        ]
+
+        for ast, result in zip([a for a in ast_list if a.ast_type == clingo.ast.ASTType.Rule], results):
+            self.assertEqual(ast_symbolic_atom_to_symbol(ast.head), result)

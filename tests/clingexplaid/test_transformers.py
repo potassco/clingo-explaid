@@ -7,15 +7,12 @@ from unittest import TestCase
 import clingo
 
 from clingexplaid.transformers import (
-    AssumptionTransformer,
     ConstraintTransformer,
     FactTransformer,
     OptimizationRemover,
     RuleIDTransformer,
     RuleSplitter,
 )
-from clingexplaid.transformers.exceptions import NotGroundedException, UntransformedException
-from clingexplaid.transformers.transformer_assumption import FilterPattern, FilterSignature
 
 from .test_main import TEST_DIR, read_file
 
@@ -24,72 +21,6 @@ class TestTransformers(TestCase):
     """
     Test cases for transformers.
     """
-
-    # ASSUMPTION TRANSFORMER
-
-    def test_assumption_transformer_parse_file(self) -> None:
-        """
-        Test the AssumptionTransformer's `parse_file` method.
-        """
-        program_path = TEST_DIR.joinpath("res/test_program.lp")
-        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_certain_signatures.lp")
-        filters = [FilterSignature(c, 1) for c in "abcdef"]
-        at = AssumptionTransformer(filters=filters)
-        result = at.parse_files([program_path])
-        self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
-
-    def test_assumption_transformer_parse_file_no_signatures(self) -> None:
-        """
-        Test the AssumptionTransformer's `parse_file` method with no signatures provided.
-        """
-        program_path = TEST_DIR.joinpath("res/test_program.lp")
-        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_all.lp")
-        at = AssumptionTransformer()
-        result = at.parse_files([program_path])
-        self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
-
-    def test_assumption_transformer_parse_pattern_filter(self) -> None:
-        """
-        Test the AssumptionTransformer's `parse_file` method with no signatures provided.
-        """
-        program_path = TEST_DIR.joinpath("res/test_program_pattern.lp")
-        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_pattern.lp")
-        at = AssumptionTransformer(filters={FilterPattern("a(_,value,_)")})
-        result = at.parse_files([program_path])
-        self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
-
-    def test_assumption_transformer_get_assumptions_before_transformation(self) -> None:
-        """
-        Test the AssumptionTransformer's behavior when get_assumptions is called before transformation.
-        """
-        at = AssumptionTransformer()
-        control = clingo.Control()
-        self.assertRaises(UntransformedException, lambda: at.get_assumption_literals(control))
-
-    def test_assumption_transformer_get_assumptions_before_grounding(self) -> None:
-        """
-        Test the AssumptionTransformer's behavior when get_assumptions is called before transformation.
-        """
-        program_path = TEST_DIR.joinpath("res/test_program.lp")
-        at = AssumptionTransformer()
-        control = clingo.Control()
-        at.parse_files([program_path])
-        self.assertRaises(NotGroundedException, lambda: at.get_assumption_literals(control))
-
-    def test_assumption_transformer_visit_definition(self) -> None:
-        """
-        Test the AssumptionTransformer's detection of constant definitions.
-        """
-        program_path = TEST_DIR.joinpath("res/test_program_constants.lp")
-        at = AssumptionTransformer()
-        control = clingo.Control()
-        result = at.parse_files([program_path])
-        control.add("base", [], result)
-        control.ground([("base", [])])
-        self.assertEqual(
-            at.program_constants,
-            {k: clingo.parse_term(v) for k, v in {"number": "42", "message": "helloworld"}.items()},
-        )
 
     # RULE ID TRANSFORMER
 
