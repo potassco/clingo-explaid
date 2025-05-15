@@ -40,6 +40,8 @@ class AssumptionPreprocessor:
     into choice rules and also provides the according assumptions for them.
     """
 
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(
         self,
         filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None,
@@ -48,11 +50,15 @@ class AssumptionPreprocessor:
     ):
         self.control = control if control is not None else clingo.Control()
         self.filters: Set[Union[FilterPattern, FilterSignature]] = set(filters) if filters is not None else set()
+        self._filters_convert_nothing = bool(filters is not None and len(list(filters)) == 0)
         self._processed = False
         self._fail_on_unprocessed = fail_on_unprocessed
         self._parsed_rules: List[str] = []
         self._constants: Dict[str, clingo.Symbol] = {}
         self._assumptions: Set[Tuple[clingo.Symbol, bool]] = set()
+
+        if self._filters_convert_nothing:
+            warnings.warn("When an empty list of filters is provided, no facts will be transformed to assumptions")
 
     @staticmethod
     def _to_ast(symbol: Union[str, clingo.Symbol]) -> clingo.ast.AST:
@@ -71,8 +77,13 @@ class AssumptionPreprocessor:
         self._constants[name] = symbol
 
     def _any_filters_apply(self, symbol: clingo.Symbol) -> bool:
+        if self._filters_convert_nothing:
+            # Convert nothing
+            return False
+        if not self._filters_convert_nothing and len(self.filters) == 0:
+            # Convert everything
+            return True
         applies = False
-        # TODO : if filters is none always false
         for symbol_filter in self.filters:
             match symbol_filter:
                 case FilterPattern(pattern=pattern):
@@ -111,7 +122,7 @@ class AssumptionPreprocessor:
         for atom in atoms_unpooled:
             filters_apply = self._any_filters_apply(atom)
             # if filters are defined, only transform facts that match them, else transform all facts
-            if self.filters and not filters_apply:
+            if not filters_apply:
                 atoms_retained.add(atom)
                 continue
             ast = AssumptionPreprocessor._to_ast(atom)
@@ -136,8 +147,8 @@ class AssumptionPreprocessor:
                 ),
                 body=[],
             )
-            return [choice_rule, *atoms_retained_ast]
-        return list(atoms_retained_ast)
+            return [choice_rule, *sorted(atoms_retained_ast, key=str)]
+        return list(sorted(atoms_retained_ast, key=str))
 
     def register_ast(self, ast: clingo.ast.AST, builder: clingo.ast.ProgramBuilder) -> None:
         """Registers the provided AST to the builder and the parsed rules list"""

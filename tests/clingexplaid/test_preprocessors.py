@@ -19,8 +19,6 @@ class TestPreprocessors(TestCase):
 
     # ASSUMPTION PREPROCESSOR
 
-    # ASSUMPTION TRANSFORMER
-
     def test_assumption_preprocessor_parse_file(self) -> None:
         """
         Test the AssumptionPreprocessor's `parse_file` method.
@@ -40,6 +38,17 @@ class TestPreprocessors(TestCase):
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_all.lp")
         ap = AssumptionPreprocessor()
+        with open(program_path, "r", encoding="utf-8") as file:
+            result = ap.process(file.read())
+        self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
+
+    def test_assumption_preprocessor_parse_nothing(self) -> None:
+        """
+        Test the AssumptionPreprocessor's `process` method with an empty filters list.
+        """
+        program_path = TEST_DIR.joinpath("res/test_program.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_program_nothing_transformed.lp")
+        ap = AssumptionPreprocessor(filters=[])
         with open(program_path, "r", encoding="utf-8") as file:
             result = ap.process(file.read())
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
