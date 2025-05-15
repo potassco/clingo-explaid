@@ -1,3 +1,3 @@
-from .preprocessor_assumption import AssumptionPreprocessor
+from .preprocessor_assumption import AssumptionPreprocessor, FilterPattern, FilterSignature
 
-__all__ = ["AssumptionPreprocessor"]
+__all__ = ["AssumptionPreprocessor", "FilterPattern", "FilterSignature"]
