@@ -33,7 +33,9 @@ class CoreComputer:
         with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
             satisfiable = bool(solve_handle.get().satisfiable)
             model = solve_handle.model().symbols(atoms=True) if solve_handle.model() is not None else []
-            core = {self.literal_lookup[literal_id] for literal_id in solve_handle.core()}
+            core_literals = [lit for lit in solve_handle.core() if lit > 0]
+            core_literals += [-lit for lit in solve_handle.core() if lit < 0]
+            core = {self.literal_lookup[literal_id] for literal_id in core_literals}
 
         return satisfiable, set(model), core
 
