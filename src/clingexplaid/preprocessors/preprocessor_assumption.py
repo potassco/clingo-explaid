@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import clingo
-from clingo.ast import ProgramBuilder, parse_string
+from clingo.ast import ProgramBuilder, parse_string, parse_files
 
 from ..exceptions import UnprocessedException
 from ..utils.match import match
@@ -160,12 +160,14 @@ class AssumptionPreprocessor:
         )
         builder.add(ast)
 
-    def process(self, program_string: str) -> str:
+    def process(self, program_string: str, files: Optional[List[str]] = None) -> str:
         """Processes the provided program string and returns the transformed program string (control is also updated)"""
         control = clingo.Control("0")
         ast_list: List[clingo.ast.AST] = []
         with ProgramBuilder(control) as builder:
             parse_string(program_string, ast_list.append)
+            if files is not None:
+                parse_files(files, ast_list.append)
             for ast in ast_list:
                 if ast.ast_type == clingo.ast.ASTType.Rule:
                     for new_ast in self._transform_rule(ast):
