@@ -2,7 +2,7 @@
 MUS Module: Core Computer to get Minimal Unsatisfiable Subsets
 """
 
-import asyncio
+import time
 import warnings
 from dataclasses import dataclass
 from itertools import chain, combinations
@@ -51,13 +51,17 @@ class CoreComputer:
 
         return satisfiable
 
-    async def _compute_single_minimal(self, assumptions: Optional[AssumptionSet] = None) -> UnsatisfiableSubset:
+    def _compute_single_minimal(
+        self, assumptions: Optional[AssumptionSet] = None, timeout: Optional[float] = None
+    ) -> UnsatisfiableSubset:
         """
         Function to compute a single minimal unsatisfiable subset from the passed set of assumptions and the program of
         the CoreComputer. If there is no minimal unsatisfiable subset, since for example the program with assumptions
         assumed is satisfiable, an empty set is returned. The algorithm that is used to compute this minimal
         unsatisfiable core is the iterative deletion algorithm.
         """
+        time_start = time.perf_counter()
+
         if assumptions is None:
             assumptions = self.assumption_set
 
@@ -75,6 +79,7 @@ class CoreComputer:
             return UnsatisfiableSubset(set())
 
         working_set = set(assumptions)
+        timeout_reached = False
 
         for assumption in assumptions:
             # remove the current assumption from the working set
@@ -92,28 +97,12 @@ class CoreComputer:
                 # Remove the current assumption since it's not part of the mus
                 self._assumptions_removed.add(assumption)
 
-            # Do a very short wait every time to allow for async timeout interruption
-            await asyncio.sleep(0.0000001)
+            # Check after each assumption if timeout is reached
+            if timeout is not None and time_start + timeout < time.perf_counter():
+                timeout_reached = True
+                break
 
-        return UnsatisfiableSubset(self._assumptions_minimal, minimal=True)
-
-    async def _shrink_unsatisfiable_subset(
-        self, assumptions: Optional[AssumptionSet] = None, timeout: Optional[float] = None
-    ) -> UnsatisfiableSubset:
-        timeout_occurred = False
-        try:
-            await asyncio.wait_for(self._compute_single_minimal(assumptions=assumptions), timeout=timeout)
-            unsat_subset = self._assumptions_minimal
-        except TimeoutError:
-            timeout_occurred = True
-            warnings.warn(
-                "Timeout encountered while computing unsatisfiable subset, "
-                "intermediate unsatisfiable subset is returned"
-            )
-            # Remove the already excluded assumptions from the original set and return them
-            provided_assumptions = set(assumptions) if assumptions is not None else set(self.assumption_set)
-            unsat_subset = provided_assumptions.difference(self._assumptions_removed)
-        return UnsatisfiableSubset(unsat_subset, minimal=not timeout_occurred)
+        return UnsatisfiableSubset(self._assumptions_minimal, minimal=not timeout_reached)
 
     def shrink(
         self, assumptions: Optional[AssumptionSet] = None, timeout: Optional[float] = None
@@ -124,16 +113,20 @@ class CoreComputer:
 
         Returns the MUS as a set of assumptions.
         """
-        self.minimal = asyncio.run(self._shrink_unsatisfiable_subset(assumptions=assumptions, timeout=timeout))
+        self.minimal = self._compute_single_minimal(assumptions=assumptions, timeout=timeout)
         return self.minimal
 
-    def get_multiple_minimal(self, max_mus: Optional[int] = None) -> Generator[UnsatisfiableSubset, None, None]:
+    def get_multiple_minimal(
+        self, max_mus: Optional[int] = None, timeout: Optional[float] = None
+    ) -> Generator[UnsatisfiableSubset, None, None]:
         """
         This function generates all minimal unsatisfiable subsets of the provided assumption set. It implements the
         generator pattern since finding all mus of an assumption set is exponential in nature and the search might not
         fully complete in reasonable time. The parameter `max_mus` can be used to specify the maximum number of
         mus that are found before stopping the search.
         """
+        deadline = time.perf_counter() + timeout if timeout is not None else None
+
         assumptions = self.assumption_set
         assumption_powerset = chain.from_iterable(
             combinations(assumptions, r) for r in reversed(range(len(list(assumptions)) + 1))
@@ -143,6 +136,11 @@ class CoreComputer:
         found_mucs: List[AssumptionSet] = []
 
         for current_subset in (set(s) for s in assumption_powerset):
+            time_remaining = deadline - time.perf_counter() if deadline is not None else None
+            # stop if timeout is specified and deadline is reached
+            if time_remaining is not None and time_remaining <= 0:
+                warnings.warn("Timeout was reached")
+                break
             # skip if empty subset
             if len(current_subset) == 0:
                 continue
@@ -153,7 +151,7 @@ class CoreComputer:
             if any(set(muc).issubset(current_subset) for muc in found_mucs):
                 continue
 
-            muc = asyncio.run(self._compute_single_minimal(assumptions=current_subset))
+            muc = self._compute_single_minimal(assumptions=current_subset, timeout=time_remaining)
 
             # if the current subset wasn't unsatisfiable store this info and continue
             if len(list(muc)) == 0:
