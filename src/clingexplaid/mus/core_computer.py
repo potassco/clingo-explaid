@@ -21,8 +21,28 @@ class UnsatisfiableSubset:
     assumptions: Set[Assumption]
     minimal: bool = False
 
+    @staticmethod
+    def _render_assumption(assumption: Assumption) -> str:  # nocoverage
+        if isinstance(assumption, int):
+            return str(int)
+        symbol, positive = assumption
+        out = str(symbol)
+        out += "[+]" if positive else "[-]"
+        return out
+
     def __iter__(self) -> Iterator[Union[tuple[clingo.Symbol, bool], int]]:
         return self.assumptions.__iter__()
+
+    def __str__(self) -> str:  # nocoverage
+        out = "UnsatisfiableSubset("
+        out += "assumptions={"
+        out += ",".join([UnsatisfiableSubset._render_assumption(a) for a in self.assumptions])
+        out += "}, minimal="
+        out += str(self.minimal)
+        out += ")"
+        return out
+
+    __repr__ = __str__
 
 
 class CoreComputer:
