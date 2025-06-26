@@ -11,7 +11,7 @@ from typing import Dict, Generator, Iterable, Iterator, List, Optional, Set, Tup
 import clingo
 
 from ..utils import get_solver_literal_lookup
-from ..utils.types import Assumption, AssumptionSet, SymbolSet
+from ..utils.types import Assumption, AssumptionSet
 
 
 @dataclass
@@ -39,7 +39,7 @@ class CoreComputer:
         self._assumptions_minimal: Set[Assumption] = set()
         self._assumptions_removed: Set[Assumption] = set()
 
-    def _solve(self, assumptions: Optional[AssumptionSet] = None) -> Tuple[bool, SymbolSet, SymbolSet]:
+    def _is_satisfiable(self, assumptions: Optional[AssumptionSet] = None) -> bool:
         """
         Internal function that is used to make the single solver calls for finding the minimal unsatisfiable subset.
         """
@@ -48,10 +48,8 @@ class CoreComputer:
 
         with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
             satisfiable = bool(solve_handle.get().satisfiable)
-            model = solve_handle.model().symbols(atoms=True) if solve_handle.model() is not None else []
-            core = {self.literal_lookup[literal_id] for literal_id in solve_handle.core()}
 
-        return satisfiable, set(model), core
+        return satisfiable
 
     async def _compute_single_minimal(self, assumptions: Optional[AssumptionSet] = None) -> UnsatisfiableSubset:
         """
@@ -72,7 +70,7 @@ class CoreComputer:
 
         # check if the problem with the full assumption set is unsatisfiable in the first place, and if not skip the
         # rest of the algorithm and return an empty set.
-        satisfiable, _, _ = self._solve(assumptions=assumptions)
+        satisfiable = self._is_satisfiable(assumptions=assumptions)
         if satisfiable:
             return UnsatisfiableSubset(set())
 
@@ -82,13 +80,13 @@ class CoreComputer:
             # remove the current assumption from the working set
             working_set.remove(assumption)
 
-            satisfiable, _, _ = self._solve(assumptions=working_set.union(self._assumptions_minimal))
+            satisfiable = self._is_satisfiable(assumptions=working_set.union(self._assumptions_minimal))
             # if the working set now becomes satisfiable without the assumption it is added to the mus_members
             if satisfiable:
                 self._assumptions_minimal.add(assumption)
                 # every time we discover a new mus member we also check if all currently found mus members already
                 # suffice to make the instance unsatisfiable. If so we can stop the search sice we found our mus.
-                if not self._solve(assumptions=self._assumptions_minimal)[0]:
+                if not self._is_satisfiable(assumptions=self._assumptions_minimal):
                     break
             else:
                 # Remove the current assumption since it's not part of the mus
