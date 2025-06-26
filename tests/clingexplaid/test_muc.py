@@ -271,7 +271,7 @@ class TestMUS(TestCase):
 
         control = clingo.Control()
         cc = CoreComputer(control, set())
-        satisfiable, _, _ = cc._solve()  # pylint: disable=W0212
+        satisfiable = cc._is_satisfiable()  # pylint: disable=W0212
         self.assertTrue(satisfiable)
 
     def test_core_computer_internal_compute_single_minimal_satisfiable(self) -> None:
