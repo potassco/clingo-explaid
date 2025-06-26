@@ -2,7 +2,6 @@
 Tests for the mus package
 """
 
-import asyncio
 import random
 from typing import Iterable, List, Optional, Sequence, Set, Tuple, Union
 from unittest import TestCase
@@ -192,7 +191,7 @@ class TestMUS(TestCase):
                     """
         filters = {FilterSignature("a", 1)}
 
-        mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl, timeout=1)
+        mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl, timeout=0)
 
         self.assertEqual(mus.minimal, False)
 
@@ -262,6 +261,27 @@ class TestMUS(TestCase):
 
         self.assertEqual(len(mus_string_sets), 2)
 
+    def test_core_computer_get_multiple_minimal_timeout(self) -> None:
+        """
+        Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
+        """
+
+        ctl = clingo.Control()
+
+        program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
+        ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
+        with open(program_path, "r", encoding="utf-8") as file:
+            parsed = ap.process(file.read())
+        ctl.add("base", [], parsed)
+        ctl.ground([("base", [])])
+        cc = CoreComputer(ctl, ap.assumptions)
+
+        mus_generator = cc.get_multiple_minimal(timeout=0)
+
+        mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
+
+        self.assertEqual(len(mus_string_sets), 0)
+
     # INTERNAL
 
     def test_core_computer_internal_solve_no_assumptions(self) -> None:
@@ -285,7 +305,7 @@ class TestMUS(TestCase):
         control.ground([("base", [])])
         assumptions = {(clingo.parse_term(c), True) for c in "abc"}
         cc = CoreComputer(control, assumptions)
-        mus = asyncio.run(cc._compute_single_minimal())  # pylint: disable=W0212
+        mus = cc._compute_single_minimal()  # pylint: disable=W0212
         self.assertEqual(mus, UnsatisfiableSubset(set()))
 
     def test_core_computer_internal_compute_single_minimal_no_assumptions(self) -> None:
@@ -296,7 +316,7 @@ class TestMUS(TestCase):
         control = clingo.Control()
         cc = CoreComputer(control, set())
         # Disabled exception assertion due to change in error handling
-        mus = asyncio.run(cc._compute_single_minimal(assumptions=None))  # pylint: disable=W0212
+        mus = cc._compute_single_minimal(assumptions=None)  # pylint: disable=W0212
         self.assertEqual(mus, UnsatisfiableSubset(set()))
         cc.shrink([])
 
