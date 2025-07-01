@@ -86,3 +86,19 @@ class TestPreprocessors(TestCase):
             ap.constants,
             {k: clingo.parse_term(v) for k, v in {"number": "42", "message": "helloworld"}.items()},
         )
+
+    def test_assumption_preprocessor_parse_files(self) -> None:
+        """Test the AssumptionPreprocessor's `parse_files` method."""
+
+        program_path = TEST_DIR.joinpath("res/test_includes.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_includes.lp")
+        ap = AssumptionPreprocessor()
+        result = ap.process_files([str(program_path)])
+        self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
+
+    def test_assumption_preprocessor_parse_files_none(self) -> None:
+        """Test the AssumptionPreprocessor's `parse_files` method on files=None"""
+
+        ap = AssumptionPreprocessor()
+        result = ap.process_files()
+        self.assertEqual(result.strip(), "")
