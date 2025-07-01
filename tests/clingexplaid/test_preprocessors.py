@@ -97,6 +97,8 @@ class TestPreprocessors(TestCase):
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
     def test_assumption_preprocessor_parse_files_none(self) -> None:
+        """Test the AssumptionPreprocessor's `parse_files` method on files=None"""
+
         ap = AssumptionPreprocessor()
         result = ap.process_files()
         self.assertEqual(result.strip(), "")
