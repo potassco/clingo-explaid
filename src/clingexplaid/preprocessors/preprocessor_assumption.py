@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import clingo
-from clingo.ast import ProgramBuilder, parse_string
+from clingo.ast import ProgramBuilder, parse_files, parse_string
 
 from ..exceptions import UnprocessedException
 from ..utils.match import match
@@ -160,24 +160,40 @@ class AssumptionPreprocessor:
         )
         builder.add(ast)
 
+    def _process_ast_list(self, ast_list: List[clingo.ast.AST], builder: ProgramBuilder) -> None:
+        for ast in ast_list:
+            if ast.ast_type == clingo.ast.ASTType.Rule:
+                for new_ast in self._transform_rule(ast):
+                    if new_ast.ast_type != clingo.ast.ASTType.Rule:  # nocoverage
+                        new_rule = clingo.ast.Rule(location=ast.location, head=new_ast, body=[])
+                        self.register_ast(new_rule, builder)
+                    else:
+                        self.register_ast(new_ast, builder)
+            elif ast.ast_type == clingo.ast.ASTType.Definition:
+                self.register_ast(ast, builder)
+            else:
+                self.register_ast(ast, builder)
+
     def process(self, program_string: str) -> str:
         """Processes the provided program string and returns the transformed program string (control is also updated)"""
         control = clingo.Control("0")
         ast_list: List[clingo.ast.AST] = []
         with ProgramBuilder(control) as builder:
             parse_string(program_string, ast_list.append)
-            for ast in ast_list:
-                if ast.ast_type == clingo.ast.ASTType.Rule:
-                    for new_ast in self._transform_rule(ast):
-                        if new_ast.ast_type != clingo.ast.ASTType.Rule:  # nocoverage
-                            new_rule = clingo.ast.Rule(location=ast.location, head=new_ast, body=[])
-                            self.register_ast(new_rule, builder)
-                        else:
-                            self.register_ast(new_ast, builder)
-                elif ast.ast_type == clingo.ast.ASTType.Definition:
-                    self.register_ast(ast, builder)
-                else:
-                    self.register_ast(ast, builder)
+            self._process_ast_list(ast_list, builder)
+        self._processed = True
+        return "\n".join(self._parsed_rules)
+
+    def process_files(self, files: Optional[List[str]] = None) -> str:
+        """Processes the provided files and returns the transformed program string (control is also updated)"""
+        if files is None:
+            warnings.warn("Nothing to process, no files provided")
+            return ""
+        control = clingo.Control("0")
+        ast_list: List[clingo.ast.AST] = []
+        with ProgramBuilder(control) as builder:
+            parse_files(files, ast_list.append)
+            self._process_ast_list(ast_list, builder)
         self._processed = True
         return "\n".join(self._parsed_rules)
 
