@@ -21,8 +21,28 @@ class UnsatisfiableSubset:
     assumptions: Set[Assumption]
     minimal: bool = False
 
+    @staticmethod
+    def _render_assumption(assumption: Assumption) -> str:  # nocoverage
+        if isinstance(assumption, int):
+            return str(int)
+        symbol, positive = assumption
+        out = str(symbol)
+        out += "[+]" if positive else "[-]"
+        return out
+
     def __iter__(self) -> Iterator[Union[tuple[clingo.Symbol, bool], int]]:
         return self.assumptions.__iter__()
+
+    def __str__(self) -> str:  # nocoverage
+        out = "UnsatisfiableSubset("
+        out += "assumptions={"
+        out += ",".join([UnsatisfiableSubset._render_assumption(a) for a in self.assumptions])
+        out += "}, minimal="
+        out += str(self.minimal)
+        out += ")"
+        return out
+
+    __repr__ = __str__
 
 
 class CoreComputer:
@@ -133,7 +153,7 @@ class CoreComputer:
         )
 
         found_sat: List[AssumptionSet] = []
-        found_mucs: List[AssumptionSet] = []
+        found_mus: List[AssumptionSet] = []
 
         for current_subset in (set(s) for s in assumption_powerset):
             time_remaining = deadline - time.perf_counter() if deadline is not None else None
@@ -147,28 +167,28 @@ class CoreComputer:
             # skip if an already found satisfiable subset is superset
             if any(set(sat).issuperset(current_subset) for sat in found_sat):
                 continue
-            # skip if an already found muc is a subset
-            if any(set(muc).issubset(current_subset) for muc in found_mucs):
+            # skip if an already found mus is a subset
+            if any(set(mus).issubset(current_subset) for mus in found_mus):
                 continue
 
-            muc = self._compute_single_minimal(assumptions=current_subset, timeout=time_remaining)
+            mus = self._compute_single_minimal(assumptions=current_subset, timeout=time_remaining)
 
             # if the current subset wasn't unsatisfiable store this info and continue
-            if len(list(muc)) == 0:
+            if len(list(mus)) == 0:
                 found_sat.append(current_subset)
                 continue
 
-            # if iterative deletion finds a muc that wasn't discovered before update sets and yield
-            if muc not in found_mucs:
-                found_mucs.append(muc)
-                yield muc
-                # if the maximum muc amount is found stop search
-                if max_mus is not None and len(found_mucs) == max_mus:
+            # if iterative deletion finds a mus that wasn't discovered before update sets and yield
+            if mus not in found_mus:
+                found_mus.append(mus)
+                yield mus
+                # if the maximum mus amount is found stop search
+                if max_mus is not None and len(found_mus) == max_mus:
                     break
 
     def mus_to_string(
         self,
-        muc: Iterable[Union[Tuple[clingo.Symbol, bool], int]],
+        mus: Iterable[Union[Tuple[clingo.Symbol, bool], int]],
         literal_lookup: Optional[Dict[int, clingo.Symbol]] = None,
     ) -> Set[str]:
         """
@@ -179,7 +199,7 @@ class CoreComputer:
             literal_lookup = self.literal_lookup
 
         mus_string = set()
-        for a in muc:
+        for a in mus:
             if isinstance(a, int):
                 mus_string.add(str(literal_lookup[a]))
             else:
