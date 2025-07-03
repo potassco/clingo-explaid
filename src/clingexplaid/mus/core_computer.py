@@ -5,13 +5,13 @@ MUS Module: Core Computer to get Minimal Unsatisfiable Subsets
 import time
 import warnings
 from dataclasses import dataclass
-from itertools import chain, combinations
-from typing import Dict, Generator, Iterable, Iterator, List, Optional, Set, Tuple, Union
+from typing import Dict, Generator, Iterable, Iterator, Optional, Set, Tuple, Union
 
 import clingo
 
 from ..utils import get_solver_literal_lookup
 from ..utils.types import Assumption, AssumptionSet
+from .oracles import Oracle, OracleAspExplorer, OraclePowerset, OracleType
 
 
 @dataclass
@@ -51,13 +51,23 @@ class CoreComputer:
     core.
     """
 
-    def __init__(self, control: clingo.Control, assumption_set: AssumptionSet):
+    def __init__(
+        self, control: clingo.Control, assumption_set: AssumptionSet, oracle: OracleType = OracleType.ORACLE_POWERSET
+    ):
         self.control = control
         self.assumption_set = assumption_set
         self.literal_lookup = get_solver_literal_lookup(control=self.control)
         self.minimal: Optional[UnsatisfiableSubset] = None
         self._assumptions_minimal: Set[Assumption] = set()
         self._assumptions_removed: Set[Assumption] = set()
+        oracle_class: Oracle
+        match oracle:
+            case OracleType.ORACLE_ASP_EXPLORER:
+                oracle_class = OracleAspExplorer(assumptions=assumption_set)
+            case _:
+                # Default case use powerset oracle
+                oracle_class = OraclePowerset(assumptions=assumption_set)
+        self.oracle = oracle_class
 
     def _is_satisfiable(self, assumptions: Optional[AssumptionSet] = None) -> bool:
         """
@@ -147,43 +157,29 @@ class CoreComputer:
         """
         deadline = time.perf_counter() + timeout if timeout is not None else None
 
-        assumptions = self.assumption_set
-        assumption_powerset = chain.from_iterable(
-            combinations(assumptions, r) for r in reversed(range(len(list(assumptions)) + 1))
-        )
+        self.oracle.reset()
 
-        found_sat: List[AssumptionSet] = []
-        found_mus: List[AssumptionSet] = []
-
-        for current_subset in (set(s) for s in assumption_powerset):
+        for current_subset in self.oracle.candidates():
             time_remaining = deadline - time.perf_counter() if deadline is not None else None
             # stop if timeout is specified and deadline is reached
             if time_remaining is not None and time_remaining <= 0:
                 warnings.warn("Timeout was reached")
                 break
-            # skip if empty subset
-            if len(current_subset) == 0:
-                continue
-            # skip if an already found satisfiable subset is superset
-            if any(set(sat).issuperset(current_subset) for sat in found_sat):
-                continue
-            # skip if an already found mus is a subset
-            if any(set(mus).issubset(current_subset) for mus in found_mus):
-                continue
 
             mus = self._compute_single_minimal(assumptions=current_subset, timeout=time_remaining)
+            mus_assumptions = mus.assumptions
 
             # if the current subset wasn't unsatisfiable store this info and continue
-            if len(list(mus)) == 0:
-                found_sat.append(current_subset)
+            if len(list(mus_assumptions)) == 0:
+                self.oracle.add_sat(current_subset)
                 continue
 
             # if iterative deletion finds a mus that wasn't discovered before update sets and yield
-            if mus not in found_mus:
-                found_mus.append(mus)
+            if mus_assumptions not in self.oracle.found_mus:
+                self.oracle.add_mus(mus_assumptions)
                 yield mus
                 # if the maximum mus amount is found stop search
-                if max_mus is not None and len(found_mus) == max_mus:
+                if max_mus is not None and len(self.oracle.found_mus) == max_mus:
                     break
 
     def mus_to_string(
