@@ -21,7 +21,7 @@ class RuleIDTransformer(_ast.Transformer):
     """
 
     def __init__(self, rule_id_signature: str = RULE_ID_SIGNATURE):
-        self.rule_id = 0
+        self.rule_id = 1
         self.rule_id_signature = rule_id_signature
 
     def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
@@ -51,7 +51,6 @@ class RuleIDTransformer(_ast.Transformer):
         Function that applies the transformation to the `program_string` it's called with and returns the transformed
         program string.
         """
-        self.rule_id = 1
         out = []
         _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
         out.append(
