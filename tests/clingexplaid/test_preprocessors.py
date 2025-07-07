@@ -102,3 +102,12 @@ class TestPreprocessors(TestCase):
         ap = AssumptionPreprocessor()
         result = ap.process_files()
         self.assertEqual(result.strip(), "")
+
+    def test_assumption_preprocessor_with_constant(self) -> None:
+        """Test the AssumptionPreprocessor's `parse_files` method on with a constant definition in the program"""
+
+        program_path = TEST_DIR.joinpath("res/test_constant.lp")
+        program_path_transformed = TEST_DIR.joinpath("res/transformed_constant.lp")
+        ap = AssumptionPreprocessor()
+        result = ap.process_files([str(program_path)])
+        self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
