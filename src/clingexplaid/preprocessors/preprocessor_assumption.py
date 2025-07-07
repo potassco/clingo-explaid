@@ -92,12 +92,18 @@ class AssumptionPreprocessor:
                     applies |= len(symbol.arguments) == arity and symbol.name == name
         return applies
 
-    @staticmethod
-    def _unpool(ast_symbol: clingo.ast.ASTType.SymbolicAtom) -> Set[clingo.Symbol]:
+    def _get_constants_program(self) -> str:
+        rules = []
+        for constant, value in self._constants.items():
+            rules.append(f"#const {constant}={value}.")
+        return "\n".join(rules) + "\n"
+
+    def _unpool(self, ast_symbol: clingo.ast.ASTType.SymbolicAtom) -> Set[clingo.Symbol]:
         if ".." in str(ast_symbol):
             # Case range in ast symbol (i.e. 1..10)
             # Solved using grounding, but if possible, I'd rather avoid this if possible
             unpool_control = clingo.Control()
+            unpool_control.add(self._get_constants_program())
             unpool_control.add(f"{ast_symbol}.")
             unpool_control.ground([("base", [])])
             with unpool_control.solve(yield_=True) as solve_handle:
@@ -116,7 +122,7 @@ class AssumptionPreprocessor:
         if rule.body:
             return [rule]
 
-        atoms_unpooled = AssumptionPreprocessor._unpool(rule.head)
+        atoms_unpooled = self._unpool(rule.head)
         atoms_choice: Set[clingo.ast.AST] = set()
         atoms_retained: Set[clingo.Symbol] = set()
         for atom in atoms_unpooled:
