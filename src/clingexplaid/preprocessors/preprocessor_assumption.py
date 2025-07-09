@@ -182,9 +182,8 @@ class AssumptionPreprocessor:
 
     def process(self, program_string: str) -> str:
         """Processes the provided program string and returns the transformed program string (control is also updated)"""
-        control = clingo.Control("0")
         ast_list: List[clingo.ast.AST] = []
-        with ProgramBuilder(control) as builder:
+        with ProgramBuilder(self.control) as builder:
             parse_string(program_string, ast_list.append)
             self._process_ast_list(ast_list, builder)
         self._processed = True
@@ -195,9 +194,8 @@ class AssumptionPreprocessor:
         if files is None:
             warnings.warn("Nothing to process, no files provided")
             return ""
-        control = clingo.Control("0")
         ast_list: List[clingo.ast.AST] = []
-        with ProgramBuilder(control) as builder:
+        with ProgramBuilder(self.control) as builder:
             parse_files(files, ast_list.append)
             self._process_ast_list(ast_list, builder)
         self._processed = True

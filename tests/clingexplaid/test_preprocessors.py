@@ -79,8 +79,7 @@ class TestPreprocessors(TestCase):
         program_path = TEST_DIR.joinpath("res/test_program_constants.lp")
         ap = AssumptionPreprocessor()
         with open(program_path, "r", encoding="utf-8") as file:
-            result = ap.process(file.read())
-        ap.control.add("base", [], result)
+            ap.process(file.read())
         ap.control.ground([("base", [])])
         self.assertEqual(
             ap.constants,
