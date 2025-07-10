@@ -54,7 +54,8 @@ print(result)
 print(ap.control)
 ```
 
-You can also use an existing control and pass it to the `AssumptionPreprocessor` as follows:
+You can also use an existing control and pass it to the
+`AssumptionPreprocessor` as follows:
 
 ```python
 
