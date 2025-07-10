@@ -54,6 +54,27 @@ print(result)
 print(ap.control)
 ```
 
+You can also use an existing control and pass it to the
+`AssumptionPreprocessor` as follows:
+
+```python
+
+FILE = "local/encoding.lp"
+
+ctl = clingo.Control("0")
+ap = AssumptionPreprocessor(
+    control=ctl,
+    filters=[
+    FilterSignature("a", 1),
+    FilterPattern("d(2)")
+])
+ap.process_files([FILE])
+
+# The transformed files are added to ctl so it can be directly used
+ctl.ground([("base", [])])
+ctl.solve()
+```
+
 Getting a single MUS:
 
 ```python
