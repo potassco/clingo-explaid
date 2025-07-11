@@ -18,7 +18,7 @@ license = {file = "LICENSE"}
 dynamic = [ "version" ]
 readme = "README.md"
 dependencies = [
-	"clingo>=5.7.1",
+	"clingo>=5.8",
     "autoflake",
 ]
 classifiers = [
