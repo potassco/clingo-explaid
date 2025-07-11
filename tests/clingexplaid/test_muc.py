@@ -10,9 +10,12 @@ import clingo
 
 from clingexplaid.mus import CoreComputer
 from clingexplaid.mus.core_computer import UnsatisfiableSubset
+from clingexplaid.mus.explorers import ExplorerType
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
 
 from .test_main import TEST_DIR
+
+EXPLORER_TYPES = (ExplorerType.EXPLORER_POWERSET, ExplorerType.EXPLORER_ASP)
 
 
 def get_mus_of_program(
@@ -20,6 +23,7 @@ def get_mus_of_program(
     assumption_filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None,
     control: Optional[clingo.Control] = None,
     timeout: Optional[float] = None,
+    explorer: ExplorerType = ExplorerType.EXPLORER_POWERSET,
 ) -> Tuple[UnsatisfiableSubset, CoreComputer]:
     """
     Helper function to directly get the MUS of a given program string.
@@ -38,7 +42,7 @@ def get_mus_of_program(
     ctl.add("base", [], transformed_program)
     ctl.ground([("base", [])])
 
-    cc = CoreComputer(ctl, ap.assumptions)
+    cc = CoreComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
 
     def shrink_on_model(core: Sequence[int]) -> None:
         _ = cc.shrink(core, timeout=timeout)
@@ -111,49 +115,55 @@ class TestMUS(TestCase):
         Test the CoreComputer's `shrink` function with multiple atomic MUS's.
         """
 
-        ctl = clingo.Control()
+        for explorer in EXPLORER_TYPES:
+            ctl = clingo.Control()
 
-        program = """
-            a(1..10).
-            :- a(3).
-            :- a(5).
-            :- a(9).
-            """
-        filters = {FilterSignature("a", 1)}
+            program = """
+                a(1..10).
+                :- a(3).
+                :- a(5).
+                :- a(9).
+                """
+            filters = {FilterSignature("a", 1)}
 
-        mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
+            mus, cc = get_mus_of_program(
+                program_string=program, assumption_filters=filters, control=ctl, explorer=explorer
+            )
 
-        if cc.minimal is None:
-            self.fail()
-        self._assert_mus(cc.mus_to_string(mus), [{"a(3)"}, {"a(5)"}, {"a(9)"}])
+            if cc.minimal is None:
+                self.fail()
+            self._assert_mus(cc.mus_to_string(mus), [{"a(3)"}, {"a(5)"}, {"a(9)"}])
 
     def test_core_computer_shrink_multiple_mus(self) -> None:
         """
         Test the CoreComputer's `shrink` function with multiple MUS's.
         """
 
-        ctl = clingo.Control()
+        for explorer in EXPLORER_TYPES:
+            ctl = clingo.Control()
 
-        program = """
-            a(1..10).
-            :- a(3), a(9), a(5).
-            :- a(5), a(1), a(2).
-            :- a(9), a(2), a(7).
-            """
-        filters = {FilterSignature("a", 1)}
+            program = """
+                a(1..10).
+                :- a(3), a(9), a(5).
+                :- a(5), a(1), a(2).
+                :- a(9), a(2), a(7).
+                """
+            filters = {FilterSignature("a", 1)}
 
-        mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
+            mus, cc = get_mus_of_program(
+                program_string=program, assumption_filters=filters, control=ctl, explorer=explorer
+            )
 
-        if cc.minimal is None:
-            self.fail()
-        self._assert_mus(
-            cc.mus_to_string(mus),
-            [
-                {"a(3)", "a(9)", "a(5)"},
-                {"a(5)", "a(1)", "a(2)"},
-                {"a(9)", "a(2)", "a(7)"},
-            ],
-        )
+            if cc.minimal is None:
+                self.fail()
+            self._assert_mus(
+                cc.mus_to_string(mus),
+                [
+                    {"a(3)", "a(9)", "a(5)"},
+                    {"a(5)", "a(1)", "a(2)"},
+                    {"a(9)", "a(2)", "a(7)"},
+                ],
+            )
 
     def test_core_computer_shrink_large_instance_random(self) -> None:
         """
@@ -216,71 +226,72 @@ class TestMUS(TestCase):
         Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
         """
 
-        ctl = clingo.Control()
+        for explorer in EXPLORER_TYPES:
+            ctl = clingo.Control()
 
-        program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
-        ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
-        with open(program_path, "r", encoding="utf-8") as file:
-            parsed = ap.process(file.read())
-        ctl.add("base", [], parsed)
-        ctl.ground([("base", [])])
-        cc = CoreComputer(ctl, ap.assumptions)
+            program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
+            ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
+            with open(program_path, "r", encoding="utf-8") as file:
+                parsed = ap.process(file.read())
+            ctl.add("base", [], parsed)
+            ctl.ground([("base", [])])
+            cc = CoreComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
 
-        mus_generator = cc.get_multiple_minimal()
+            mus_generator = cc.get_multiple_minimal()
 
-        mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
-        for mus_string_set in mus_string_sets:
-            self.assertIn(
-                mus_string_set,
-                [{"a(1)", "a(2)"}, {"a(1)", "a(9)"}, {"a(3)", "a(5)", "a(8)"}],
-            )
+            mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
+            for mus_string_set in mus_string_sets:
+                self.assertIn(
+                    mus_string_set,
+                    [{"a(1)", "a(2)"}, {"a(1)", "a(9)"}, {"a(3)", "a(5)", "a(8)"}],
+                )
 
     def test_core_computer_get_multiple_minimal_max_mus_2(self) -> None:
         """
         Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
         """
+        for explorer in EXPLORER_TYPES:
+            ctl = clingo.Control()
 
-        ctl = clingo.Control()
+            program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
+            ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
+            with open(program_path, "r", encoding="utf-8") as file:
+                parsed = ap.process(file.read())
+            ctl.add("base", [], parsed)
+            ctl.ground([("base", [])])
+            cc = CoreComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
 
-        program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
-        ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
-        with open(program_path, "r", encoding="utf-8") as file:
-            parsed = ap.process(file.read())
-        ctl.add("base", [], parsed)
-        ctl.ground([("base", [])])
-        cc = CoreComputer(ctl, ap.assumptions)
+            mus_generator = cc.get_multiple_minimal(max_mus=2)
 
-        mus_generator = cc.get_multiple_minimal(max_mus=2)
+            mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
+            for mus_string_set in mus_string_sets:
+                self.assertIn(
+                    mus_string_set,
+                    [{"a(1)", "a(2)"}, {"a(1)", "a(9)"}, {"a(3)", "a(5)", "a(8)"}],
+                )
 
-        mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
-        for mus_string_set in mus_string_sets:
-            self.assertIn(
-                mus_string_set,
-                [{"a(1)", "a(2)"}, {"a(1)", "a(9)"}, {"a(3)", "a(5)", "a(8)"}],
-            )
-
-        self.assertEqual(len(mus_string_sets), 2)
+            self.assertEqual(len(mus_string_sets), 2)
 
     def test_core_computer_get_multiple_minimal_timeout(self) -> None:
         """
         Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
         """
+        for explorer in EXPLORER_TYPES:
+            ctl = clingo.Control()
 
-        ctl = clingo.Control()
+            program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
+            ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
+            with open(program_path, "r", encoding="utf-8") as file:
+                parsed = ap.process(file.read())
+            ctl.add("base", [], parsed)
+            ctl.ground([("base", [])])
+            cc = CoreComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
 
-        program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
-        ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
-        with open(program_path, "r", encoding="utf-8") as file:
-            parsed = ap.process(file.read())
-        ctl.add("base", [], parsed)
-        ctl.ground([("base", [])])
-        cc = CoreComputer(ctl, ap.assumptions)
+            mus_generator = cc.get_multiple_minimal(timeout=0)
 
-        mus_generator = cc.get_multiple_minimal(timeout=0)
+            mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
 
-        mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
-
-        self.assertEqual(len(mus_string_sets), 0)
+            self.assertEqual(len(mus_string_sets), 0)
 
     # INTERNAL
 
