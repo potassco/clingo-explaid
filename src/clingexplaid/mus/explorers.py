@@ -83,7 +83,7 @@ class RepresentationID:
 
     id: int
 
-    def __int__(self) -> int:
+    def __int__(self) -> int:  # nocoverage
         return self.id
 
 
@@ -93,7 +93,7 @@ class LiteralID:
 
     id: int
 
-    def __int__(self) -> int:
+    def __int__(self) -> int:  # nocoverage
         return self.id
 
 

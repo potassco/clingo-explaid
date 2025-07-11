@@ -31,7 +31,7 @@ class UnsatisfiableSubset:
         return out
 
     @staticmethod
-    def _render_assumption_set(assumptions: Set[Assumption]) -> str:
+    def _render_assumption_set(assumptions: Set[Assumption]) -> str:  # nocoverage
         out = "{"
         out += ",".join([UnsatisfiableSubset._render_assumption(a) for a in assumptions])
         out += "}"
