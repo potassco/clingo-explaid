@@ -1,6 +1,7 @@
 """Collection of oracles for getting MUS candidates"""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
 from itertools import chain, combinations
 from typing import Dict, Generator, Iterable, List, Optional, Set
@@ -76,6 +77,22 @@ class ExplorerPowerset(Explorer):
             yield current_subset
 
 
+@dataclass(frozen=True)
+class RepresentationID:
+    id: int
+
+    def __int__(self):
+        return self.id
+
+
+@dataclass(frozen=True)
+class LiteralID:
+    id: int
+
+    def __int__(self):
+        return self.id
+
+
 class ExplorerAsp(Explorer):
     """Oracle using an ASP explore encoding for getting MUS candidates"""
 
@@ -85,52 +102,59 @@ class ExplorerAsp(Explorer):
         self._control.configuration.solve.models = 0
 
         self._assumption_counter = 0
-        self._assumption_to_rid: Dict[Assumption, int] = {}
-        self._rid_to_assumption: Dict[int, Assumption] = {}
+        self._assumption_to_rid: Dict[Assumption, RepresentationID] = {}
+        self._rid_to_assumption: Dict[RepresentationID, Assumption] = {}
 
-        self._rid_to_lid: Dict[int, int] = {}
-        self._lid_to_rid: Dict[int, int] = {}
+        self._rid_to_lid: Dict[RepresentationID, LiteralID] = {}
+        self._lid_to_rid: Dict[LiteralID, RepresentationID] = {}
 
         # Add assumptions to control
         for assumption in self._assumptions:
             self._add_assumption(assumption)
 
-    def _register_assumption_representation(self, assumption: Assumption) -> int:
+    def _register_assumption_representation(self, assumption: Assumption) -> RepresentationID:
         self._assumption_counter += 1
-        assumption_id = self._assumption_counter
-        self._rid_to_assumption[assumption_id] = assumption
-        self._assumption_to_rid[assumption] = assumption_id
-        return assumption_id
+        representation_id = RepresentationID(self._assumption_counter)
+        self._rid_to_assumption[representation_id] = assumption
+        self._assumption_to_rid[assumption] = representation_id
+        return representation_id
+
+    def _compose_assumption_atom(self, assumption: Assumption) -> clingo.Symbol:
+        representation_id = self._assumption_to_rid[assumption]
+        return clingo.Function(ASSUMPTION_SYMBOL_NAME, [clingo.Number(representation_id.id)])
+
+    def _register_assumption_atom(self, assumption: Assumption, clingo_backend: clingo.Backend) -> LiteralID:
+        assumption_symbol = self._compose_assumption_atom(assumption)
+        literal_id = LiteralID(clingo_backend.add_atom(assumption_symbol))
+        return literal_id
 
     def _add_assumption(self, assumption: Assumption) -> None:
         """Adds an assumption to the class control"""
         representation_id = self._register_assumption_representation(assumption)
         with self._control.backend() as backend:
-            # Register atom in control
-            assumption_symbol = self._compose_assumption_atom(assumption)
-            literal_id = backend.add_atom(assumption_symbol)
+            literal_id = self._register_assumption_atom(assumption, backend)
             # Store in lookup
             self._rid_to_lid[representation_id] = literal_id
             self._lid_to_rid[literal_id] = representation_id
             # Add choice and heuristic
-            backend.add_heuristic(literal_id, clingo.backend.HeuristicType.True_, 1, 1, [])
-            backend.add_rule([literal_id], choice=True)
-
-    def _compose_assumption_atom(self, assumption: Assumption) -> clingo.Symbol:
-        assumption_id = self._assumption_to_rid[assumption]
-        return clingo.Function(ASSUMPTION_SYMBOL_NAME, [clingo.Number(assumption_id)])
+            backend.add_heuristic(int(literal_id), clingo.backend.HeuristicType.True_, 1, 1, [])
+            backend.add_rule([int(literal_id)], choice=True)
 
     def add_sat(self, assumptions: Iterable[Assumption]) -> None:
         super().add_sat(assumptions)
+        # take difference of subset with all assumptions
+        rule_assumptions = [a for a in self.assumptions if a not in assumptions]
+        rule_literal_ids = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in rule_assumptions]
+        # invert difference assumptions
+        rule_body = [-lid for lid in rule_literal_ids]
         with self._control.backend() as backend:
-            backend.add_rule(
-                [], [-self._rid_to_lid[self._assumption_to_rid[a]] for a in self.assumptions if a not in assumptions]
-            )
+            backend.add_rule([], rule_body)
 
     def add_mus(self, assumptions: Iterable[Assumption]) -> None:
         super().add_mus(assumptions)
+        rule_body = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumptions]
         with self._control.backend() as backend:
-            backend.add_rule([], [self._rid_to_lid[self._assumption_to_rid[a]] for a in assumptions])
+            backend.add_rule([], rule_body)
 
     def get_model(self) -> Optional[Set[clingo.Symbol]]:
         with self._control.solve(yield_=True) as solve_handle:
@@ -142,7 +166,7 @@ class ExplorerAsp(Explorer):
             model = self.get_model()
             if model is None:
                 break
-            rids = [int(str(atom.arguments[0])) for atom in model]
+            rids = [RepresentationID(int(str(atom.arguments[0]))) for atom in model]
             yield {self._rid_to_assumption[rid] for rid in rids}
 
 
