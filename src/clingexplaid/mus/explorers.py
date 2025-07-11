@@ -162,7 +162,7 @@ class ExplorerAsp(Explorer):
                 return {symbol for symbol in solve_handle.model().symbols(atoms=True)}
 
     def candidates(self) -> Generator[Set[Assumption], None, None]:
-        for i in range(10):
+        while True:
             model = self.get_model()
             if model is None:
                 break
