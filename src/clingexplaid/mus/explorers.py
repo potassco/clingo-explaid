@@ -3,9 +3,13 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from itertools import chain, combinations
-from typing import Generator, Iterable, List, Set
+from typing import Dict, Generator, Iterable, List, Optional, Set
+
+import clingo
 
 from clingexplaid.utils.types import Assumption
+
+ASSUMPTION_SYMBOL_NAME = "a"
 
 
 class Explorer(ABC):
@@ -75,8 +79,71 @@ class ExplorerPowerset(Explorer):
 class ExplorerAsp(Explorer):
     """Oracle using an ASP explore encoding for getting MUS candidates"""
 
+    def __init__(self, assumptions: Iterable[Assumption]) -> None:
+        super().__init__(assumptions=assumptions)
+        self._control = clingo.Control(["--heuristic=Domain"])
+        self._control.configuration.solve.models = 0
+
+        self._assumption_counter = 0
+        self._assumption_to_rid: Dict[Assumption, int] = {}
+        self._rid_to_assumption: Dict[int, Assumption] = {}
+
+        self._rid_to_lid: Dict[int, int] = {}
+        self._lid_to_rid: Dict[int, int] = {}
+
+        # Add assumptions to control
+        for assumption in self._assumptions:
+            self._add_assumption(assumption)
+
+    def _register_assumption_representation(self, assumption: Assumption) -> int:
+        self._assumption_counter += 1
+        assumption_id = self._assumption_counter
+        self._rid_to_assumption[assumption_id] = assumption
+        self._assumption_to_rid[assumption] = assumption_id
+        return assumption_id
+
+    def _add_assumption(self, assumption: Assumption) -> None:
+        """Adds an assumption to the class control"""
+        representation_id = self._register_assumption_representation(assumption)
+        with self._control.backend() as backend:
+            # Register atom in control
+            assumption_symbol = self._compose_assumption_atom(assumption)
+            literal_id = backend.add_atom(assumption_symbol)
+            # Store in lookup
+            self._rid_to_lid[representation_id] = literal_id
+            self._lid_to_rid[literal_id] = representation_id
+            # Add choice and heuristic
+            backend.add_heuristic(literal_id, clingo.backend.HeuristicType.True_, 1, 1, [])
+            backend.add_rule([literal_id], choice=True)
+
+    def _compose_assumption_atom(self, assumption: Assumption) -> clingo.Symbol:
+        assumption_id = self._assumption_to_rid[assumption]
+        return clingo.Function(ASSUMPTION_SYMBOL_NAME, [clingo.Number(assumption_id)])
+
+    def add_sat(self, assumptions: Iterable[Assumption]) -> None:
+        super().add_sat(assumptions)
+        with self._control.backend() as backend:
+            backend.add_rule(
+                [], [-self._rid_to_lid[self._assumption_to_rid[a]] for a in self.assumptions if a not in assumptions]
+            )
+
+    def add_mus(self, assumptions: Iterable[Assumption]) -> None:
+        super().add_mus(assumptions)
+        with self._control.backend() as backend:
+            backend.add_rule([], [self._rid_to_lid[self._assumption_to_rid[a]] for a in assumptions])
+
+    def get_model(self) -> Optional[Set[clingo.Symbol]]:
+        with self._control.solve(yield_=True) as solve_handle:
+            if solve_handle.get().satisfiable:
+                return {symbol for symbol in solve_handle.model().symbols(atoms=True)}
+
     def candidates(self) -> Generator[Set[Assumption], None, None]:
-        raise NotImplementedError("The ASP Explorer Oracle is not yet implemented")  # nocoverage
+        for i in range(10):
+            model = self.get_model()
+            if model is None:
+                break
+            rids = [int(str(atom.arguments[0])) for atom in model]
+            yield {self._rid_to_assumption[rid] for rid in rids}
 
 
 class ExplorerType(Enum):
