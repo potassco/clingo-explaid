@@ -30,14 +30,21 @@ class UnsatisfiableSubset:
         out += "[+]" if positive else "[-]"
         return out
 
+    @staticmethod
+    def _render_assumption_set(assumptions: Set[Assumption]) -> str:
+        out = "{"
+        out += ",".join([UnsatisfiableSubset._render_assumption(a) for a in assumptions])
+        out += "}"
+        return out
+
     def __iter__(self) -> Iterator[Union[tuple[clingo.Symbol, bool], int]]:
         return self.assumptions.__iter__()
 
     def __str__(self) -> str:  # nocoverage
         out = "UnsatisfiableSubset("
-        out += "assumptions={"
-        out += ",".join([UnsatisfiableSubset._render_assumption(a) for a in self.assumptions])
-        out += "}, minimal="
+        out += "assumptions="
+        out += UnsatisfiableSubset._render_assumption_set(self.assumptions)
+        out += ", minimal="
         out += str(self.minimal)
         out += ")"
         return out
@@ -183,6 +190,7 @@ class CoreComputer:
                 yield mus
                 # if the maximum mus amount is found stop search
                 if max_mus is not None and len(self.explorer.found_mus) == max_mus:
+                    print("Maximum number of MUS reached")
                     break
 
     def mus_to_string(
