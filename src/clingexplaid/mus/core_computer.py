@@ -11,7 +11,7 @@ import clingo
 
 from ..utils import get_solver_literal_lookup
 from ..utils.types import Assumption, AssumptionSet
-from .oracles import Oracle, OracleAspExplorer, OraclePowerset, OracleType
+from .explorers import Explorer, ExplorerAsp, ExplorerPowerset, ExplorerType
 
 
 @dataclass
@@ -52,7 +52,10 @@ class CoreComputer:
     """
 
     def __init__(
-        self, control: clingo.Control, assumption_set: AssumptionSet, oracle: OracleType = OracleType.ORACLE_POWERSET
+        self,
+        control: clingo.Control,
+        assumption_set: AssumptionSet,
+        explorer: ExplorerType = ExplorerType.EXPLORER_POWERSET,
     ):
         self.control = control
         self.assumption_set = assumption_set
@@ -60,14 +63,14 @@ class CoreComputer:
         self.minimal: Optional[UnsatisfiableSubset] = None
         self._assumptions_minimal: Set[Assumption] = set()
         self._assumptions_removed: Set[Assumption] = set()
-        oracle_class: Oracle
-        match oracle:
-            case OracleType.ORACLE_ASP_EXPLORER:
-                oracle_class = OracleAspExplorer(assumptions=assumption_set)
+        explorer_class: Explorer
+        match explorer:
+            case ExplorerType.EXPLORER_ASP:
+                explorer_class = ExplorerAsp(assumptions=assumption_set)
             case _:
-                # Default case use powerset oracle
-                oracle_class = OraclePowerset(assumptions=assumption_set)
-        self.oracle = oracle_class
+                # Default case use powerset explorer
+                explorer_class = ExplorerPowerset(assumptions=assumption_set)
+        self.explorer = explorer_class
 
     def _is_satisfiable(self, assumptions: Optional[AssumptionSet] = None) -> bool:
         """
@@ -157,9 +160,9 @@ class CoreComputer:
         """
         deadline = time.perf_counter() + timeout if timeout is not None else None
 
-        self.oracle.reset()
+        self.explorer.reset()
 
-        for current_subset in self.oracle.candidates():
+        for current_subset in self.explorer.candidates():
             time_remaining = deadline - time.perf_counter() if deadline is not None else None
             # stop if timeout is specified and deadline is reached
             if time_remaining is not None and time_remaining <= 0:
@@ -171,15 +174,15 @@ class CoreComputer:
 
             # if the current subset wasn't unsatisfiable store this info and continue
             if len(list(mus_assumptions)) == 0:
-                self.oracle.add_sat(current_subset)
+                self.explorer.add_sat(current_subset)
                 continue
 
             # if iterative deletion finds a mus that wasn't discovered before update sets and yield
-            if mus_assumptions not in self.oracle.found_mus:
-                self.oracle.add_mus(mus_assumptions)
+            if mus_assumptions not in self.explorer.found_mus:
+                self.explorer.add_mus(mus_assumptions)
                 yield mus
                 # if the maximum mus amount is found stop search
-                if max_mus is not None and len(self.oracle.found_mus) == max_mus:
+                if max_mus is not None and len(self.explorer.found_mus) == max_mus:
                     break
 
     def mus_to_string(

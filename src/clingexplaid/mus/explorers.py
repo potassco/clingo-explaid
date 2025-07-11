@@ -8,7 +8,7 @@ from typing import Generator, Iterable, List, Set
 from clingexplaid.utils.types import Assumption
 
 
-class Oracle(ABC):
+class Explorer(ABC):
     """Abstract base class for all oracles"""
 
     def __init__(self, assumptions: Iterable[Assumption]) -> None:
@@ -49,7 +49,7 @@ class Oracle(ABC):
         """Generator that produces the assumption set candidates"""
 
 
-class OraclePowerset(Oracle):
+class ExplorerPowerset(Explorer):
     """Oracle using the brute-force powerset approach"""
 
     def __init__(self, assumptions: Iterable[Assumption]) -> None:
@@ -72,15 +72,15 @@ class OraclePowerset(Oracle):
             yield current_subset
 
 
-class OracleAspExplorer(Oracle):
+class ExplorerAsp(Explorer):
     """Oracle using an ASP explore encoding for getting MUS candidates"""
 
     def candidates(self) -> Generator[Set[Assumption], None, None]:
         raise NotImplementedError("The ASP Explorer Oracle is not yet implemented")  # nocoverage
 
 
-class OracleType(Enum):
-    """Types of oracles"""
+class ExplorerType(Enum):
+    """Types of explorers"""
 
-    ORACLE_POWERSET = 1
-    ORACLE_ASP_EXPLORER = 2
+    EXPLORER_POWERSET = 1
+    EXPLORER_ASP = 2
