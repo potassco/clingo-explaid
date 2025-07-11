@@ -79,17 +79,21 @@ class ExplorerPowerset(Explorer):
 
 @dataclass(frozen=True)
 class RepresentationID:
+    """ID for internal assumption representations of ExplorerASP"""
+
     id: int
 
-    def __int__(self):
+    def __int__(self) -> int:
         return self.id
 
 
 @dataclass(frozen=True)
 class LiteralID:
+    """ID for internal literal representations of ExplorerASP"""
+
     id: int
 
-    def __int__(self):
+    def __int__(self) -> int:
         return self.id
 
 
@@ -99,7 +103,7 @@ class ExplorerAsp(Explorer):
     def __init__(self, assumptions: Iterable[Assumption]) -> None:
         super().__init__(assumptions=assumptions)
         self._control = clingo.Control(["--heuristic=Domain"])
-        self._control.configuration.solve.models = 0
+        self._control.configuration.solve.models = 0  # type: ignore
 
         self._assumption_counter = 0
         self._assumption_to_rid: Dict[Assumption, RepresentationID] = {}
@@ -156,14 +160,15 @@ class ExplorerAsp(Explorer):
         with self._control.backend() as backend:
             backend.add_rule([], rule_body)
 
-    def get_model(self) -> Optional[Set[clingo.Symbol]]:
+    def _get_model(self) -> Optional[Set[clingo.Symbol]]:
         with self._control.solve(yield_=True) as solve_handle:
             if solve_handle.get().satisfiable:
-                return {symbol for symbol in solve_handle.model().symbols(atoms=True)}
+                return set(solve_handle.model().symbols(atoms=True))
+        return None
 
     def candidates(self) -> Generator[Set[Assumption], None, None]:
         while True:
-            model = self.get_model()
+            model = self._get_model()
             if model is None:
                 break
             rids = [RepresentationID(int(str(atom.arguments[0]))) for atom in model]
