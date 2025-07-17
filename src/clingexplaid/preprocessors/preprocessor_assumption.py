@@ -98,7 +98,7 @@ class AssumptionPreprocessor:
             rules.append(f"#const {constant}={value}.")
         return "\n".join(rules) + "\n"
 
-    def _unpool(self, ast_symbol: clingo.ast.ASTType.SymbolicAtom) -> Set[clingo.Symbol]:
+    def _unpool(self, ast_symbol: clingo.ast.AST) -> Set[clingo.Symbol]:
         if ".." in str(ast_symbol):
             # Case range in ast symbol (i.e. 1..10)
             # Solved using grounding, but if possible, I'd rather avoid this if possible
@@ -116,7 +116,7 @@ class AssumptionPreprocessor:
         atoms_unpooled = ast_symbol.unpool()
         return {clingo.parse_term(str(a)) for a in atoms_unpooled}
 
-    def _transform_rule(self, rule: clingo.ast.ASTType.Rule) -> List[clingo.ast.ASTType.Rule]:
+    def _transform_rule(self, rule: clingo.ast.AST) -> List[clingo.ast.AST]:
         if rule.head.ast_type != clingo.ast.ASTType.Literal:
             return [rule]
         if rule.body:
