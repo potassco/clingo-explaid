@@ -36,14 +36,9 @@ class Explorer(ABC):
         return self._assumptions
 
     @property
-    def found_sat(self) -> List[Set[Assumption]]:  # nocoverage
-        """Set of all found satisfiable assumption sets"""
-        return self._found_sat
-
-    @property
-    def found_mus(self) -> List[Set[Assumption]]:  # nocoverage
-        """Set of all found mus"""
-        return self._found_mus
+    def mus_count(self) -> int:  # nocoverage
+        """Number of MUS that have been found with the explorer"""
+        return len(self._found_mus)
 
     def add_sat(self, assumptions: Iterable[Assumption]) -> None:
         """Adds a satisfiable assumption set"""
@@ -82,10 +77,10 @@ class ExplorerPowerset(Explorer):
             if len(current_subset) == 0:
                 continue
             # skip if an already found satisfiable subset is superset
-            if any(set(sat).issuperset(current_subset) for sat in self.found_sat):
+            if any(set(sat).issuperset(current_subset) for sat in self._found_sat):
                 continue
             # skip if an already found mus is a subset
-            if any(set(mus).issubset(current_subset) for mus in self.found_mus):
+            if any(set(mus).issubset(current_subset) for mus in self._found_mus):
                 continue
             yield current_subset
 

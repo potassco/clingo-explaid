@@ -11,7 +11,7 @@ import clingo
 
 from ..utils import get_solver_literal_lookup
 from ..utils.types import Assumption, AssumptionSet
-from .explorers import Explorer, ExplorerAsp, ExplorerPowerset, ExplorerType
+from .explorers import ExplorationStatus, Explorer, ExplorerAsp, ExplorerPowerset, ExplorerType
 
 
 @dataclass
@@ -185,11 +185,11 @@ class CoreComputer:
                 continue
 
             # if iterative deletion finds a mus that wasn't discovered before update sets and yield
-            if mus_assumptions not in self.explorer.found_mus:
+            if self.explorer.explored(mus_assumptions) == ExplorationStatus.UNKNOWN:
                 self.explorer.add_mus(mus_assumptions)
                 yield mus
                 # if the maximum mus amount is found stop search
-                if max_mus is not None and len(self.explorer.found_mus) == max_mus:
+                if max_mus is not None and self.explorer.mus_count == max_mus:
                     print("Maximum number of MUS reached")
                     break
 
