@@ -1,5 +1,6 @@
 """Collection of oracles for getting MUS candidates"""
 
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -11,6 +12,14 @@ import clingo
 from clingexplaid.utils.types import Assumption
 
 ASSUMPTION_SYMBOL_NAME = "a"
+
+
+class ExplorationStatus(Enum):
+    """Status of an assumption subset in an ongoing exploration process"""
+
+    SATISFIABLE = 1
+    UNSATISFIABLE = 2
+    UNKNOWN = 3
 
 
 class Explorer(ABC):
@@ -50,6 +59,10 @@ class Explorer(ABC):
         self._found_mus.clear()
 
     @abstractmethod
+    def explored(self, assumption_set: Set[Assumption]) -> ExplorationStatus:
+        """Returns the exploration status of a set of assumptions"""
+
+    @abstractmethod
     def candidates(self) -> Generator[Set[Assumption], None, None]:
         """Generator that produces the assumption set candidates"""
 
@@ -75,6 +88,13 @@ class ExplorerPowerset(Explorer):
             if any(set(mus).issubset(current_subset) for mus in self.found_mus):
                 continue
             yield current_subset
+
+    def explored(self, assumption_set: Set[Assumption]) -> ExplorationStatus:
+        if any(assumption_set.issubset(s) for s in self._found_sat):
+            return ExplorationStatus.SATISFIABLE
+        if any(assumption_set.issuperset(s) for s in self._found_mus):
+            return ExplorationStatus.SATISFIABLE
+        return ExplorationStatus.UNKNOWN
 
 
 @dataclass(frozen=True)
@@ -173,6 +193,14 @@ class ExplorerAsp(Explorer):
                 break
             rids = [RepresentationID(int(str(atom.arguments[0]))) for atom in model]
             yield {self._rid_to_assumption[rid] for rid in rids}
+
+    def explored(self, assumption_set: Set[Assumption]) -> ExplorationStatus:
+        warnings.warn("This is a stub for now! Implement the ASP way of computing explored!")  # TODO: Implement
+        if any(assumption_set.issubset(s) for s in self._found_sat):
+            return ExplorationStatus.SATISFIABLE
+        if any(assumption_set.issuperset(s) for s in self._found_mus):
+            return ExplorationStatus.SATISFIABLE
+        return ExplorationStatus.UNKNOWN
 
 
 class ExplorerType(Enum):
