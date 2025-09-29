@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Dict, Generator, Iterable, Iterator, Optional, Set, Tuple, Type, Union
 
 import clingo
+from clingo import Symbol
 
 from ..utils import get_solver_literal_lookup
 from ..utils.types import Assumption, AssumptionSet
@@ -15,30 +16,46 @@ from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
 
 
 @dataclass
+class AssumptionWrapper:
+    """Container class for assumptions"""
+
+    literal: int
+    symbol: Symbol
+    sign: bool
+
+    def __hash__(self) -> int:
+        return self.literal
+
+      
+@dataclass
 class UnsatisfiableSubset:
     """Container class for unsatisfiable subsets"""
 
-    assumptions: Set[Assumption]
+    assumptions: Set[AssumptionWrapper]
     minimal: bool = False
 
     @staticmethod
-    def _render_assumption(assumption: Assumption) -> str:  # nocoverage
-        if isinstance(assumption, int):
-            return str(int)
-        symbol, positive = assumption
-        out = str(symbol)
-        out += "[+]" if positive else "[-]"
-        return out
+    def _render_assumption(assumption: AssumptionWrapper) -> str:  # nocoverage
+        assumption_sign = "+" if assumption.sign else "-"
+        return f"{assumption.symbol}[{assumption.literal},{assumption_sign}]"
 
     @staticmethod
-    def _render_assumption_set(assumptions: Set[Assumption]) -> str:  # nocoverage
+    def _render_assumption_set(assumptions: Set[AssumptionWrapper]) -> str:  # nocoverage
         out = "{"
         out += ",".join([UnsatisfiableSubset._render_assumption(a) for a in assumptions])
         out += "}"
         return out
 
+    def iter_symbols(self) -> Iterator[tuple[clingo.Symbol, bool]]:
+        """Iterate over all assumption symbols in the unsatisfiable subset"""
+        return ((a.symbol, a.sign) for a in self.assumptions)
+
+    def iter_literals(self) -> Iterator[tuple[int, bool]]:  # nocoverage
+        """Iterate over all assumption literals in the unsatisfiable subset"""
+        return ((a.literal, a.sign) for a in self.assumptions)
+
     def __iter__(self) -> Iterator[Union[tuple[clingo.Symbol, bool], int]]:
-        return self.assumptions.__iter__()
+        return self.iter_symbols()
 
     def __str__(self) -> str:  # nocoverage
         out = "UnsatisfiableSubset("
@@ -65,13 +82,35 @@ class CoreComputer:
         explorer: Type[Explorer] = ExplorerPowerset,
     ):
         self.control = control
-        self.assumption_set = assumption_set
-        self.literal_lookup = get_solver_literal_lookup(control=self.control)
+        self.literal_lookup: Dict[int, Symbol] = {}
+        self.symbol_lookup: Dict[Symbol, int] = {}
         self.minimal: Optional[UnsatisfiableSubset] = None
         self._assumptions_minimal: Set[Assumption] = set()
         self.explorer = explorer(assumptions=assumption_set)
 
-    def _is_satisfiable(self, assumptions: Optional[AssumptionSet] = None) -> bool:
+        self._build_lookups()
+
+        self.assumption_set: Set[int] = self._convert_assumptions(assumption_set)
+
+    def _build_lookups(self) -> None:
+        """Build up the literal and symbol lookup dictionaries from a grounded clingo Control object"""
+        self.literal_lookup = {}
+        self.symbol_lookup = {}
+        for atom in self.control.symbolic_atoms:
+            self.literal_lookup[abs(atom.literal)] = atom.symbol
+            self.symbol_lookup[atom.symbol] = abs(atom.literal)
+
+    def _build_unsatisfiable_subset(self, assumptions: Set[int], minimal: bool) -> UnsatisfiableSubset:
+        """Build up an unsatisfiable subset from the given set of assumptions"""
+        wrapper_set = set()
+        for a_literal in assumptions:
+            assumption_symbol = self.literal_lookup[abs(a_literal)]
+            a_sign = a_literal >= 0
+            a_wrapper = AssumptionWrapper(literal=a_literal, symbol=assumption_symbol, sign=a_sign)
+            wrapper_set.add(a_wrapper)
+        return UnsatisfiableSubset(assumptions=wrapper_set, minimal=minimal)
+
+    def _is_satisfiable(self, assumptions: Optional[Iterable[int]] = None) -> bool:
         """
         Internal function that is used to make the single solver calls for finding the minimal unsatisfiable subset.
         """
@@ -82,6 +121,19 @@ class CoreComputer:
             satisfiable = bool(solve_handle.get().satisfiable)
 
         return satisfiable
+
+    def _convert_assumptions(self, assumptions: AssumptionSet) -> Set[int]:
+        """Convert assumptions to literal representation, e.g.: (Symbol, bool) -> (int, bool)"""
+        converted = set()
+        for assumption in assumptions:
+            if isinstance(assumption, int):
+                converted.add(assumption)
+            elif isinstance(assumption[0], Symbol):
+                (assumption_symbol, assumption_sign) = assumption
+                a_literal = self.symbol_lookup[assumption_symbol]
+                a_sign_factor = 1 if assumption_sign else -1
+                converted.add(a_literal * a_sign_factor)
+        return converted
 
     def _compute_single_minimal(
         self, assumptions: Optional[AssumptionSet] = None, timeout: Optional[float] = None
@@ -105,14 +157,16 @@ class CoreComputer:
         if not assumptions:
             warnings.warn("A minimal unsatisfiable subset cannot be computed on an empty assumption set")
 
+        a_literals = self._convert_assumptions(assumptions=assumptions)
+
         # Return empty US if the assumptions are satisfiable
         satisfiable = self._is_satisfiable(assumptions=assumptions)
         if satisfiable:
             return UnsatisfiableSubset(set())
 
         # Iterate over the assumptions to find MUS members
-        working_set = set(assumptions)
-        for assumption in assumptions:
+        working_set: Set[int] = set(a_literals)
+        for assumption in a_literals:
             # Remove the current assumption from the working set
             working_set.remove(assumption)
 
@@ -128,7 +182,7 @@ class CoreComputer:
                 timeout_reached = True
                 break
 
-        return UnsatisfiableSubset(self._assumptions_minimal, minimal=not timeout_reached)
+        return self._build_unsatisfiable_subset(self._assumptions_minimal, minimal=not timeout_reached)
 
     def shrink(
         self, assumptions: Optional[AssumptionSet] = None, timeout: Optional[float] = None
@@ -195,7 +249,7 @@ class CoreComputer:
         mus_string = set()
         for a in mus:
             if isinstance(a, int):
-                mus_string.add(str(literal_lookup[a]))
+                mus_string.add(str(literal_lookup[a]))  # nocoverage
             else:
                 mus_string.add(str(a[0]))
         return mus_string
