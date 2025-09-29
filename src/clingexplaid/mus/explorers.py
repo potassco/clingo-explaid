@@ -9,7 +9,7 @@ from typing import Dict, Generator, Iterable, List, Optional, Set
 
 import clingo
 
-from clingexplaid.utils.types import Assumption
+from .utils import AssumptionWrapper
 
 ASSUMPTION_SYMBOL_NAME = "a"
 
@@ -25,13 +25,13 @@ class ExplorationStatus(Enum):
 class Explorer(ABC):
     """Abstract base class for all oracles"""
 
-    def __init__(self, assumptions: Iterable[Assumption]) -> None:
+    def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         self._assumptions = set(assumptions)
-        self._found_sat: List[Set[Assumption]] = []
-        self._found_mus: List[Set[Assumption]] = []
+        self._found_sat: List[Set[AssumptionWrapper]] = []
+        self._found_mus: List[Set[AssumptionWrapper]] = []
 
     @property
-    def assumptions(self) -> Set[Assumption]:  # nocoverage
+    def assumptions(self) -> Set[AssumptionWrapper]:  # nocoverage
         """All assumptions that the oracle can choose from"""
         return self._assumptions
 
@@ -40,11 +40,11 @@ class Explorer(ABC):
         """Number of MUS that have been found with the explorer"""
         return len(self._found_mus)
 
-    def add_sat(self, assumptions: Iterable[Assumption]) -> None:
+    def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         """Adds a satisfiable assumption set"""
         self._found_sat.append(set(assumptions))
 
-    def add_mus(self, assumptions: Iterable[Assumption]) -> None:
+    def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         """Adds a mus"""
         self._found_mus.append(set(assumptions))
 
@@ -54,24 +54,24 @@ class Explorer(ABC):
         self._found_mus.clear()
 
     @abstractmethod
-    def explored(self, assumption_set: Set[Assumption]) -> ExplorationStatus:
+    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
         """Returns the exploration status of a set of assumptions"""
 
     @abstractmethod
-    def candidates(self) -> Generator[Set[Assumption], None, None]:
+    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
         """Generator that produces the assumption set candidates"""
 
 
 class ExplorerPowerset(Explorer):
     """Oracle using the brute-force powerset approach"""
 
-    def __init__(self, assumptions: Iterable[Assumption]) -> None:
+    def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().__init__(assumptions=assumptions)
         self._powerset = chain.from_iterable(
             combinations(assumptions, r) for r in reversed(range(len(list(assumptions)) + 1))
         )
 
-    def candidates(self) -> Generator[Set[Assumption], None, None]:
+    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
         for current_subset in (set(s) for s in self._powerset):
             # skip if empty subset
             if len(current_subset) == 0:
@@ -84,7 +84,7 @@ class ExplorerPowerset(Explorer):
                 continue
             yield current_subset
 
-    def explored(self, assumption_set: Set[Assumption]) -> ExplorationStatus:
+    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
         if any(assumption_set.issubset(s) for s in self._found_sat):
             return ExplorationStatus.SATISFIABLE
         if any(assumption_set.issuperset(s) for s in self._found_mus):
@@ -115,14 +115,14 @@ class LiteralID:
 class ExplorerAsp(Explorer):
     """Oracle using an ASP explore encoding for getting MUS candidates"""
 
-    def __init__(self, assumptions: Iterable[Assumption]) -> None:
+    def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().__init__(assumptions=assumptions)
         self._control = clingo.Control(["--heuristic=Domain"])
         self._control.configuration.solve.models = 0  # type: ignore
 
         self._assumption_counter = 0
-        self._assumption_to_rid: Dict[Assumption, RepresentationID] = {}
-        self._rid_to_assumption: Dict[RepresentationID, Assumption] = {}
+        self._assumption_to_rid: Dict[AssumptionWrapper, RepresentationID] = {}
+        self._rid_to_assumption: Dict[RepresentationID, AssumptionWrapper] = {}
 
         self._rid_to_lid: Dict[RepresentationID, LiteralID] = {}
         self._lid_to_rid: Dict[LiteralID, RepresentationID] = {}
@@ -131,23 +131,23 @@ class ExplorerAsp(Explorer):
         for assumption in self._assumptions:
             self._add_assumption(assumption)
 
-    def _register_assumption_representation(self, assumption: Assumption) -> RepresentationID:
+    def _register_assumption_representation(self, assumption: AssumptionWrapper) -> RepresentationID:
         self._assumption_counter += 1
         representation_id = RepresentationID(self._assumption_counter)
         self._rid_to_assumption[representation_id] = assumption
         self._assumption_to_rid[assumption] = representation_id
         return representation_id
 
-    def _compose_assumption_atom(self, assumption: Assumption) -> clingo.Symbol:
+    def _compose_assumption_atom(self, assumption: AssumptionWrapper) -> clingo.Symbol:
         representation_id = self._assumption_to_rid[assumption]
         return clingo.Function(ASSUMPTION_SYMBOL_NAME, [clingo.Number(representation_id.id)])
 
-    def _register_assumption_atom(self, assumption: Assumption, clingo_backend: clingo.Backend) -> LiteralID:
+    def _register_assumption_atom(self, assumption: AssumptionWrapper, clingo_backend: clingo.Backend) -> LiteralID:
         assumption_symbol = self._compose_assumption_atom(assumption)
         literal_id = LiteralID(clingo_backend.add_atom(assumption_symbol))
         return literal_id
 
-    def _add_assumption(self, assumption: Assumption) -> None:
+    def _add_assumption(self, assumption: AssumptionWrapper) -> None:
         """Adds an assumption to the class control"""
         representation_id = self._register_assumption_representation(assumption)
         with self._control.backend() as backend:
@@ -159,7 +159,7 @@ class ExplorerAsp(Explorer):
             backend.add_heuristic(int(literal_id), clingo.backend.HeuristicType.True_, 1, 1, [])
             backend.add_rule([int(literal_id)], choice=True)
 
-    def add_sat(self, assumptions: Iterable[Assumption]) -> None:
+    def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().add_sat(assumptions)
         # take difference of subset with all assumptions
         rule_assumptions = [a for a in self.assumptions if a not in assumptions]
@@ -169,7 +169,7 @@ class ExplorerAsp(Explorer):
         with self._control.backend() as backend:
             backend.add_rule([], rule_body)
 
-    def add_mus(self, assumptions: Iterable[Assumption]) -> None:
+    def add_mus(self, assumptions: Iterable[int]) -> None:
         super().add_mus(assumptions)
         rule_body = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumptions]
         with self._control.backend() as backend:
@@ -181,7 +181,7 @@ class ExplorerAsp(Explorer):
                 return set(solve_handle.model().symbols(atoms=True))
         return None
 
-    def candidates(self) -> Generator[Set[Assumption], None, None]:
+    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
         while True:
             model = self._get_model()
             if model is None:
@@ -189,7 +189,7 @@ class ExplorerAsp(Explorer):
             rids = [RepresentationID(int(str(atom.arguments[0]))) for atom in model]
             yield {self._rid_to_assumption[rid] for rid in rids}
 
-    def explored(self, assumption_set: Set[Assumption]) -> ExplorationStatus:
+    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
         warnings.warn("This is a stub for now! Implement the ASP way of computing explored!")  # TODO: Implement
         if any(assumption_set.issubset(s) for s in self._found_sat):
             return ExplorationStatus.SATISFIABLE

@@ -12,18 +12,7 @@ from clingo import Symbol
 
 from ..utils.types import Assumption, AssumptionSet
 from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
-
-
-@dataclass
-class AssumptionWrapper:
-    """Container class for assumptions"""
-
-    literal: int
-    symbol: Symbol
-    sign: bool
-
-    def __hash__(self) -> int:
-        return self.literal
+from .utils import AssumptionWrapper, unwrap
 
 
 @dataclass
@@ -85,11 +74,18 @@ class CoreComputer:
         self.symbol_lookup: Dict[Symbol, int] = {}
         self.minimal: Optional[UnsatisfiableSubset] = None
         self._assumptions_minimal: Set[Assumption] = set()
-        self.explorer = explorer(assumptions=assumption_set)
 
         self._build_lookups()
 
         self.assumption_set: Set[int] = self._convert_assumptions(assumption_set)
+        self.assumption_wrapper_set: Set[AssumptionWrapper] = self._wrap_assumption_literals(self.assumption_set)
+        self.explorer = explorer(assumptions=self.assumption_wrapper_set)
+
+    def _wrap_assumption_literals(self, literals: Iterable[int]) -> Set[AssumptionWrapper]:
+        return {self._get_assumption_wrapper(literal) for literal in literals}
+
+    def _get_assumption_wrapper(self, literal: int):
+        return AssumptionWrapper(literal=literal, symbol=self.literal_lookup[abs(literal)], sign=literal >= 0)
 
     def _build_lookups(self) -> None:
         """Build up the literal and symbol lookup dictionaries from a grounded clingo Control object"""
@@ -218,17 +214,16 @@ class CoreComputer:
                 warnings.warn("Timeout was reached")
                 break
 
-            mus = self._compute_single_minimal(assumptions=current_subset, timeout=time_remaining)
-            mus_assumptions = {a.literal for a in mus.assumptions}
+            mus = self._compute_single_minimal(assumptions=unwrap(current_subset), timeout=time_remaining)
 
             # If the candidate subset was satisfiable, add it to the explorer and continue
-            if len(list(mus_assumptions)) == 0:
+            if len(list(mus.assumptions)) == 0:
                 self.explorer.add_sat(current_subset)
                 continue
 
             # If the found MUS is unknown to the explorer, add it to the explorer and yield it
-            if self.explorer.explored(mus_assumptions) == ExplorationStatus.UNKNOWN:
-                self.explorer.add_mus(mus_assumptions)
+            if self.explorer.explored(mus.assumptions) == ExplorationStatus.UNKNOWN:
+                self.explorer.add_mus(mus.assumptions)
                 yield mus
                 # If the maximum MUS amount is specified and found, stop search
                 if max_mus is not None and self.explorer.mus_count == max_mus:
