@@ -219,7 +219,7 @@ class CoreComputer:
                 break
 
             mus = self._compute_single_minimal(assumptions=current_subset, timeout=time_remaining)
-            mus_assumptions = mus.assumptions
+            mus_assumptions = {a.literal for a in mus.assumptions}
 
             # If the candidate subset was satisfiable, add it to the explorer and continue
             if len(list(mus_assumptions)) == 0:
