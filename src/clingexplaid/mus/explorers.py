@@ -1,17 +1,20 @@
 """Collection of oracles for getting MUS candidates"""
 
-import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain, combinations
-from typing import Dict, Generator, Iterable, List, Optional, Set
+from pathlib import Path
+from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple
 
 import clingo
 
 from .utils import AssumptionWrapper
 
 ASSUMPTION_SYMBOL_NAME = "a"
+PATH_ENCODING_EXPLORED = str(Path(__file__).parent / "encodings/explored.lp")
+EXPLORED_ATOM_SAT = "explored(sat)"
+EXPLORED_ATOM_UNSAT = "explored(unsat)"
 
 
 class ExplorationStatus(Enum):
@@ -169,7 +172,7 @@ class ExplorerAsp(Explorer):
         with self._control.backend() as backend:
             backend.add_rule([], rule_body)
 
-    def add_mus(self, assumptions: Iterable[int]) -> None:
+    def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().add_mus(assumptions)
         rule_body = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumptions]
         with self._control.backend() as backend:
@@ -190,9 +193,41 @@ class ExplorerAsp(Explorer):
             yield {self._rid_to_assumption[rid] for rid in rids}
 
     def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
-        warnings.warn("This is a stub for now! Implement the ASP way of computing explored!")  # TODO: Implement
-        if any(assumption_set.issubset(s) for s in self._found_sat):
-            return ExplorationStatus.SATISFIABLE
-        if any(assumption_set.issuperset(s) for s in self._found_mus):
-            return ExplorationStatus.SATISFIABLE
-        return ExplorationStatus.UNKNOWN
+        ctl = clingo.Control(logger=silent_logger)
+        ctl.load(PATH_ENCODING_EXPLORED)
+        rules, test_string = self._get_explored_rules(assumption_set=assumption_set)
+        if len(rules) == 0:
+            return ExplorationStatus.UNKNOWN
+
+        ctl.add("base", [], "\n".join(rules))
+        ctl.add("base", [], test_string)
+        ctl.ground([("base", [])])
+
+        with ctl.solve(yield_=True) as solve_handle:
+            if solve_handle.get().satisfiable:
+                atoms = [str(a) for a in solve_handle.model().symbols(atoms=True)]
+                if EXPLORED_ATOM_SAT in atoms:
+                    return ExplorationStatus.SATISFIABLE
+                elif EXPLORED_ATOM_UNSAT in atoms:
+                    return ExplorationStatus.UNSATISFIABLE
+                else:
+                    return ExplorationStatus.UNKNOWN
+            else:
+                raise Exception("Unexpected atom in model")
+
+    def _get_explored_rules(self, assumption_set: set[AssumptionWrapper]) -> Tuple[Set[str], str]:
+        """Helper returning the asp rules of the already found subsets and the test string for the explored encoding"""
+        rules = set()
+        for i, mus in enumerate(self._found_mus):
+            rule_string = " ".join(f"unsat({i},{a.literal})." for a in mus)
+            rules.add(rule_string)
+        for i, sat in enumerate(self._found_sat):
+            rule_string = " ".join(f"sat({i},{a.literal})." for a in sat)
+            rules.add(rule_string)
+        test_string = " ".join(f"test({a.literal})." for a in assumption_set)
+        return rules, test_string
+
+
+def silent_logger(code, message):
+    """Logger that is completely silent, for a clingo.Control object"""
+    return

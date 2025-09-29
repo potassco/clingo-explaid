@@ -109,8 +109,9 @@ class CoreComputer:
         """Internal function using clingo.control.solve to check if a set of assumptions is satisfiable."""
         if assumptions is None:
             assumptions = self.assumption_set
+        assumptions_wrapped = self._wrap_assumption_literals(assumptions)
 
-        match self.explorer.explored(assumptions):
+        match self.explorer.explored(assumptions_wrapped):
             case ExplorationStatus.SATISFIABLE:
                 return True
             case ExplorationStatus.UNSATISFIABLE:
