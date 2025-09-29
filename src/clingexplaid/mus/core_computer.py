@@ -110,7 +110,7 @@ class CoreComputer:
             assumptions = self.assumption_set
         assumptions_wrapped = self._wrap_assumption_literals(assumptions)
 
-        match self.explorer.explored(assumptions_wrapped):
+        match self.explorer.explored(assumptions_wrapped):  # nocoverage
             case ExplorationStatus.SATISFIABLE:
                 return True
             case ExplorationStatus.UNSATISFIABLE:

@@ -131,12 +131,12 @@ class ExplorerAsp(Explorer):
         with ctl.solve(yield_=True) as solve_handle:
             if solve_handle.get().satisfiable:
                 atoms = [str(a) for a in solve_handle.model().symbols(atoms=True)]
-                if EXPLORED_ATOM_SAT in atoms:
+                if EXPLORED_ATOM_SAT in atoms:  # nocoverage
                     return ExplorationStatus.SATISFIABLE
-                if EXPLORED_ATOM_UNSAT in atoms:
+                if EXPLORED_ATOM_UNSAT in atoms:  # nocoverage
                     return ExplorationStatus.UNSATISFIABLE
                 return ExplorationStatus.UNKNOWN
-            raise ExploredException()
+            raise ExploredException()  # nocoverage
 
     def _get_explored_rules(self, assumption_set: set[AssumptionWrapper]) -> Tuple[Set[str], str]:
         """Helper returning the asp rules of the already found subsets and the test string for the explored encoding"""

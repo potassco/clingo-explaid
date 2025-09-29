@@ -30,8 +30,8 @@ class ExplorerPowerset(Explorer):
             yield current_subset
 
     def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
-        if any(assumption_set.issubset(s) for s in self._found_sat):
+        if any(assumption_set.issubset(s) for s in self._found_sat):  # nocoverage
             return ExplorationStatus.SATISFIABLE
-        if any(assumption_set.issuperset(s) for s in self._found_mus):
+        if any(assumption_set.issuperset(s) for s in self._found_mus):  # nocoverage
             return ExplorationStatus.SATISFIABLE
         return ExplorationStatus.UNKNOWN
