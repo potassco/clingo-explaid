@@ -196,10 +196,3 @@ class ExplorerAsp(Explorer):
         if any(assumption_set.issuperset(s) for s in self._found_mus):
             return ExplorationStatus.SATISFIABLE
         return ExplorationStatus.UNKNOWN
-
-
-class ExplorerType(Enum):
-    """Types of explorers"""
-
-    EXPLORER_POWERSET = 1
-    EXPLORER_ASP = 2

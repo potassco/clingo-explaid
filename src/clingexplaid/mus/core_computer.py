@@ -5,13 +5,13 @@ MUS Module: Core Computer to get Minimal Unsatisfiable Subsets
 import time
 import warnings
 from dataclasses import dataclass
-from typing import Dict, Generator, Iterable, Iterator, Optional, Set, Tuple, Union
+from typing import Dict, Generator, Iterable, Iterator, Optional, Set, Tuple, Type, Union
 
 import clingo
 
 from ..utils import get_solver_literal_lookup
 from ..utils.types import Assumption, AssumptionSet
-from .explorers import ExplorationStatus, Explorer, ExplorerAsp, ExplorerPowerset, ExplorerType
+from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
 
 
 @dataclass
@@ -62,7 +62,7 @@ class CoreComputer:
         self,
         control: clingo.Control,
         assumption_set: AssumptionSet,
-        explorer: ExplorerType = ExplorerType.EXPLORER_POWERSET,
+        explorer: Type[Explorer] = ExplorerPowerset,
     ):
         self.control = control
         self.assumption_set = assumption_set
@@ -70,14 +70,7 @@ class CoreComputer:
         self.minimal: Optional[UnsatisfiableSubset] = None
         self._assumptions_minimal: Set[Assumption] = set()
         self._assumptions_removed: Set[Assumption] = set()
-        explorer_class: Explorer
-        match explorer:
-            case ExplorerType.EXPLORER_ASP:
-                explorer_class = ExplorerAsp(assumptions=assumption_set)
-            case _:
-                # Default case use powerset explorer
-                explorer_class = ExplorerPowerset(assumptions=assumption_set)
-        self.explorer = explorer_class
+        self.explorer = explorer(assumptions=assumption_set)
 
     def _is_satisfiable(self, assumptions: Optional[AssumptionSet] = None) -> bool:
         """

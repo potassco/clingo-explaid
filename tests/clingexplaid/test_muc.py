@@ -3,19 +3,19 @@ Tests for the mus package
 """
 
 import random
-from typing import Iterable, List, Optional, Sequence, Set, Tuple, Union
+from typing import Iterable, List, Optional, Sequence, Set, Tuple, Type, Union
 from unittest import TestCase
 
 import clingo
 
 from clingexplaid.mus import CoreComputer
 from clingexplaid.mus.core_computer import UnsatisfiableSubset
-from clingexplaid.mus.explorers import ExplorerType
+from clingexplaid.mus.explorers import Explorer, ExplorerAsp, ExplorerPowerset
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
 
 from .test_main import TEST_DIR
 
-EXPLORER_TYPES = (ExplorerType.EXPLORER_POWERSET, ExplorerType.EXPLORER_ASP)
+EXPLORERS = (ExplorerPowerset, ExplorerAsp)
 
 
 def get_mus_of_program(
@@ -23,7 +23,7 @@ def get_mus_of_program(
     assumption_filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None,
     control: Optional[clingo.Control] = None,
     timeout: Optional[float] = None,
-    explorer: ExplorerType = ExplorerType.EXPLORER_POWERSET,
+    explorer: Type[Explorer] = ExplorerPowerset,
 ) -> Tuple[UnsatisfiableSubset, CoreComputer]:
     """
     Helper function to directly get the MUS of a given program string.
@@ -115,7 +115,7 @@ class TestMUS(TestCase):
         Test the CoreComputer's `shrink` function with multiple atomic MUS's.
         """
 
-        for explorer in EXPLORER_TYPES:
+        for explorer in EXPLORERS:
             ctl = clingo.Control()
 
             program = """
@@ -139,7 +139,7 @@ class TestMUS(TestCase):
         Test the CoreComputer's `shrink` function with multiple MUS's.
         """
 
-        for explorer in EXPLORER_TYPES:
+        for explorer in EXPLORERS:
             ctl = clingo.Control()
 
             program = """
@@ -226,7 +226,7 @@ class TestMUS(TestCase):
         Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
         """
 
-        for explorer in EXPLORER_TYPES:
+        for explorer in EXPLORERS:
             ctl = clingo.Control()
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
@@ -250,7 +250,7 @@ class TestMUS(TestCase):
         """
         Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
         """
-        for explorer in EXPLORER_TYPES:
+        for explorer in EXPLORERS:
             ctl = clingo.Control()
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
@@ -276,7 +276,7 @@ class TestMUS(TestCase):
         """
         Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
         """
-        for explorer in EXPLORER_TYPES:
+        for explorer in EXPLORERS:
             ctl = clingo.Control()
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
