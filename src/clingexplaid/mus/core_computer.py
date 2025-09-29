@@ -10,7 +10,6 @@ from typing import Dict, Generator, Iterable, Iterator, Optional, Set, Tuple, Ty
 import clingo
 from clingo import Symbol
 
-from ..utils import get_solver_literal_lookup
 from ..utils.types import Assumption, AssumptionSet
 from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
 
@@ -26,7 +25,7 @@ class AssumptionWrapper:
     def __hash__(self) -> int:
         return self.literal
 
-      
+
 @dataclass
 class UnsatisfiableSubset:
     """Container class for unsatisfiable subsets"""
@@ -111,16 +110,18 @@ class CoreComputer:
         return UnsatisfiableSubset(assumptions=wrapper_set, minimal=minimal)
 
     def _is_satisfiable(self, assumptions: Optional[Iterable[int]] = None) -> bool:
-        """
-        Internal function that is used to make the single solver calls for finding the minimal unsatisfiable subset.
-        """
+        """Internal function using clingo.control.solve to check if a set of assumptions is satisfiable."""
         if assumptions is None:
             assumptions = self.assumption_set
 
-        with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
-            satisfiable = bool(solve_handle.get().satisfiable)
-
-        return satisfiable
+        match self.explorer.explored(assumptions):
+            case ExplorationStatus.SATISFIABLE:
+                return True
+            case ExplorationStatus.UNSATISFIABLE:
+                return False
+            case ExplorationStatus.UNKNOWN:
+                with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
+                    return bool(solve_handle.get().satisfiable)
 
     def _convert_assumptions(self, assumptions: AssumptionSet) -> Set[int]:
         """Convert assumptions to literal representation, e.g.: (Symbol, bool) -> (int, bool)"""
