@@ -94,6 +94,7 @@ class CoreComputer:
         unsatisfiable core is the iterative deletion algorithm.
         """
         time_start = time.perf_counter()
+        timeout_reached = False
 
         if assumptions is None:
             assumptions = self.assumption_set
@@ -101,33 +102,29 @@ class CoreComputer:
         # Reset progress set
         self._assumptions_minimal = set()
 
-        # check that the assumption set isn't empty
+        # Warn on an empty assumption set
         if not assumptions:
             warnings.warn("A minimal unsatisfiable subset cannot be computed on an empty assumption set")
 
-        # check if the problem with the full assumption set is unsatisfiable in the first place, and if not skip the
-        # rest of the algorithm and return an empty set.
+        # Return empty US if the assumptions are satisfiable
         satisfiable = self._is_satisfiable(assumptions=assumptions)
         if satisfiable:
             return UnsatisfiableSubset(set())
 
+        # Iterate over the assumptions to find MUS members
         working_set = set(assumptions)
-        timeout_reached = False
-
         for assumption in assumptions:
-            # remove the current assumption from the working set
+            # Remove the current assumption from the working set
             working_set.remove(assumption)
 
-            satisfiable = self._is_satisfiable(assumptions=working_set.union(self._assumptions_minimal))
-            # if the working set now becomes satisfiable without the assumption it is added to the mus_members
-            if satisfiable:
+            # If the working set now becomes satisfiable, add the removed assumption to MUS members
+            if self._is_satisfiable(assumptions=working_set.union(self._assumptions_minimal)):
                 self._assumptions_minimal.add(assumption)
-                # every time we discover a new mus member we also check if all currently found mus members already
-                # suffice to make the instance unsatisfiable. If so we can stop the search sice we found our mus.
+                # If MUS members become unsatisfiable, stop search
                 if not self._is_satisfiable(assumptions=self._assumptions_minimal):
                     break
             else:
-                # Remove the current assumption since it's not part of the mus
+                # Remove the current assumption since it's not part of the MUS
                 self._assumptions_removed.add(assumption)
 
             # Check after each assumption if timeout is reached
