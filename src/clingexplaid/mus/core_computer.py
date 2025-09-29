@@ -69,7 +69,6 @@ class CoreComputer:
         self.literal_lookup = get_solver_literal_lookup(control=self.control)
         self.minimal: Optional[UnsatisfiableSubset] = None
         self._assumptions_minimal: Set[Assumption] = set()
-        self._assumptions_removed: Set[Assumption] = set()
         self.explorer = explorer(assumptions=assumption_set)
 
     def _is_satisfiable(self, assumptions: Optional[AssumptionSet] = None) -> bool:
@@ -123,9 +122,6 @@ class CoreComputer:
                 # If MUS members become unsatisfiable, stop search
                 if not self._is_satisfiable(assumptions=self._assumptions_minimal):
                     break
-            else:
-                # Remove the current assumption since it's not part of the MUS
-                self._assumptions_removed.add(assumption)
 
             # Check after each assumption if timeout is reached
             if timeout is not None and time_start + timeout < time.perf_counter():
