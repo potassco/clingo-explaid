@@ -10,7 +10,7 @@ from typing import Dict, Generator, Iterable, Iterator, Optional, Set, Tuple, Ty
 import clingo
 from clingo import Symbol
 
-from ..utils.types import Assumption, AssumptionSet
+from ..utils.types import AssumptionSet
 from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
 from .utils import AssumptionWrapper, unwrap
 
@@ -73,7 +73,7 @@ class CoreComputer:
         self.literal_lookup: Dict[int, Symbol] = {}
         self.symbol_lookup: Dict[Symbol, int] = {}
         self.minimal: Optional[UnsatisfiableSubset] = None
-        self._assumptions_minimal: Set[Assumption] = set()
+        self._assumptions_minimal: Set[int] = set()
 
         self._build_lookups()
 
@@ -83,7 +83,7 @@ class CoreComputer:
     def _wrap_assumption_literals(self, literals: Iterable[int]) -> Set[AssumptionWrapper]:
         return {self._get_assumption_wrapper(literal) for literal in literals}
 
-    def _get_assumption_wrapper(self, literal: int):
+    def _get_assumption_wrapper(self, literal: int) -> AssumptionWrapper:
         return AssumptionWrapper(literal=literal, symbol=self.literal_lookup[abs(literal)], sign=literal >= 0)
 
     def _build_lookups(self) -> None:
@@ -157,7 +157,7 @@ class CoreComputer:
         a_literals = self._convert_assumptions(assumptions=assumptions)
 
         # Return empty US if the assumptions are satisfiable
-        satisfiable = self._is_satisfiable(assumptions=assumptions)
+        satisfiable = self._is_satisfiable(assumptions=a_literals)
         if satisfiable:
             return UnsatisfiableSubset(set())
 

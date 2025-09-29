@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, Generator, Iterable, Optional, Set, Tuple
 
 import clingo
+from clingo import MessageCode
 
 from ..utils import AssumptionWrapper
 from .base import ExplorationStatus, Explorer
@@ -150,6 +151,6 @@ class ExplorerAsp(Explorer):
         return rules, test_string
 
 
-def silent_logger(code, message):  # pylint: disable=unused-argument
+def silent_logger(code: MessageCode, message: str) -> None:  # pylint: disable=unused-argument
     """Logger that is completely silent, for a clingo.Control object"""
     return
