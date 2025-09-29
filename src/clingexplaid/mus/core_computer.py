@@ -78,8 +78,7 @@ class CoreComputer:
         self._build_lookups()
 
         self.assumption_set: Set[int] = self._convert_assumptions(assumption_set)
-        self.assumption_wrapper_set: Set[AssumptionWrapper] = self._wrap_assumption_literals(self.assumption_set)
-        self.explorer = explorer(assumptions=self.assumption_wrapper_set)
+        self.explorer = explorer(assumptions=self._wrap_assumption_literals(self.assumption_set))
 
     def _wrap_assumption_literals(self, literals: Iterable[int]) -> Set[AssumptionWrapper]:
         return {self._get_assumption_wrapper(literal) for literal in literals}

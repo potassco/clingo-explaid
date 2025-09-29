@@ -1,3 +1,5 @@
+"""Explorer using ASP for getting MUS candidates"""
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Generator, Iterable, Optional, Set, Tuple
@@ -31,6 +33,10 @@ class LiteralID:
 
     def __int__(self) -> int:  # nocoverage
         return self.id
+
+
+class ExploredException(Exception):
+    """The explored encoding returned unsatisfiable, this cannot be interpreted"""
 
 
 class ExplorerAsp(Explorer):
@@ -126,12 +132,10 @@ class ExplorerAsp(Explorer):
                 atoms = [str(a) for a in solve_handle.model().symbols(atoms=True)]
                 if EXPLORED_ATOM_SAT in atoms:
                     return ExplorationStatus.SATISFIABLE
-                elif EXPLORED_ATOM_UNSAT in atoms:
+                if EXPLORED_ATOM_UNSAT in atoms:
                     return ExplorationStatus.UNSATISFIABLE
-                else:
-                    return ExplorationStatus.UNKNOWN
-            else:
-                raise Exception("Unexpected atom in model")
+                return ExplorationStatus.UNKNOWN
+            raise ExploredException()
 
     def _get_explored_rules(self, assumption_set: set[AssumptionWrapper]) -> Tuple[Set[str], str]:
         """Helper returning the asp rules of the already found subsets and the test string for the explored encoding"""
@@ -146,6 +150,6 @@ class ExplorerAsp(Explorer):
         return rules, test_string
 
 
-def silent_logger(code, message):
+def silent_logger(code, message):  # pylint: disable=unused-argument
     """Logger that is completely silent, for a clingo.Control object"""
     return

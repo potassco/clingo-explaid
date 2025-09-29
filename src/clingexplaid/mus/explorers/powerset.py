@@ -1,3 +1,5 @@
+"""Explorers using the brute-force powerset approach"""
+
 from itertools import chain, combinations
 from typing import Generator, Iterable, Set
 
