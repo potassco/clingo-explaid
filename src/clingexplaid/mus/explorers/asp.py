@@ -1,98 +1,16 @@
-"""Collection of oracles for getting MUS candidates"""
-
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
-from itertools import chain, combinations
 from pathlib import Path
-from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Generator, Iterable, Optional, Set, Tuple
 
 import clingo
 
-from .utils import AssumptionWrapper
+from ..utils import AssumptionWrapper
+from .base import ExplorationStatus, Explorer
 
 ASSUMPTION_SYMBOL_NAME = "a"
 PATH_ENCODING_EXPLORED = str(Path(__file__).parent / "encodings/explored.lp")
 EXPLORED_ATOM_SAT = "explored(sat)"
 EXPLORED_ATOM_UNSAT = "explored(unsat)"
-
-
-class ExplorationStatus(Enum):
-    """Status of an assumption subset in an ongoing exploration process"""
-
-    SATISFIABLE = 1
-    UNSATISFIABLE = 2
-    UNKNOWN = 3
-
-
-class Explorer(ABC):
-    """Abstract base class for all oracles"""
-
-    def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
-        self._assumptions = set(assumptions)
-        self._found_sat: List[Set[AssumptionWrapper]] = []
-        self._found_mus: List[Set[AssumptionWrapper]] = []
-
-    @property
-    def assumptions(self) -> Set[AssumptionWrapper]:  # nocoverage
-        """All assumptions that the oracle can choose from"""
-        return self._assumptions
-
-    @property
-    def mus_count(self) -> int:  # nocoverage
-        """Number of MUS that have been found with the explorer"""
-        return len(self._found_mus)
-
-    def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
-        """Adds a satisfiable assumption set"""
-        self._found_sat.append(set(assumptions))
-
-    def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
-        """Adds a mus"""
-        self._found_mus.append(set(assumptions))
-
-    def reset(self) -> None:
-        """Resets the found assumption sets"""
-        self._found_sat.clear()
-        self._found_mus.clear()
-
-    @abstractmethod
-    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
-        """Returns the exploration status of a set of assumptions"""
-
-    @abstractmethod
-    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
-        """Generator that produces the assumption set candidates"""
-
-
-class ExplorerPowerset(Explorer):
-    """Oracle using the brute-force powerset approach"""
-
-    def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
-        super().__init__(assumptions=assumptions)
-        self._powerset = chain.from_iterable(
-            combinations(assumptions, r) for r in reversed(range(len(list(assumptions)) + 1))
-        )
-
-    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
-        for current_subset in (set(s) for s in self._powerset):
-            # skip if empty subset
-            if len(current_subset) == 0:
-                continue
-            # skip if an already found satisfiable subset is superset
-            if any(set(sat).issuperset(current_subset) for sat in self._found_sat):
-                continue
-            # skip if an already found mus is a subset
-            if any(set(mus).issubset(current_subset) for mus in self._found_mus):
-                continue
-            yield current_subset
-
-    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
-        if any(assumption_set.issubset(s) for s in self._found_sat):
-            return ExplorationStatus.SATISFIABLE
-        if any(assumption_set.issuperset(s) for s in self._found_mus):
-            return ExplorationStatus.SATISFIABLE
-        return ExplorationStatus.UNKNOWN
 
 
 @dataclass(frozen=True)
