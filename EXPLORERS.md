@@ -10,7 +10,9 @@ This document contains some intuition for the new `Explorer` classes in
 > **Example** Program $\\Pi$ : `UNSAT` Assumptions $A$: `+a`, `+b`, `+c`, `+d`
 > MUS: `{a,b}`, `{b,d}`
 
-> \[!NOTE\] **Example Search Space**
+> \[!NOTE\]
+>
+> Example Search Space
 >
 > | Subset      | Type     |
 > | :---------- | :------- |
@@ -34,7 +36,9 @@ This document contains some intuition for the new `Explorer` classes in
 For the explored check and finding the next suitable subset candidates an ASP
 exploration encoding is used
 
-> \[!NOTE\] **Example for the Exploration Encoding**
+> \[!NOTE\]
+>
+> Example for the Exploration Encoding
 >
 > ```asp
 > 1{_unsat; _sat}.  % Satisfiability indicators
@@ -76,7 +80,9 @@ $S$ is either `unexplored`, `explored(sat)`, or `explored(unsat)`.
 For that, all assumptions of the subset are assumed, while also the assumptions
 missing from the subset ($A\\setminus S$) are assumed as negated.
 
-> \[!NOTE\] **Example Assimptions**
+> \[!NOTE\]
+>
+> Example Assumptions
 >
 > For the subset `{a,c,d}` we would assume `(a,True)`, `(b,False)`, `(c,True)`,
 > and `(d,True)`.
