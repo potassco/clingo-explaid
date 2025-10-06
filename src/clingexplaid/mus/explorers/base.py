@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Generator, Iterable, List, Set
+from typing import Generator, Iterable, Set
 
 from ..utils import AssumptionWrapper
 
@@ -20,8 +20,6 @@ class Explorer(ABC):
 
     def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         self._assumptions = set(assumptions)
-        self._found_sat: List[Set[AssumptionWrapper]] = []
-        self._found_mus: List[Set[AssumptionWrapper]] = []
 
     @property
     def assumptions(self) -> Set[AssumptionWrapper]:  # nocoverage
@@ -29,22 +27,21 @@ class Explorer(ABC):
         return self._assumptions
 
     @property
+    @abstractmethod
     def mus_count(self) -> int:  # nocoverage
         """Number of MUS that have been found with the explorer"""
-        return len(self._found_mus)
 
+    @abstractmethod
     def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         """Adds a satisfiable assumption set"""
-        self._found_sat.append(set(assumptions))
 
+    @abstractmethod
     def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         """Adds a mus"""
-        self._found_mus.append(set(assumptions))
 
+    @abstractmethod
     def reset(self) -> None:
         """Resets the found assumption sets"""
-        self._found_sat.clear()
-        self._found_mus.clear()
 
     @abstractmethod
     def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:

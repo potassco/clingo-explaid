@@ -1,7 +1,7 @@
 """Explorers using the brute-force powerset approach"""
 
 from itertools import chain, combinations
-from typing import Generator, Iterable, Set
+from typing import Generator, Iterable, List, Set
 
 from ..utils import AssumptionWrapper
 from .base import ExplorationStatus, Explorer
@@ -12,9 +12,25 @@ class ExplorerPowerset(Explorer):
 
     def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().__init__(assumptions=assumptions)
+        self._found_sat: List[Set[AssumptionWrapper]] = []
+        self._found_mus: List[Set[AssumptionWrapper]] = []
         self._powerset = chain.from_iterable(
             combinations(assumptions, r) for r in reversed(range(len(list(assumptions)) + 1))
         )
+
+    def reset(self) -> None:
+        self._found_sat = []
+        self._found_mus = []
+
+    @property
+    def mus_count(self) -> int:
+        return len(self._found_mus)
+
+    def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
+        self._found_mus.append(set(assumptions))
+
+    def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
+        self._found_sat.append(set(assumptions))
 
     def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
         for current_subset in (set(s) for s in self._powerset):

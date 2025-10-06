@@ -47,6 +47,7 @@ class ExplorerAsp(Explorer):
 
     def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().__init__(assumptions=assumptions)
+        self._mus_count = 0
         self._control = clingo.Control(["--heuristic=Domain"])
         self._control.configuration.solve.models = 0  # type: ignore
 
@@ -63,6 +64,44 @@ class ExplorerAsp(Explorer):
 
         # Register satisfiability indicators
         (self._rid_sat, self._lid_sat), (self._rid_unsat, self._lid_unsat) = self._add_satisfiability_indicators()
+
+    def reset(self) -> None:
+        self._mus_count = 0
+        self._control = clingo.Control(["--heuristic=Domain"])
+        self._control.configuration.solve.models = 0  # type: ignore
+        self._assumption_counter = 0
+
+        self._assumption_to_rid = {}
+        self._rid_to_assumption = {}
+
+        self._rid_to_lid = {}
+        self._lid_to_rid = {}
+
+        # Add assumptions to control
+        for assumption in self._assumptions:
+            self._add_assumption(assumption)
+
+        # Register satisfiability indicators
+        (self._rid_sat, self._lid_sat), (self._rid_unsat, self._lid_unsat) = self._add_satisfiability_indicators()
+
+    @property
+    def mus_count(self) -> int:
+        return self._mus_count
+
+    def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
+        # take difference of subset with all assumptions
+        rule_assumptions = [a for a in self.assumptions if a not in assumptions]
+        rule_literal_ids = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in rule_assumptions]
+        # invert difference assumptions
+        rule_body = [-lid for lid in rule_literal_ids] + [int(self._lid_sat)]
+        with self._control.backend() as backend:
+            backend.add_rule([], rule_body)
+
+    def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
+        rule_body = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumptions] + [int(self._lid_unsat)]
+        with self._control.backend() as backend:
+            backend.add_rule([], rule_body)
+        self._mus_count += 1
 
     def _register_assumption_representation(self, assumption: AssumptionWrapper) -> RepresentationID:
         self._assumption_counter += 1
@@ -108,22 +147,6 @@ class ExplorerAsp(Explorer):
             backend.add_rule(head=[int(lid_sat), int(lid_unsat)], body=[], choice=True)
             backend.add_rule(head=[], body=[-int(lid_sat), -int(lid_unsat)], choice=True)
         return (rid_sat, lid_sat), (rid_unsat, lid_unsat)
-
-    def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
-        super().add_sat(assumptions)
-        # take difference of subset with all assumptions
-        rule_assumptions = [a for a in self.assumptions if a not in assumptions]
-        rule_literal_ids = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in rule_assumptions]
-        # invert difference assumptions
-        rule_body = [-lid for lid in rule_literal_ids] + [int(self._lid_sat)]
-        with self._control.backend() as backend:
-            backend.add_rule([], rule_body)
-
-    def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
-        super().add_mus(assumptions)
-        rule_body = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumptions] + [int(self._lid_unsat)]
-        with self._control.backend() as backend:
-            backend.add_rule([], rule_body)
 
     def _get_model(self) -> Optional[Set[clingo.Symbol]]:
         with self._control.solve(assumptions=[int(self._lid_sat), int(self._lid_unsat)], yield_=True) as solve_handle:
