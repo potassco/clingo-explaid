@@ -165,24 +165,7 @@ class ExplorerAsp(Explorer):
                 if self._symbol_sat in model_symbols and self._symbol_unsat in model_symbols:
                     return ExplorationStatus.UNKNOWN
                 if self._symbol_sat in model_symbols:
-                    return ExplorationStatus.UNSATISFIABLE
+                    return ExplorationStatus.UNSATISFIABLE  # nocoverage
                 if self._symbol_unsat in model_symbols:
                     return ExplorationStatus.SATISFIABLE
-            raise ExploredException()
-
-    def _get_explored_rules(self, assumption_set: set[AssumptionWrapper]) -> Tuple[Set[str], str]:
-        """Helper returning the asp rules of the already found subsets and the test string for the explored encoding"""
-        rules = set()
-        for i, mus in enumerate(self._found_mus):
-            rule_string = " ".join(f"unsat({i},{a.literal})." for a in mus)
-            rules.add(rule_string)
-        for i, sat in enumerate(self._found_sat):
-            rule_string = " ".join(f"sat({i},{a.literal})." for a in sat)
-            rules.add(rule_string)
-        test_string = " ".join(f"test({a.literal})." for a in assumption_set)
-        return rules, test_string
-
-
-def silent_logger(code: MessageCode, message: str) -> None:  # pylint: disable=unused-argument
-    """Logger that is completely silent, for a clingo.Control object"""
-    return
+            raise ExploredException()  # nocoverage
