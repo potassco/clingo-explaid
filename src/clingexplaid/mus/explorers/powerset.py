@@ -33,5 +33,5 @@ class ExplorerPowerset(Explorer):
         if any(assumption_set.issubset(s) for s in self._found_sat):  # nocoverage
             return ExplorationStatus.SATISFIABLE
         if any(assumption_set.issuperset(s) for s in self._found_mus):  # nocoverage
-            return ExplorationStatus.SATISFIABLE
+            return ExplorationStatus.UNSATISFIABLE
         return ExplorationStatus.UNKNOWN
