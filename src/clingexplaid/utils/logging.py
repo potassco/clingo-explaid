@@ -1,38 +1,90 @@
+"""
+Setup project wide loggers.
+
+This is a thin wrapper around Python's logging module. It supports colored
+logging.
+"""
+
 import logging
-from typing import Optional
+from typing import TextIO
 
-# Define ANSI escape sequences for colors
-LOG_COLORS = {
-    "DEBUG": "\033[94m",  # Blue
-    "INFO": "\033[92m",  # Green
-    "WARNING": "\033[93m",  # Yellow
-    "ERROR": "\033[91m",  # Red
-    "CRITICAL": "\033[95m",  # Magenta
-    "RESET": "\033[0m",  # Reset
+NOTSET = logging.NOTSET
+DEBUG = logging.DEBUG
+INFO = logging.INFO
+WARNING = logging.WARNING
+ERROR = logging.ERROR
+CRITICAL = logging.CRITICAL
+
+COLORS = {
+    "GREY": "\033[90m",
+    "BLUE": "\033[94m",
+    "GREEN": "\033[92m",
+    "YELLOW": "\033[93m",
+    "RED": "\033[91m",
+    "NORMAL": "\033[0m",
+    "DARK_RED": "\033[91m",
+    "BLACK": "\033[30m",
 }
-DEFAULT_LOGGER_NAME = "default_colored_logger"
+
+BACKGROUND_COLORS = {
+    "BLUE": "\033[44m",
+    "LIGHT_BLUE": "\033[104m",
+    "RED": "\033[41m",
+    "WHITE": "\033[107m",
+    "GREY": "\033[100m",
+    "LIGHT-GREY": "\033[47m",
+}
 
 
-class ColoredFormatter(logging.Formatter):
-    def format(self, record: logging.LogRecord):
-        log_color = LOG_COLORS.get(record.levelname, LOG_COLORS["RESET"])
-        reset = LOG_COLORS["RESET"]
-        record.levelname = f"{log_color}{record.levelname}{reset}"
-        return super().format(record)
+class SingleLevelFilter(logging.Filter):
+    """
+    Filter levels.
+    """
+
+    passlevel: int
+    reject: bool
+
+    def __init__(self, passlevel: int, reject: bool):
+        # pylint: disable=super-init-not-called
+        self.passlevel = passlevel
+        self.reject = reject
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if self.reject:
+            return record.levelno != self.passlevel  # nocoverage
+
+        return record.levelno == self.passlevel
 
 
-def setup_logger(level: int = logging.INFO, name: Optional[str] = DEFAULT_LOGGER_NAME) -> logging.Logger:
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
+def configure_logging(stream: TextIO, level: int, use_color: bool) -> None:
+    """
+    Configure application logging.
+    """
 
-    # Console handler
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
+    def format_str(color: str) -> str:
+        if use_color:
+            return f"{COLORS[color]}%(levelname)s:{COLORS['GREY']}  - %(message)s{COLORS['NORMAL']}"
+        return "%(levelname)s:  - %(message)s"  # nocoverage
 
-    # Formatter with colored level names
-    formatter = ColoredFormatter("%(asctime)s [ %(levelname)s ] %(message)s", datefmt="%H:%M:%S")
-    ch.setFormatter(formatter)
+    def make_handler(level: int, color: str) -> "logging.StreamHandler[TextIO]":
+        handler = logging.StreamHandler(stream)
+        handler.addFilter(SingleLevelFilter(level, False))
+        handler.setLevel(level)
+        formatter = logging.Formatter(format_str(color))
+        handler.setFormatter(formatter)
+        return handler
 
-    logger.addHandler(ch)
+    handlers = [
+        make_handler(logging.INFO, "GREEN"),
+        make_handler(logging.WARNING, "YELLOW"),
+        make_handler(logging.DEBUG, "BLUE"),
+        make_handler(logging.ERROR, "RED"),
+    ]
+    logging.basicConfig(handlers=handlers, level=level)
 
-    return logger
+
+def get_logger(name: str) -> logging.Logger:
+    """
+    Get a logger with the given name.
+    """
+    return logging.getLogger(name)
