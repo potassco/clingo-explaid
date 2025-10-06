@@ -1,5 +1,6 @@
 """Explorer using ASP for getting MUS candidates"""
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Generator, Iterable, Optional, Set, Tuple
@@ -7,8 +8,11 @@ from typing import Dict, Generator, Iterable, Optional, Set, Tuple
 import clingo
 from clingo import MessageCode
 
+from ...utils.logging import DEFAULT_LOGGER_NAME
 from ..utils import AssumptionWrapper
 from .base import ExplorationStatus, Explorer
+
+logger = logging.getLogger(DEFAULT_LOGGER_NAME)
 
 ASSUMPTION_SYMBOL_NAME = "a"
 PATH_ENCODING_EXPLORED = str(Path(__file__).parent.parent / "encodings/explored.lp")
@@ -109,6 +113,7 @@ class ExplorerAsp(Explorer):
         return (rid_sat, lid_sat), (rid_unsat, lid_unsat)
 
     def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
+        logger.debug(f"Adding SAT: {[str(a.symbol) for a in assumptions]}")
         super().add_sat(assumptions)
         # take difference of subset with all assumptions
         rule_assumptions = [a for a in self.assumptions if a not in assumptions]
@@ -119,6 +124,7 @@ class ExplorerAsp(Explorer):
             backend.add_rule([], rule_body)
 
     def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
+        logger.debug(f"Adding MUS: {[str(a.symbol) for a in assumptions]}")
         super().add_mus(assumptions)
         rule_body = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumptions] + [int(self._lid_unsat)]
         with self._control.backend() as backend:
@@ -161,10 +167,13 @@ class ExplorerAsp(Explorer):
             if solve_handle.get().satisfiable:
                 model_symbols = solve_handle.model().symbols(atoms=True)
                 if self._symbol_sat in model_symbols and self._symbol_unsat in model_symbols:
+                    logger.debug(f"Checked {[str(a.symbol) for a in assumption_set]} -> UNKNOWN")
                     return ExplorationStatus.UNKNOWN
                 elif self._symbol_sat in model_symbols:
+                    logger.debug(f"Checked {[str(a.symbol) for a in assumption_set]} -> UNSAT")
                     return ExplorationStatus.UNSATISFIABLE
                 elif self._symbol_unsat in model_symbols:
+                    logger.debug(f"Checked {[str(a.symbol) for a in assumption_set]} -> SAT")
                     return ExplorationStatus.SATISFIABLE
             raise ExploredException()
 
