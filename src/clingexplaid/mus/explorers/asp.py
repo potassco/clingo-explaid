@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Dict, Generator, Iterable, Optional, Set, Tuple
 
 import clingo
-from clingo import MessageCode
 
 from ..utils import AssumptionWrapper
 from .base import ExplorationStatus, Explorer
