@@ -102,6 +102,8 @@ class ExplorerAsp(Explorer):
         with self._control.backend() as backend:
             lid_sat = self._register_assumption_atom(aw_sat, backend)
             lid_unsat = self._register_assumption_atom(aw_unsat, backend)
+            backend.add_heuristic(int(lid_sat), clingo.backend.HeuristicType.True_, 1, 1, [])
+            backend.add_heuristic(int(lid_unsat), clingo.backend.HeuristicType.True_, 1, 1, [])
             backend.add_rule(head=[int(lid_sat), int(lid_unsat)], body=[], choice=True)
             backend.add_rule(head=[], body=[-int(lid_sat), -int(lid_unsat)], choice=True)
         return (rid_sat, lid_sat), (rid_unsat, lid_unsat)
@@ -132,6 +134,14 @@ class ExplorerAsp(Explorer):
                 return symbols_cleaned
         return None
 
+    @property
+    def _symbol_unsat(self) -> clingo.Symbol:
+        return clingo.parse_term(f"{ASSUMPTION_SYMBOL_NAME}({int(self._rid_unsat)})")
+
+    @property
+    def _symbol_sat(self) -> clingo.Symbol:
+        return clingo.parse_term(f"{ASSUMPTION_SYMBOL_NAME}({int(self._rid_sat)})")
+
     def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
         while True:
             model = self._get_model()
@@ -141,25 +151,22 @@ class ExplorerAsp(Explorer):
             yield {self._rid_to_assumption[rid] for rid in rids}
 
     def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
-        ctl = clingo.Control(logger=silent_logger)
-        ctl.load(PATH_ENCODING_EXPLORED)
-        rules, test_string = self._get_explored_rules(assumption_set=assumption_set)
-        if len(rules) == 0:
-            return ExplorationStatus.UNKNOWN
-
-        ctl.add("base", [], "\n".join(rules))
-        ctl.add("base", [], test_string)
-        ctl.ground([("base", [])])
-
-        with ctl.solve(yield_=True) as solve_handle:
+        # Convert AssumptionWrappers for the assumption set to explorer literals
+        a_literals = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumption_set]
+        # Add negated literals of remaining assumptions
+        a_literals += [
+            -int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in self.assumptions if a not in assumption_set
+        ]
+        with self._control.solve(assumptions=a_literals, yield_=True) as solve_handle:
             if solve_handle.get().satisfiable:
-                atoms = [str(a) for a in solve_handle.model().symbols(atoms=True)]
-                if EXPLORED_ATOM_SAT in atoms:  # nocoverage
-                    return ExplorationStatus.SATISFIABLE
-                if EXPLORED_ATOM_UNSAT in atoms:  # nocoverage
+                model_symbols = solve_handle.model().symbols(atoms=True)
+                if self._symbol_sat in model_symbols and self._symbol_unsat in model_symbols:
+                    return ExplorationStatus.UNKNOWN
+                elif self._symbol_sat in model_symbols:
                     return ExplorationStatus.UNSATISFIABLE
-                return ExplorationStatus.UNKNOWN
-            raise ExploredException()  # nocoverage
+                elif self._symbol_unsat in model_symbols:
+                    return ExplorationStatus.SATISFIABLE
+            raise ExploredException()
 
     def _get_explored_rules(self, assumption_set: set[AssumptionWrapper]) -> Tuple[Set[str], str]:
         """Helper returning the asp rules of the already found subsets and the test string for the explored encoding"""
