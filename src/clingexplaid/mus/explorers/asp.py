@@ -14,6 +14,7 @@ ASSUMPTION_SYMBOL_NAME = "a"
 PATH_ENCODING_EXPLORED = str(Path(__file__).parent.parent / "encodings/explored.lp")
 EXPLORED_ATOM_SAT = "explored(sat)"
 EXPLORED_ATOM_UNSAT = "explored(unsat)"
+DEFAULT_LITERAL_ID = 0
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,9 @@ class ExplorerAsp(Explorer):
         for assumption in self._assumptions:
             self._add_assumption(assumption)
 
+        # Register satisfiability indicators
+        (self._rid_sat, self._lid_sat), (self._rid_unsat, self._lid_unsat) = self._add_satisfiability_indicators()
+
     def _register_assumption_representation(self, assumption: AssumptionWrapper) -> RepresentationID:
         self._assumption_counter += 1
         representation_id = RepresentationID(self._assumption_counter)
@@ -87,26 +91,45 @@ class ExplorerAsp(Explorer):
             backend.add_heuristic(int(literal_id), clingo.backend.HeuristicType.True_, 1, 1, [])
             backend.add_rule([int(literal_id)], choice=True)
 
+    def _add_satisfiability_indicators(
+        self,
+    ) -> Tuple[Tuple[RepresentationID, LiteralID], Tuple[RepresentationID, LiteralID]]:
+        """Adds satisfiability indicator choices (1{_sat;_unsat}) to the class control"""
+        aw_sat = AssumptionWrapper(literal=DEFAULT_LITERAL_ID, symbol=clingo.parse_term("0"), sign=True)
+        aw_unsat = AssumptionWrapper(literal=DEFAULT_LITERAL_ID, symbol=clingo.parse_term("1"), sign=True)
+        rid_sat = self._register_assumption_representation(aw_sat)
+        rid_unsat = self._register_assumption_representation(aw_unsat)
+        with self._control.backend() as backend:
+            lid_sat = self._register_assumption_atom(aw_sat, backend)
+            lid_unsat = self._register_assumption_atom(aw_unsat, backend)
+            backend.add_rule(head=[int(lid_sat), int(lid_unsat)], body=[], choice=True)
+            backend.add_rule(head=[], body=[-int(lid_sat), -int(lid_unsat)], choice=True)
+        return (rid_sat, lid_sat), (rid_unsat, lid_unsat)
+
     def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().add_sat(assumptions)
         # take difference of subset with all assumptions
         rule_assumptions = [a for a in self.assumptions if a not in assumptions]
         rule_literal_ids = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in rule_assumptions]
         # invert difference assumptions
-        rule_body = [-lid for lid in rule_literal_ids]
+        rule_body = [-lid for lid in rule_literal_ids] + [int(self._lid_sat)]
         with self._control.backend() as backend:
             backend.add_rule([], rule_body)
 
     def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().add_mus(assumptions)
-        rule_body = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumptions]
+        rule_body = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumptions] + [int(self._lid_unsat)]
         with self._control.backend() as backend:
             backend.add_rule([], rule_body)
 
     def _get_model(self) -> Optional[Set[clingo.Symbol]]:
-        with self._control.solve(yield_=True) as solve_handle:
+        with self._control.solve(assumptions=[int(self._lid_sat), int(self._lid_unsat)], yield_=True) as solve_handle:
             if solve_handle.get().satisfiable:
-                return set(solve_handle.model().symbols(atoms=True))
+                symbols = solve_handle.model().symbols(atoms=True)
+                symbols_cleaned = {
+                    s for s in symbols if int(s.arguments[0].number) not in [int(self._rid_sat), int(self._rid_unsat)]
+                }
+                return symbols_cleaned
         return None
 
     def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
