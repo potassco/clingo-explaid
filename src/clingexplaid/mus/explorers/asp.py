@@ -44,6 +44,8 @@ class ExploredException(Exception):
 class ExplorerAsp(Explorer):
     """Oracle using an ASP explore encoding for getting MUS candidates"""
 
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().__init__(assumptions=assumptions)
         self._control = clingo.Control(["--heuristic=Domain"])
@@ -162,9 +164,9 @@ class ExplorerAsp(Explorer):
                 model_symbols = solve_handle.model().symbols(atoms=True)
                 if self._symbol_sat in model_symbols and self._symbol_unsat in model_symbols:
                     return ExplorationStatus.UNKNOWN
-                elif self._symbol_sat in model_symbols:
+                if self._symbol_sat in model_symbols:
                     return ExplorationStatus.UNSATISFIABLE
-                elif self._symbol_unsat in model_symbols:
+                if self._symbol_unsat in model_symbols:
                     return ExplorationStatus.SATISFIABLE
             raise ExploredException()
 
