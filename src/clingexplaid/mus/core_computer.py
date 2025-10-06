@@ -117,6 +117,8 @@ class CoreComputer:
                 return False
             case ExplorationStatus.UNKNOWN:
                 with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
+                    if solve_handle.get().satisfiable:
+                        self.explorer.add_sat(self._wrap_assumption_literals(assumptions))
                     return bool(solve_handle.get().satisfiable)
 
     def _convert_assumptions(self, assumptions: AssumptionSet) -> Set[int]:
@@ -218,7 +220,6 @@ class CoreComputer:
 
             # If the candidate subset was satisfiable, add it to the explorer and continue
             if len(list(mus.assumptions)) == 0:
-                self.explorer.add_sat(current_subset)
                 continue
 
             # If the found MUS is unknown to the explorer, add it to the explorer and yield it
