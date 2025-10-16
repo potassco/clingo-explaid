@@ -167,7 +167,7 @@ class ExplorerAsp(Explorer):
             model = self._get_model()
             if model is None:
                 break
-            rids = [RepresentationID(int(str(atom.arguments[0]))) for atom in model]
+            rids = [RepresentationID(atom.arguments[0].number) for atom in model]
             yield {self._rid_to_assumption[rid] for rid in rids}
 
     def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
