@@ -1,7 +1,6 @@
 """Explorer using ASP for getting MUS candidates"""
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Dict, Generator, Iterable, Optional, Set, Tuple
 
 import clingo
@@ -10,9 +9,6 @@ from ..utils import AssumptionWrapper
 from .base import ExplorationStatus, Explorer
 
 ASSUMPTION_SYMBOL_NAME = "a"
-PATH_ENCODING_EXPLORED = str(Path(__file__).parent.parent / "encodings/explored.lp")
-EXPLORED_ATOM_SAT = "explored(sat)"
-EXPLORED_ATOM_UNSAT = "explored(unsat)"
 DEFAULT_LITERAL_ID = 0
 
 
