@@ -23,7 +23,7 @@ Please refer to [DEVELOPEMENT](DEVELOPMENT.md)
 
 ## API
 
-Here are two example for using `clingexplaid`'s API.
+The following Examples show use-cases for using `clingexplaid`'s API.
 
 ### Minimal Unsatisfiable Subsets (MUS)
 
@@ -58,6 +58,8 @@ You can also use an existing control and pass it to the
 `AssumptionPreprocessor` as follows:
 
 ```python
+import clingo
+from clingexplaid.preprocessors import AssumptionPreprocessor, FilterSignature, FilterPattern
 
 FILE = "local/encoding.lp"
 
@@ -108,8 +110,7 @@ ap.control.solve(
 Getting multiple MUS:
 
 ```python
-import clingo
-from clingexplaid.transformers import AssumptionTransformer
+from clingexplaid.preprocessors import AssumptionPreprocessor
 from clingexplaid.mus import CoreComputer
 
 PROGRAM = """
@@ -119,13 +120,10 @@ b(1..3).
 :- a(X), b(X).
 """
 
-at = AssumptionTransformer()
-transformed_program = at.parse_string(PROGRAM)
-control = clingo.Control()
-control.add("base", [], transformed_program)
-control.ground([("base", [])])
-assumptions = at.get_assumption_literals(control)
-cc = CoreComputer(control, assumptions)
+ap = AssumptionPreprocessor()
+ap.process(PROGRAM)
+ap.control.ground([("base", [])])
+cc = CoreComputer(ap.control, ap.assumptions)
 
 mus_generator = cc.get_multiple_minimal()
 for i, mus in enumerate(mus_generator):
