@@ -20,17 +20,12 @@ def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signatur
     return all((signature[0] == name, signature[1] == arity))
 
 
-__all__ = [
-    match_ast_symbolic_atom_signature.__name__,
-]
-
-
 def get_signatures_from_model_string(model_string: str) -> set[tuple[str, int]]:
     """
     This function returns a dictionary of the signatures/arities of all atoms of a model string. Model strings are of
     the form: `"signature1(X1, ..., XN) ... signatureM(X1, ..., XK)"`
     """
-    signatures = set()
+    signatures: set[tuple[str, int]] = set()
     for atom_string in model_string.split():
         result = re.search(r"([^(]*)\(", atom_string)
         if result is None:
@@ -61,7 +56,7 @@ def get_constants_from_arguments(argument_vector: list[str]) -> dict[str, str]:
     Function that is used to parse the command line argument vector to extract a dictionary of provided constants and
     their values. For example "-c test=42" would be converted to {"test": "42"}.
     """
-    constants = {}
+    constants: dict[str, str] = {}
     next_constant = False
     for element in argument_vector:
         if next_constant:

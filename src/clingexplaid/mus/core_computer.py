@@ -6,9 +6,10 @@ import time
 import warnings
 from collections.abc import Generator, Iterable, Iterator
 from dataclasses import dataclass
+from typing import override
 
 import clingo
-from clingo import Symbol
+from clingo import Control, Symbol
 
 from ..utils.types import AssumptionSet
 from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
@@ -47,6 +48,7 @@ class UnsatisfiableSubset:
     def __iter__(self) -> Iterator[tuple[clingo.Symbol, bool] | int]:
         return self.iter_symbols()
 
+    @override
     def __str__(self) -> str:  # nocoverage
         out = "UnsatisfiableSubset("
         out += "assumptions="
@@ -56,7 +58,9 @@ class UnsatisfiableSubset:
         out += ")"
         return out
 
-    __repr__ = __str__
+    @override
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class CoreComputer:
@@ -71,7 +75,7 @@ class CoreComputer:
         assumption_set: AssumptionSet,
         explorer: type[Explorer] = ExplorerPowerset,
     ):
-        self.control = control
+        self.control: Control = control
         self.literal_lookup: dict[int, Symbol] = {}
         self.symbol_lookup: dict[Symbol, int] = {}
         self.minimal: UnsatisfiableSubset | None = None
@@ -80,7 +84,7 @@ class CoreComputer:
         self._build_lookups()
 
         self.assumption_set: set[int] = self._convert_assumptions(assumption_set)
-        self.explorer = explorer(assumptions=self._wrap_assumption_literals(self.assumption_set))
+        self.explorer: Explorer = explorer(assumptions=self._wrap_assumption_literals(self.assumption_set))
 
     def _wrap_assumption_literals(self, literals: Iterable[int]) -> set[AssumptionWrapper]:
         return {self._get_assumption_wrapper(literal) for literal in literals}
@@ -98,7 +102,7 @@ class CoreComputer:
 
     def _build_unsatisfiable_subset(self, assumptions: set[int], minimal: bool) -> UnsatisfiableSubset:
         """Build up an unsatisfiable subset from the given set of assumptions"""
-        wrapper_set = set()
+        wrapper_set: set[AssumptionWrapper] = set()
         for a_literal in assumptions:
             assumption_symbol = self.literal_lookup[abs(a_literal)]
             a_sign = a_literal >= 0
@@ -125,7 +129,7 @@ class CoreComputer:
 
     def _convert_assumptions(self, assumptions: AssumptionSet) -> set[int]:
         """Convert assumptions to literal representation, e.g.: (Symbol, bool) -> (int, bool)"""
-        converted = set()
+        converted: set[int] = set()
         for assumption in assumptions:
             if isinstance(assumption, int):
                 converted.add(assumption)
@@ -249,7 +253,7 @@ class CoreComputer:
         if literal_lookup is None:
             literal_lookup = self.literal_lookup
 
-        mus_string = set()
+        mus_string: set[str] = set()
         for a in mus:
             if isinstance(a, int):
                 mus_string.add(str(literal_lookup[a]))  # nocoverage
