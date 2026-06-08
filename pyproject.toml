@@ -19,7 +19,6 @@ dynamic = [ "version" ]
 readme = "README.md"
 dependencies = [
 	"clingo>=5.7.1",
-    "autoflake",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -42,12 +41,12 @@ Source = "https://github.com/potassco/clingo-explaid"
 "Issues" = "https://github.com/potassco/clingo-explaid/issues"
 
 [project.optional-dependencies]
-format = [ "black", "isort", "autoflake" ]
+lint = [ "ruff" ]
 lint_pylint = [ "pylint" ]
 typecheck = [ "types-setuptools", "mypy" ]
 test = [ "coverage[toml]" ]
 doc = [ "sphinx", "furo", "nbsphinx", "sphinx_copybutton", "myst-parser" ]
-dev = [ "clingexplaid[test,typecheck,lint_pylint]" ]
+dev = [ "clingexplaid[test,typecheck,lint,lint_pylint]" ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -55,6 +54,12 @@ where = ["src"]
 [tool.setuptools_scm]
 version_scheme = "python-simplified-semver"
 local_scheme = "no-local-version"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
 
 [tool.isort]
 profile = "black"
