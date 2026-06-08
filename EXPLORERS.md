@@ -10,7 +10,7 @@ This document contains some intuition for the new `Explorer` classes in
 > **Example** Program $\\Pi$ : `UNSAT` Assumptions $A$: `+a`, `+b`, `+c`, `+d`
 > MUS: `{a,b}`, `{b,d}`
 
-> \[!NOTE\]
+> [!NOTE]
 >
 > Example Search Space
 >
@@ -36,7 +36,7 @@ This document contains some intuition for the new `Explorer` classes in
 For the explored check and finding the next suitable subset candidates an ASP
 exploration encoding is used
 
-> \[!NOTE\]
+> [!NOTE]
 >
 > Example for the Exploration Encoding
 >
@@ -74,13 +74,13 @@ as the next MUS candidate. For getting only the valid next possible candidates
 ##### Checking the explored Status
 
 The same `clingo.Control` object with the updated exploration encoding from
-\[\[#Enumerating MUS Candidates\]\] is used to check whether a provided subset
+\[[#Enumerating MUS Candidates]\] is used to check whether a provided subset
 $S$ is either `unexplored`, `explored(sat)`, or `explored(unsat)`.
 
 For that, all assumptions of the subset are assumed, while also the assumptions
 missing from the subset ($A\\setminus S$) are assumed as negated.
 
-> \[!NOTE\]
+> [!NOTE]
 >
 > Example Assumptions
 >

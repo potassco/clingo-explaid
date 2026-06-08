@@ -40,7 +40,7 @@ Furthermore, we provide individual sessions to easily run linting, type
 checking and formatting via nox. These also create editable installs. So you
 can safely skip the recreation of the virtual environment and reinstallation of
 your package in subsequent runs by passing the `-R` command line argument. For
-example, to auto-format your code using \[black\], run:
+example, to auto-format your code using [black], run:
 
 ```bash
 nox -Rs format -- check
