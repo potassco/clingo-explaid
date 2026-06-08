@@ -42,7 +42,6 @@ Source = "https://github.com/potassco/clingo-explaid"
 
 [project.optional-dependencies]
 lint = [ "ruff" ]
-lint_pylint = [ "pylint" ]
 typecheck = [ "types-setuptools", "mypy" ]
 test = [ "coverage[toml]" ]
 doc = [ "sphinx", "furo", "nbsphinx", "sphinx_copybutton", "myst-parser" ]
