@@ -4,7 +4,7 @@ Utilities.
 
 import re
 
-from clingo.ast import ASTType
+from clingo.ast import AST
 
 
 def unwrap[T](optional: T | None) -> T:
@@ -13,7 +13,7 @@ def unwrap[T](optional: T | None) -> T:
     return optional
 
 
-def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signature: tuple[str, int]) -> bool:
+def match_ast_symbolic_atom_signature(ast_symbol: AST, signature: tuple[str, int]) -> bool:
     """
     Function to match the signature of an AST SymbolicAtom to a tuple containing a string and int value, representing a
     matching signature.

@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from clingo import ast
-from clingo.ast import AST, ASTType
+from clingo.ast import AST
 
 from ..utils import match_ast_symbolic_atom_signature
 from .constants import REMOVED_TOKEN
@@ -22,7 +22,7 @@ class FactTransformer(ast.Transformer):
     def __init__(self, signatures: set[tuple[str, int]] | None = None):
         self.signatures: set[tuple[str, int]] = signatures if signatures is not None else set()
 
-    def visit_Rule(self, node: ASTType.Rule) -> AST:  # pylint: disable=C0103
+    def visit_Rule(self, node: AST) -> AST:  # pylint: disable=C0103
         """
         Removes all facts from a program that match the given signatures (if none are given all facts are removed).
         """

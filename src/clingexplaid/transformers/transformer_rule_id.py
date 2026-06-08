@@ -5,12 +5,12 @@ Transformer Module: Adding unique rule identifiers to the body of rules
 from pathlib import Path
 
 import clingo
-import clingo.ast as _ast
+from clingo.ast import AST, Function, SymbolicTerm, Transformer, parse_string
 
 from .constants import RULE_ID_SIGNATURE
 
 
-class RuleIDTransformer(_ast.Transformer):
+class RuleIDTransformer(Transformer):
     """
     A Transformer that takes all the rules of a program and adds an atom with `self.rule_id_signature` in their bodys,
     to make the original rule the generated them identifiable even after grounding. Additionally, a choice rule
@@ -20,18 +20,18 @@ class RuleIDTransformer(_ast.Transformer):
     """
 
     def __init__(self, rule_id_signature: str = RULE_ID_SIGNATURE):
-        self.rule_id = 1
-        self.rule_id_signature = rule_id_signature
+        self.rule_id: int = 1
+        self.rule_id_signature: str = rule_id_signature
 
-    def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
+    def visit_Rule(self, node: AST) -> AST:  # pylint: disable=C0103
         """
         Adds a rule_id_signature(id) atom to the body of every rule that is visited.
         """
         # add for each rule a theory atom (self.rule_id_signature) with the id as an argument
-        symbol = _ast.Function(
+        symbol = Function(
             location=node.location,
             name=self.rule_id_signature,
-            arguments=[_ast.SymbolicTerm(node.location, clingo.parse_term(str(self.rule_id)))],
+            arguments=[SymbolicTerm(node.location, clingo.parse_term(str(self.rule_id)))],
             external=0,
         )
 
@@ -50,8 +50,8 @@ class RuleIDTransformer(_ast.Transformer):
         Function that applies the transformation to the `program_string` it's called with and returns the transformed
         program string.
         """
-        out = []
-        _ast.parse_string(string, lambda stm: out.append(str(self(stm))))
+        out: list[str] = []
+        parse_string(string, lambda stm: out.append(str(self(stm))))
         out.append(
             f"{{_rule(1..{self._get_number_of_rules()})}}. % Choice rule to allow all _rule atoms to become assumptions"
         )
