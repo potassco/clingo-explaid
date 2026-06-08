@@ -15,8 +15,7 @@ class ExplorerPowerset(Explorer):
         self._found_sat: List[Set[AssumptionWrapper]] = []
         self._found_mus: List[Set[AssumptionWrapper]] = []
         self._powerset = chain.from_iterable(
-            combinations(assumptions, r)
-            for r in reversed(range(len(list(assumptions)) + 1))
+            combinations(assumptions, r) for r in reversed(range(len(list(assumptions)) + 1))
         )
 
     def reset(self) -> None:

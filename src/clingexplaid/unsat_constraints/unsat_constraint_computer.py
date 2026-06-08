@@ -62,9 +62,7 @@ class UnsatConstraintComputer:
         """
         return self._file_constraint_lookup.get(constraint_id)
 
-    def get_unsat_constraints(
-        self, assumption_string: Optional[str] = None
-    ) -> Dict[int, str]:
+    def get_unsat_constraints(self, assumption_string: Optional[str] = None) -> Dict[int, str]:
         """
         Method to get the unsat constraints of an initialized `UnsatConstraintComputer` Object.
         """
@@ -99,9 +97,7 @@ class UnsatConstraintComputer:
                 continue
             constraint_id = match_result.group(1)
             constraint_lookup[int(constraint_id)] = (
-                str(line)
-                .replace(f"{UNSAT_CONSTRAINT_SIGNATURE}({constraint_id})", "")
-                .strip()
+                str(line).replace(f"{UNSAT_CONSTRAINT_SIGNATURE}({constraint_id})", "").strip()
             )
 
         self.control.add("base", [], program_string)
@@ -112,9 +108,7 @@ class UnsatConstraintComputer:
             unsat_constraint_atoms = []
             while model is not None:
                 unsat_constraint_atoms = [
-                    a
-                    for a in model.symbols(atoms=True)
-                    if a.match(UNSAT_CONSTRAINT_SIGNATURE, 1, True)
+                    a for a in model.symbols(atoms=True) if a.match(UNSAT_CONSTRAINT_SIGNATURE, 1, True)
                 ]
                 solve_handle.resume()
                 model = solve_handle.model()

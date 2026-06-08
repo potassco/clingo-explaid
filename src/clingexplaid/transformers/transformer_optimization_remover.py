@@ -23,9 +23,7 @@ class OptimizationRemover(ast.Transformer):
         """
         return ast.Rule(
             location=node.location,
-            head=ast.Function(
-                location=node.location, name=REMOVED_TOKEN, arguments=[], external=0
-            ),
+            head=ast.Function(location=node.location, name=REMOVED_TOKEN, arguments=[], external=0),
             body=[],
         )
 

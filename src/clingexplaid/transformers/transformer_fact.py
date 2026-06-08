@@ -31,8 +31,7 @@ class FactTransformer(ast.Transformer):
         if node.body:
             return node
         has_matching_signature = any(
-            match_ast_symbolic_atom_signature(node.head.atom, (name, arity))
-            for (name, arity) in self.signatures
+            match_ast_symbolic_atom_signature(node.head.atom, (name, arity)) for (name, arity) in self.signatures
         )
         # if signatures are defined only transform facts that match them, else transform all facts
         if self.signatures and not has_matching_signature:
@@ -40,9 +39,7 @@ class FactTransformer(ast.Transformer):
 
         return ast.Rule(
             location=node.location,
-            head=ast.Function(
-                location=node.location, name=REMOVED_TOKEN, arguments=[], external=0
-            ),
+            head=ast.Function(location=node.location, name=REMOVED_TOKEN, arguments=[], external=0),
             body=[],
         )
 

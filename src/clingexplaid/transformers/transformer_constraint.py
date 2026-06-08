@@ -34,11 +34,7 @@ class ConstraintTransformer(_ast.Transformer):
 
         arguments = []
         if self._include_id:
-            arguments = [
-                _ast.SymbolicTerm(
-                    node.location, clingo.parse_term(str(self._constraint_id))
-                )
-            ]
+            arguments = [_ast.SymbolicTerm(node.location, clingo.parse_term(str(self._constraint_id)))]
 
         head_symbol = _ast.Function(
             location=node.location,
@@ -72,7 +68,5 @@ class ConstraintTransformer(_ast.Transformer):
         Parses the files and returns a string with the transformed program.
         """
         out = []
-        _ast.parse_files(
-            [str(p) for p in paths], lambda stm: out.append((str(self(stm))))
-        )
+        _ast.parse_files([str(p) for p in paths], lambda stm: out.append((str(self(stm)))))
         return "\n".join(out)

@@ -176,7 +176,7 @@ class TestMUS(TestCase):
         random_core = random.choices(range(1, n_assumptions), k=10)
         program = f"""
             a(1..{n_assumptions}).
-            :- {', '.join([f"a({i})" for i in random_core])}.
+            :- {", ".join([f"a({i})" for i in random_core])}.
             """
         filters = {FilterSignature("a", 1)}
 
@@ -197,7 +197,7 @@ class TestMUS(TestCase):
         random_core = random.choices(range(1, n_assumptions), k=500)
         program = f"""
                     a(1..{n_assumptions}).
-                    :- {', '.join([f"a({i})" for i in random_core])}.
+                    :- {", ".join([f"a({i})" for i in random_core])}.
                     """
         filters = {FilterSignature("a", 1)}
 

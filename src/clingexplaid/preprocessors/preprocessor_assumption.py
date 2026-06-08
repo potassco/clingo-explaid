@@ -49,12 +49,8 @@ class AssumptionPreprocessor:
         fail_on_unprocessed: bool = True,
     ):
         self.control = control if control is not None else clingo.Control()
-        self.filters: Set[Union[FilterPattern, FilterSignature]] = (
-            set(filters) if filters is not None else set()
-        )
-        self._filters_convert_nothing = bool(
-            filters is not None and len(list(filters)) == 0
-        )
+        self.filters: Set[Union[FilterPattern, FilterSignature]] = set(filters) if filters is not None else set()
+        self._filters_convert_nothing = bool(filters is not None and len(list(filters)) == 0)
         self._processed = False
         self._fail_on_unprocessed = fail_on_unprocessed
         self._parsed_rules: List[str] = []
@@ -62,17 +58,13 @@ class AssumptionPreprocessor:
         self._assumptions: Set[Tuple[clingo.Symbol, bool]] = set()
 
         if self._filters_convert_nothing:
-            warnings.warn(
-                "When an empty list of filters is provided, no facts will be transformed to assumptions"
-            )
+            warnings.warn("When an empty list of filters is provided, no facts will be transformed to assumptions")
 
     @staticmethod
     def _to_ast(symbol: Union[str, clingo.Symbol]) -> clingo.ast.AST:
         parsed_ast: List[clingo.ast.AST] = []
         parse_string(f"{symbol}.", parsed_ast.append)
-        ast_symbol = parsed_ast[
-            1
-        ]  # return AST symbol (parsed_ast[0] = '#program base.')
+        ast_symbol = parsed_ast[1]  # return AST symbol (parsed_ast[0] = '#program base.')
         return ast_symbol
 
     def _add_assumption(self, symbol: clingo.Symbol, positive: bool) -> None:
@@ -119,9 +111,7 @@ class AssumptionPreprocessor:
                 if result.satisfiable:
                     model = solve_handle.model()
                     return set(model.symbols(atoms=True))
-                raise ValueError(
-                    "Provided AST symbol does not follow valid ASP syntax"
-                )  # nocoverage
+                raise ValueError("Provided AST symbol does not follow valid ASP syntax")  # nocoverage
         # Case default
         atoms_unpooled = ast_symbol.unpool()
         return {clingo.parse_term(str(a)) for a in atoms_unpooled}
@@ -142,9 +132,7 @@ class AssumptionPreprocessor:
                 atoms_retained.add(atom)
                 continue
             ast = AssumptionPreprocessor._to_ast(atom)
-            ast_choice_literal = clingo.ast.ConditionalLiteral(
-                location=rule.location, literal=ast.head, condition=[]
-            )
+            ast_choice_literal = clingo.ast.ConditionalLiteral(location=rule.location, literal=ast.head, condition=[])
             atoms_choice.add(ast_choice_literal)
         atoms_retained_ast: Set[clingo.ast.AST] = set()
         for atom in atoms_retained:
@@ -168,25 +156,19 @@ class AssumptionPreprocessor:
             return [choice_rule, *sorted(atoms_retained_ast, key=str)]
         return list(sorted(atoms_retained_ast, key=str))
 
-    def register_ast(
-        self, ast: clingo.ast.AST, builder: clingo.ast.ProgramBuilder
-    ) -> None:
+    def register_ast(self, ast: clingo.ast.AST, builder: clingo.ast.ProgramBuilder) -> None:
         """Registers the provided AST to the builder and the parsed rules list"""
         if ast.ast_type == clingo.ast.ASTType.Definition:
             self._add_constant(str(ast.name), ast.value.symbol)
         self._parsed_rules.append(str(ast))
         builder.add(ast)
 
-    def _process_ast_list(
-        self, ast_list: List[clingo.ast.AST], builder: ProgramBuilder
-    ) -> None:
+    def _process_ast_list(self, ast_list: List[clingo.ast.AST], builder: ProgramBuilder) -> None:
         for ast in ast_list:
             if ast.ast_type == clingo.ast.ASTType.Rule:
                 for new_ast in self._transform_rule(ast):
                     if new_ast.ast_type != clingo.ast.ASTType.Rule:  # nocoverage
-                        new_rule = clingo.ast.Rule(
-                            location=ast.location, head=new_ast, body=[]
-                        )
+                        new_rule = clingo.ast.Rule(location=ast.location, head=new_ast, body=[])
                         self.register_ast(new_rule, builder)
                     else:
                         self.register_ast(new_ast, builder)
