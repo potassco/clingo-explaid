@@ -7,6 +7,12 @@ import re
 from clingo.ast import ASTType
 
 
+def unwrap[T](optional: T | None) -> T:
+    if optional is None:
+        raise ValueError("Optional value is None")
+    return optional
+
+
 def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signature: tuple[str, int]) -> bool:
     """
     Function to match the signature of an AST SymbolicAtom to a tuple containing a string and int value, representing a
