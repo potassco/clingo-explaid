@@ -3,7 +3,6 @@ Transformer Module: Adding unique rule identifiers to the body of rules
 """
 
 from pathlib import Path
-from typing import Optional, Set, Tuple, Union
 
 import clingo
 import clingo.ast as _ast
@@ -52,21 +51,21 @@ class RuleIDTransformer(_ast.Transformer):
         program string.
         """
         out = []
-        _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
+        _ast.parse_string(string, lambda stm: out.append(str(self(stm))))
         out.append(
             f"{{_rule(1..{self._get_number_of_rules()})}}. % Choice rule to allow all _rule atoms to become assumptions"
         )
 
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path], encoding: str = "utf-8") -> str:
+    def parse_file(self, path: str | Path, encoding: str = "utf-8") -> str:
         """
         Parses the file at path and returns a string with the transformed program.
         """
-        with open(path, "r", encoding=encoding) as f:
+        with open(path, encoding=encoding) as f:
             return self.parse_string(f.read())
 
-    def get_assumptions(self, n_rules: Optional[int] = None) -> Set[Tuple[clingo.Symbol, bool]]:
+    def get_assumptions(self, n_rules: int | None = None) -> set[tuple[clingo.Symbol, bool]]:
         """
         Returns the rule_id_signature assumptions depending on the number of rules contained in the transformed
         program. Can only be called after parse_file has been executed before.

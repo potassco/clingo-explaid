@@ -3,7 +3,7 @@ Tests for the mus package
 """
 
 import random
-from typing import Iterable, List, Optional, Sequence, Set, Tuple, Type, Union
+from collections.abc import Iterable, Sequence
 from unittest import TestCase
 
 import clingo
@@ -20,11 +20,11 @@ EXPLORERS = (ExplorerPowerset, ExplorerAsp)
 
 def get_mus_of_program(
     program_string: str,
-    assumption_filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None,
-    control: Optional[clingo.Control] = None,
-    timeout: Optional[float] = None,
-    explorer: Type[Explorer] = ExplorerPowerset,
-) -> Tuple[UnsatisfiableSubset, CoreComputer]:
+    assumption_filters: Iterable[FilterPattern | FilterSignature] | None = None,
+    control: clingo.Control | None = None,
+    timeout: float | None = None,
+    explorer: type[Explorer] = ExplorerPowerset,
+) -> tuple[UnsatisfiableSubset, CoreComputer]:
     """
     Helper function to directly get the MUS of a given program string.
     """
@@ -62,8 +62,8 @@ class TestMUS(TestCase):
 
     def _assert_mus(
         self,
-        mus: Set[str],
-        valid_mus_string_lists: List[Set[str]],
+        mus: set[str],
+        valid_mus_string_lists: list[set[str]],
     ) -> None:
         """
         Asserts if a MUS is one of several valid MUS's.
@@ -231,7 +231,7 @@ class TestMUS(TestCase):
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
             ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
-            with open(program_path, "r", encoding="utf-8") as file:
+            with open(program_path, encoding="utf-8") as file:
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
@@ -255,7 +255,7 @@ class TestMUS(TestCase):
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
             ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
-            with open(program_path, "r", encoding="utf-8") as file:
+            with open(program_path, encoding="utf-8") as file:
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
@@ -281,7 +281,7 @@ class TestMUS(TestCase):
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
             ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
-            with open(program_path, "r", encoding="utf-8") as file:
+            with open(program_path, encoding="utf-8") as file:
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])

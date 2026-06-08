@@ -2,8 +2,8 @@
 Transformer Module: Removing all optimization statements
 """
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence, Union
 
 from clingo import ast
 
@@ -49,7 +49,7 @@ class OptimizationRemover(ast.Transformer):
         ast.parse_string(string, lambda stm: out.append(str(self(stm))))
         return self.post_transform("\n".join(out))
 
-    def parse_files(self, paths: Sequence[Union[str, Path]]) -> str:
+    def parse_files(self, paths: Sequence[str | Path]) -> str:
         """
         Parses the files and returns a string with the transformed program.
         """

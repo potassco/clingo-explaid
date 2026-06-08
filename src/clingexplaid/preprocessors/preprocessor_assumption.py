@@ -3,8 +3,8 @@ Transformer Module: Assumption Transformer for converting facts to choices that 
 """
 
 import warnings
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import clingo
 from clingo.ast import ProgramBuilder, parse_files, parse_string
@@ -44,25 +44,25 @@ class AssumptionPreprocessor:
 
     def __init__(
         self,
-        filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None,
-        control: Optional[clingo.Control] = None,
+        filters: Iterable[FilterPattern | FilterSignature] | None = None,
+        control: clingo.Control | None = None,
         fail_on_unprocessed: bool = True,
     ):
         self.control = control if control is not None else clingo.Control()
-        self.filters: Set[Union[FilterPattern, FilterSignature]] = set(filters) if filters is not None else set()
+        self.filters: set[FilterPattern | FilterSignature] = set(filters) if filters is not None else set()
         self._filters_convert_nothing = bool(filters is not None and len(list(filters)) == 0)
         self._processed = False
         self._fail_on_unprocessed = fail_on_unprocessed
-        self._parsed_rules: List[str] = []
-        self._constants: Dict[str, clingo.Symbol] = {}
-        self._assumptions: Set[Tuple[clingo.Symbol, bool]] = set()
+        self._parsed_rules: list[str] = []
+        self._constants: dict[str, clingo.Symbol] = {}
+        self._assumptions: set[tuple[clingo.Symbol, bool]] = set()
 
         if self._filters_convert_nothing:
             warnings.warn("When an empty list of filters is provided, no facts will be transformed to assumptions")
 
     @staticmethod
-    def _to_ast(symbol: Union[str, clingo.Symbol]) -> clingo.ast.AST:
-        parsed_ast: List[clingo.ast.AST] = []
+    def _to_ast(symbol: str | clingo.Symbol) -> clingo.ast.AST:
+        parsed_ast: list[clingo.ast.AST] = []
         parse_string(f"{symbol}.", parsed_ast.append)
         ast_symbol = parsed_ast[1]  # return AST symbol (parsed_ast[0] = '#program base.')
         return ast_symbol
@@ -98,7 +98,7 @@ class AssumptionPreprocessor:
             rules.append(f"#const {constant}={value}.")
         return "\n".join(rules) + "\n"
 
-    def _unpool(self, ast_symbol: clingo.ast.AST) -> Set[clingo.Symbol]:
+    def _unpool(self, ast_symbol: clingo.ast.AST) -> set[clingo.Symbol]:
         if ".." in str(ast_symbol):
             # Case range in ast symbol (i.e. 1..10)
             # Solved using grounding, but if possible, I'd rather avoid this if possible
@@ -116,15 +116,15 @@ class AssumptionPreprocessor:
         atoms_unpooled = ast_symbol.unpool()
         return {clingo.parse_term(str(a)) for a in atoms_unpooled}
 
-    def _transform_rule(self, rule: clingo.ast.AST) -> List[clingo.ast.AST]:
+    def _transform_rule(self, rule: clingo.ast.AST) -> list[clingo.ast.AST]:
         if rule.head.ast_type != clingo.ast.ASTType.Literal:
             return [rule]
         if rule.body:
             return [rule]
 
         atoms_unpooled = self._unpool(rule.head)
-        atoms_choice: Set[clingo.ast.AST] = set()
-        atoms_retained: Set[clingo.Symbol] = set()
+        atoms_choice: set[clingo.ast.AST] = set()
+        atoms_retained: set[clingo.Symbol] = set()
         for atom in atoms_unpooled:
             filters_apply = self._any_filters_apply(atom)
             # if filters are defined, only transform facts that match them, else transform all facts
@@ -134,7 +134,7 @@ class AssumptionPreprocessor:
             ast = AssumptionPreprocessor._to_ast(atom)
             ast_choice_literal = clingo.ast.ConditionalLiteral(location=rule.location, literal=ast.head, condition=[])
             atoms_choice.add(ast_choice_literal)
-        atoms_retained_ast: Set[clingo.ast.AST] = set()
+        atoms_retained_ast: set[clingo.ast.AST] = set()
         for atom in atoms_retained:
             atoms_retained_ast.add(AssumptionPreprocessor._to_ast(atom))
 
@@ -163,7 +163,7 @@ class AssumptionPreprocessor:
         self._parsed_rules.append(str(ast))
         builder.add(ast)
 
-    def _process_ast_list(self, ast_list: List[clingo.ast.AST], builder: ProgramBuilder) -> None:
+    def _process_ast_list(self, ast_list: list[clingo.ast.AST], builder: ProgramBuilder) -> None:
         for ast in ast_list:
             if ast.ast_type == clingo.ast.ASTType.Rule:
                 for new_ast in self._transform_rule(ast):
@@ -179,19 +179,19 @@ class AssumptionPreprocessor:
 
     def process(self, program_string: str) -> str:
         """Processes the provided program string and returns the transformed program string (control is also updated)"""
-        ast_list: List[clingo.ast.AST] = []
+        ast_list: list[clingo.ast.AST] = []
         with ProgramBuilder(self.control) as builder:
             parse_string(program_string, ast_list.append)
             self._process_ast_list(ast_list, builder)
         self._processed = True
         return "\n".join(self._parsed_rules)
 
-    def process_files(self, files: Optional[List[str]] = None) -> str:
+    def process_files(self, files: list[str] | None = None) -> str:
         """Processes the provided files and returns the transformed program string (control is also updated)"""
         if files is None:
             warnings.warn("Nothing to process, no files provided")
             return ""
-        ast_list: List[clingo.ast.AST] = []
+        ast_list: list[clingo.ast.AST] = []
         with ProgramBuilder(self.control) as builder:
             parse_files(files, ast_list.append)
             self._process_ast_list(ast_list, builder)
@@ -199,7 +199,7 @@ class AssumptionPreprocessor:
         return "\n".join(self._parsed_rules)
 
     @property
-    def assumptions(self) -> Set[Tuple[clingo.Symbol, bool]]:
+    def assumptions(self) -> set[tuple[clingo.Symbol, bool]]:
         """Property that returns the assumptions generated by the preprocessor after calling `process`"""
         if not self._processed:
             if self._fail_on_unprocessed:
@@ -213,7 +213,7 @@ class AssumptionPreprocessor:
         return set(self._assumptions)
 
     @property
-    def constants(self) -> Dict[str, clingo.Symbol]:
+    def constants(self) -> dict[str, clingo.Symbol]:
         """Property that returns the constants generated by the preprocessor after calling `process`"""
         if not self._processed:  # nocoverage
             if self._fail_on_unprocessed:

@@ -1,8 +1,8 @@
 """Abstract base class for all Explorers"""
 
 from abc import ABC, abstractmethod
+from collections.abc import Generator, Iterable
 from enum import Enum
-from typing import Generator, Iterable, Set
 
 from ..utils import AssumptionWrapper
 
@@ -22,7 +22,7 @@ class Explorer(ABC):
         self._assumptions = set(assumptions)
 
     @property
-    def assumptions(self) -> Set[AssumptionWrapper]:  # nocoverage
+    def assumptions(self) -> set[AssumptionWrapper]:  # nocoverage
         """All assumptions that the oracle can choose from"""
         return self._assumptions
 
@@ -44,9 +44,9 @@ class Explorer(ABC):
         """Resets the found assumption sets"""
 
     @abstractmethod
-    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
+    def explored(self, assumption_set: set[AssumptionWrapper]) -> ExplorationStatus:
         """Returns the exploration status of a set of assumptions"""
 
     @abstractmethod
-    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
+    def candidates(self) -> Generator[set[AssumptionWrapper], None, None]:
         """Generator that produces the assumption set candidates"""

@@ -2,8 +2,8 @@
 Propagator Module: Decision Order
 """
 
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import clingo
 from clingo import Propagator
@@ -21,9 +21,9 @@ class Decision:
 
     positive: bool
     literal: int
-    symbol: Optional[clingo.Symbol]
+    symbol: clingo.Symbol | None
 
-    def matches_any(self, signatures: Set[Tuple[str, int]], show_internal: bool = True) -> bool:
+    def matches_any(self, signatures: set[tuple[str, int]], show_internal: bool = True) -> bool:
         """
         Checks if the decisions symbol matches any of the provided `signatures`. If  the decisions is an internal
         literal `show_internal` is returned.
@@ -50,20 +50,20 @@ class SolverDecisionPropagator(Propagator):
 
     def __init__(
         self,
-        signatures: Optional[Set[Tuple[str, int]]] = None,
-        callback_propagate: Optional[Callable[[List[Union[Decision, List[Decision]]]], None]] = None,
-        callback_undo: Optional[Callable[[], None]] = None,
+        signatures: set[tuple[str, int]] | None = None,
+        callback_propagate: Callable[[list[Decision | list[Decision]]], None] | None = None,
+        callback_undo: Callable[[], None] | None = None,
     ):
         # pylint: disable=missing-function-docstring
-        self.literal_symbol_lookup: Dict[int, clingo.Symbol] = {}
+        self.literal_symbol_lookup: dict[int, clingo.Symbol] = {}
         self.signatures = signatures if signatures is not None else set()
 
-        self.callback_propagate: Callable[[List[Union[Decision, List[Decision]]]], None] = (
+        self.callback_propagate: Callable[[list[Decision | list[Decision]]], None] = (
             callback_propagate if callback_propagate is not None else lambda x: None
         )
         self.callback_undo: Callable[[], None] = callback_undo if callback_undo is not None else lambda: None
 
-        self.last_decisions: List[Union[Decision, List[Decision]]] = []
+        self.last_decisions: list[Decision | list[Decision]] = []
 
     def init(self, init: clingo.PropagateInit) -> None:
         """
@@ -98,7 +98,7 @@ class SolverDecisionPropagator(Propagator):
         # pylint: disable=unused-argument
         decisions, entailments = self.get_decisions(control.assignment)
 
-        literal_sequence: List[Union[int, List[int]]] = []
+        literal_sequence: list[int | list[int]] = []
         for d in decisions:
             literal_sequence.append(d)
             if d in entailments:
@@ -107,7 +107,7 @@ class SolverDecisionPropagator(Propagator):
         decision_sequence = self.literal_to_decision_sequence(literal_sequence)
 
         if use_diff:
-            decision_diff: List[Union[Decision, List[Decision]]] = []
+            decision_diff: list[Decision | list[Decision]] = []
             for i, decision in enumerate(decision_sequence):
                 if i < len(self.last_decisions):
                     if self.last_decisions[i] != decision:
@@ -135,14 +135,12 @@ class SolverDecisionPropagator(Propagator):
         symbol = self.literal_symbol_lookup.get(abs(literal))
         return Decision(literal=abs(literal), positive=is_positive, symbol=symbol)
 
-    def literal_to_decision_sequence(
-        self, literal_sequence: List[Union[int, List[int]]]
-    ) -> List[Union[Decision, List[Decision]]]:
+    def literal_to_decision_sequence(self, literal_sequence: list[int | list[int]]) -> list[Decision | list[Decision]]:
         """
         Converts a literal sequence into a decision sequence. These sequences are made up of their respective types or
         lists of these types.
         """
-        new_decision_sequence: List[Union[Decision, List[Decision]]] = []
+        new_decision_sequence: list[Decision | list[Decision]] = []
         for element in literal_sequence:
             if isinstance(element, int):
                 new_decision_sequence.append(self.literal_to_decision(element))
@@ -153,7 +151,7 @@ class SolverDecisionPropagator(Propagator):
     @staticmethod
     def get_decisions(
         assignment: clingo.Assignment,
-    ) -> Tuple[List[int], Dict[int, List[int]]]:
+    ) -> tuple[list[int], dict[int, list[int]]]:
         """
         Helper function to extract a list of decisions and entailments from a clingo propagator assignment.
         """

@@ -4,7 +4,6 @@ Transformer Module: Split Rules into dedicated body and head parts
 
 import base64
 from pathlib import Path
-from typing import List, Union
 
 import clingo
 import clingo.ast as _ast
@@ -20,7 +19,7 @@ class RuleSplitter(_ast.Transformer):
     """
 
     def __init__(self) -> None:
-        self.head_rules: List[clingo.ast.AST] = []
+        self.head_rules: list[clingo.ast.AST] = []
 
     def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
         """
@@ -87,14 +86,14 @@ class RuleSplitter(_ast.Transformer):
         """
         self.head_rules = []
         out = []
-        _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
+        _ast.parse_string(string, lambda stm: out.append(str(self(stm))))
         out += [str(r) for r in self.head_rules]
 
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path], encoding: str = "utf-8") -> str:
+    def parse_file(self, path: str | Path, encoding: str = "utf-8") -> str:
         """
         Parses the file at path and returns a string with the transformed program.
         """
-        with open(path, "r", encoding=encoding) as f:
+        with open(path, encoding=encoding) as f:
             return self.parse_string(f.read())

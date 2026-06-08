@@ -2,7 +2,6 @@
 Tests for the utils package
 """
 
-from typing import List
 from unittest import TestCase
 
 import clingo
@@ -48,7 +47,7 @@ class TestUtils(TestCase):
         """
         Test converting an AST to a symbol.
         """
-        ast_list: List[clingo.ast.AST] = []
+        ast_list: list[clingo.ast.AST] = []
         parse_string(
             """
             test(1).

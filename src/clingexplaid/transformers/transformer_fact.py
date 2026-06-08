@@ -2,8 +2,8 @@
 Transformer Module: Fact Remover
 """
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence, Set, Tuple, Union
 
 import clingo
 from clingo import ast
@@ -19,7 +19,7 @@ class FactTransformer(ast.Transformer):
 
     # pylint: disable=duplicate-code
 
-    def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None):
+    def __init__(self, signatures: set[tuple[str, int]] | None = None):
         self.signatures = signatures if signatures is not None else set()
 
     def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
@@ -65,7 +65,7 @@ class FactTransformer(ast.Transformer):
         ast.parse_string(string, lambda stm: out.append(str(self(stm))))
         return self.post_transform("\n".join(out))
 
-    def parse_files(self, paths: Sequence[Union[str, Path]]) -> str:
+    def parse_files(self, paths: Sequence[str | Path]) -> str:
         """
         Parses the files and returns a string with the transformed program.
         """

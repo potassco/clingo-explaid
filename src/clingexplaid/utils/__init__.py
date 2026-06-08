@@ -3,12 +3,11 @@ Utilities.
 """
 
 import re
-from typing import Dict, List, Set, Tuple
 
 from clingo.ast import ASTType
 
 
-def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signature: Tuple[str, int]) -> bool:
+def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signature: tuple[str, int]) -> bool:
     """
     Function to match the signature of an AST SymbolicAtom to a tuple containing a string and int value, representing a
     matching signature.
@@ -26,7 +25,7 @@ __all__ = [
 ]
 
 
-def get_signatures_from_model_string(model_string: str) -> Set[Tuple[str, int]]:
+def get_signatures_from_model_string(model_string: str) -> set[tuple[str, int]]:
     """
     This function returns a dictionary of the signatures/arities of all atoms of a model string. Model strings are of
     the form: `"signature1(X1, ..., XN) ... signatureM(X1, ..., XK)"`
@@ -57,7 +56,7 @@ def get_signatures_from_model_string(model_string: str) -> Set[Tuple[str, int]]:
     return signatures
 
 
-def get_constants_from_arguments(argument_vector: List[str]) -> Dict[str, str]:
+def get_constants_from_arguments(argument_vector: list[str]) -> dict[str, str]:
     """
     Function that is used to parse the command line argument vector to extract a dictionary of provided constants and
     their values. For example "-c test=42" would be converted to {"test": "42"}.

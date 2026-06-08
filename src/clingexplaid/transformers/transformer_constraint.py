@@ -2,8 +2,8 @@
 Transformer Module: Adding atoms to constraint heads to retrace the ones firing in the case of an unsatisfiable program.
 """
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, Sequence, Union
 
 import clingo
 import clingo.ast as _ast
@@ -19,7 +19,7 @@ class ConstraintTransformer(_ast.Transformer):
         self._include_id = include_id
         self._constraint_id = 1
 
-        self.constraint_location_lookup: Dict[int, clingo.ast.Location] = {}
+        self.constraint_location_lookup: dict[int, clingo.ast.Location] = {}
 
     def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
         """
@@ -59,14 +59,14 @@ class ConstraintTransformer(_ast.Transformer):
         program string.
         """
         out = []
-        _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
+        _ast.parse_string(string, lambda stm: out.append(str(self(stm))))
 
         return "\n".join(out)
 
-    def parse_files(self, paths: Sequence[Union[str, Path]]) -> str:
+    def parse_files(self, paths: Sequence[str | Path]) -> str:
         """
         Parses the files and returns a string with the transformed program.
         """
         out = []
-        _ast.parse_files([str(p) for p in paths], lambda stm: out.append((str(self(stm)))))
+        _ast.parse_files([str(p) for p in paths], lambda stm: out.append(str(self(stm))))
         return "\n".join(out)
