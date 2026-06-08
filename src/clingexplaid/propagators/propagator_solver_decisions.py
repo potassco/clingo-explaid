@@ -23,7 +23,9 @@ class Decision:
     literal: int
     symbol: Optional[clingo.Symbol]
 
-    def matches_any(self, signatures: Set[Tuple[str, int]], show_internal: bool = True) -> bool:
+    def matches_any(
+        self, signatures: Set[Tuple[str, int]], show_internal: bool = True
+    ) -> bool:
         """
         Checks if the decisions symbol matches any of the provided `signatures`. If  the decisions is an internal
         literal `show_internal` is returned.
@@ -51,17 +53,21 @@ class SolverDecisionPropagator(Propagator):
     def __init__(
         self,
         signatures: Optional[Set[Tuple[str, int]]] = None,
-        callback_propagate: Optional[Callable[[List[Union[Decision, List[Decision]]]], None]] = None,
+        callback_propagate: Optional[
+            Callable[[List[Union[Decision, List[Decision]]]], None]
+        ] = None,
         callback_undo: Optional[Callable[[], None]] = None,
     ):
         # pylint: disable=missing-function-docstring
         self.literal_symbol_lookup: Dict[int, clingo.Symbol] = {}
         self.signatures = signatures if signatures is not None else set()
 
-        self.callback_propagate: Callable[[List[Union[Decision, List[Decision]]]], None] = (
-            callback_propagate if callback_propagate is not None else lambda x: None
+        self.callback_propagate: Callable[
+            [List[Union[Decision, List[Decision]]]], None
+        ] = callback_propagate if callback_propagate is not None else lambda x: None
+        self.callback_undo: Callable[[], None] = (
+            callback_undo if callback_undo is not None else lambda: None
         )
-        self.callback_undo: Callable[[], None] = callback_undo if callback_undo is not None else lambda: None
 
         self.last_decisions: List[Union[Decision, List[Decision]]] = []
 
@@ -75,7 +81,9 @@ class SolverDecisionPropagator(Propagator):
             self.literal_symbol_lookup[solver_literal] = atom.symbol
 
         for atom in init.symbolic_atoms:
-            if len(self.signatures) > 0 and not any(atom.match(name=s, arity=a) for s, a in self.signatures):
+            if len(self.signatures) > 0 and not any(
+                atom.match(name=s, arity=a) for s, a in self.signatures
+            ):
                 continue
             symbolic_atom = init.symbolic_atoms[atom.symbol]
             if symbolic_atom is None:
@@ -85,7 +93,12 @@ class SolverDecisionPropagator(Propagator):
             init.add_watch(query_solver_literal)
             init.add_watch(-query_solver_literal)
 
-    def propagate(self, control: clingo.PropagateControl, changes: Sequence[int], use_diff: bool = True) -> None:
+    def propagate(
+        self,
+        control: clingo.PropagateControl,
+        changes: Sequence[int],
+        use_diff: bool = True,
+    ) -> None:
         """
         Propagate method the is called when one the registered literals is propagated by clasp. Here useful information
         about the decision progress is recorded to be visualized later.
@@ -114,7 +127,9 @@ class SolverDecisionPropagator(Propagator):
         else:
             self.callback_propagate(decision_sequence)
 
-    def undo(self, thread_id: int, assignment: clingo.Assignment, changes: Sequence[int]) -> None:
+    def undo(
+        self, thread_id: int, assignment: clingo.Assignment, changes: Sequence[int]
+    ) -> None:
         """
         This function is called when one of the solvers decisions is undone.
         """
@@ -142,11 +157,15 @@ class SolverDecisionPropagator(Propagator):
             if isinstance(element, int):
                 new_decision_sequence.append(self.literal_to_decision(element))
             elif isinstance(element, list):
-                new_decision_sequence.append([self.literal_to_decision(literal) for literal in element])
+                new_decision_sequence.append(
+                    [self.literal_to_decision(literal) for literal in element]
+                )
         return new_decision_sequence
 
     @staticmethod
-    def get_decisions(assignment: clingo.Assignment) -> Tuple[List[int], Dict[int, List[int]]]:
+    def get_decisions(
+        assignment: clingo.Assignment,
+    ) -> Tuple[List[int], Dict[int, List[int]]]:
         """
         Helper function to extract a list of decisions and entailments from a clingo propagator assignment.
         """
@@ -163,7 +182,9 @@ class SolverDecisionPropagator(Propagator):
                 level_offset_end = trail.end(level)
                 level_offset_diff = level_offset_end - level_offset_start
                 if level_offset_diff > 1:
-                    entailments[decision] = trail[(level_offset_start + 1) : level_offset_end]
+                    entailments[decision] = trail[
+                        (level_offset_start + 1) : level_offset_end
+                    ]
                 level += 1
         except RuntimeError:
             return decisions, entailments

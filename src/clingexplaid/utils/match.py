@@ -107,7 +107,8 @@ class FunctionMatcher(Matcher):
         """
         if not self.name:
             return symbol.match("", len(self.arguments)) and all(
-                m.match(arg, assignment) for m, arg in zip(self.arguments, symbol.arguments)
+                m.match(arg, assignment)
+                for m, arg in zip(self.arguments, symbol.arguments)
             )
         return symbol.match(self.name, len(self.arguments), self.positive) and all(
             m.match(arg, assignment) for m, arg in zip(self.arguments, symbol.arguments)
@@ -246,7 +247,9 @@ class _Tokenizer:
         Returns:
             True if current token matches expectations.
         """
-        return self._token.token == expected_token and (expected_value is None or self._token.value == expected_value)
+        return self._token.token == expected_token and (
+            expected_value is None or self._token.value == expected_value
+        )
 
     def expect(self, expected_token: str, expected_value: str | None = None) -> _Token:
         """
@@ -262,7 +265,9 @@ class _Tokenizer:
             return token
         raise SyntaxError(f"Unexpected token: {self._token}")
 
-    def match(self, expected_token: str, expected_value: str | None = None) -> _Token | None:
+    def match(
+        self, expected_token: str, expected_value: str | None = None
+    ) -> _Token | None:
         """
         If the current token matches the expected type and value, consume it.
 

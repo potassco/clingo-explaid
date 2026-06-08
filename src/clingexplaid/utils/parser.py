@@ -54,5 +54,7 @@ def get_parser() -> ArgumentParser:
         type=cast(Any, lambda name: get(levels, name)),
     )
 
-    parser.add_argument("--version", "-v", action="version", version=f"%(prog)s {VERSION}")
+    parser.add_argument(
+        "--version", "-v", action="version", version=f"%(prog)s {VERSION}"
+    )
     return parser

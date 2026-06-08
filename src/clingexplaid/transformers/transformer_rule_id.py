@@ -32,7 +32,9 @@ class RuleIDTransformer(_ast.Transformer):
         symbol = _ast.Function(
             location=node.location,
             name=self.rule_id_signature,
-            arguments=[_ast.SymbolicTerm(node.location, clingo.parse_term(str(self.rule_id)))],
+            arguments=[
+                _ast.SymbolicTerm(node.location, clingo.parse_term(str(self.rule_id)))
+            ],
             external=0,
         )
 
@@ -67,11 +69,16 @@ class RuleIDTransformer(_ast.Transformer):
         with open(path, "r", encoding=encoding) as f:
             return self.parse_string(f.read())
 
-    def get_assumptions(self, n_rules: Optional[int] = None) -> Set[Tuple[clingo.Symbol, bool]]:
+    def get_assumptions(
+        self, n_rules: Optional[int] = None
+    ) -> Set[Tuple[clingo.Symbol, bool]]:
         """
         Returns the rule_id_signature assumptions depending on the number of rules contained in the transformed
         program. Can only be called after parse_file has been executed before.
         """
         if n_rules is None:
             n_rules = self._get_number_of_rules()
-        return {(clingo.parse_term(f"{self.rule_id_signature}({rule_id})"), True) for rule_id in range(1, n_rules + 1)}
+        return {
+            (clingo.parse_term(f"{self.rule_id_signature}({rule_id})"), True)
+            for rule_id in range(1, n_rules + 1)
+        }
