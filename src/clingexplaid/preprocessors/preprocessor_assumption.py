@@ -5,6 +5,7 @@ Transformer Module: Assumption Transformer for converting facts to choices that 
 import warnings
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import override
 
 import clingo
 from clingo.ast import ProgramBuilder, parse_files, parse_string
@@ -20,6 +21,7 @@ class FilterSignature:
     name: str
     arity: int
 
+    @override
     def __hash__(self) -> int:
         return hash((self.name, self.arity))
 
@@ -30,6 +32,7 @@ class FilterPattern:
 
     pattern: str
 
+    @override
     def __hash__(self) -> int:
         return hash(self.pattern)
 
