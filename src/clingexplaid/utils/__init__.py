@@ -7,7 +7,7 @@ import re
 from clingo.ast import AST
 
 
-def unwrap[T](optional: T | None) -> T:
+def unwrap[T](optional: T | None) -> T:  # nocoverage
     if optional is None:
         raise ValueError("Optional value is None")
     return optional

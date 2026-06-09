@@ -72,7 +72,7 @@ class AssumptionSet:
         return out
 
     @override
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # nocoverage
         return self.__str__()
 
 
