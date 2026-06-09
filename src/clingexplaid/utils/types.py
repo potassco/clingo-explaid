@@ -6,8 +6,8 @@ from collections.abc import Iterable
 
 import clingo
 
-SymbolSet = set[clingo.Symbol]
-Literal = tuple[clingo.Symbol, bool]
-LiteralSet = set[Literal]
-Assumption = Literal | int
-AssumptionSet = Iterable[Assumption]
+SymbolSetDEPRECATED = set[clingo.Symbol]
+LiteralDEPRECATED = tuple[clingo.Symbol, bool]
+LiteralSetDEPRECATED = set[LiteralDEPRECATED]
+AssumptionDEPRECATED = LiteralDEPRECATED | int
+AssumptionSetDEPRECATED = Iterable[AssumptionDEPRECATED]
