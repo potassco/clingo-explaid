@@ -2,7 +2,6 @@
 Tests for the unsat_constraints package
 """
 
-from typing import Dict, Optional
 from unittest import TestCase
 
 from clingexplaid.unsat_constraints import UnsatConstraintComputer
@@ -19,10 +18,10 @@ class TestUnsatConstraints(TestCase):
 
     def unsat_constraint_computer_helper(
         self,
-        constraint_strings: Dict[int, str],
-        constraint_lines: Dict[int, int],
-        constraint_files: Dict[int, str],
-        assumption_string: Optional[str] = None,
+        constraint_strings: dict[int, str],
+        constraint_lines: dict[int, int],
+        constraint_files: dict[int, str],
+        assumption_string: str | None = None,
     ) -> None:
         """
         Helper function for testing the UnsatConstraintComputer
@@ -33,7 +32,7 @@ class TestUnsatConstraints(TestCase):
             if method == "from_files":
                 ucc.parse_files([str(program_path)])
             elif method == "from_string":
-                with open(program_path, "r", encoding="utf-8") as f:
+                with open(program_path, encoding="utf-8") as f:
                     ucc.parse_string(f.read())
             unsat_constraints = ucc.get_unsat_constraints(assumption_string=assumption_string)
             self.assertEqual(set(unsat_constraints.values()), set(constraint_strings.values()))

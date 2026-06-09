@@ -27,7 +27,7 @@ class TestPreprocessors(TestCase):
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_certain_signatures.lp")
         filters = [FilterSignature(c, 1) for c in "abcdef"]
         ap = AssumptionPreprocessor(filters=filters)
-        with open(program_path, "r", encoding="utf-8") as file:
+        with open(program_path, encoding="utf-8") as file:
             result = ap.process(file.read())
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
@@ -38,7 +38,7 @@ class TestPreprocessors(TestCase):
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_all.lp")
         ap = AssumptionPreprocessor()
-        with open(program_path, "r", encoding="utf-8") as file:
+        with open(program_path, encoding="utf-8") as file:
             result = ap.process(file.read())
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
@@ -49,7 +49,7 @@ class TestPreprocessors(TestCase):
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_nothing_transformed.lp")
         ap = AssumptionPreprocessor(filters=[])
-        with open(program_path, "r", encoding="utf-8") as file:
+        with open(program_path, encoding="utf-8") as file:
             result = ap.process(file.read())
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
@@ -61,7 +61,7 @@ class TestPreprocessors(TestCase):
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_pattern.lp")
         filters = {FilterPattern("a(_,value,_)")}
         ap = AssumptionPreprocessor(filters=filters)
-        with open(program_path, "r", encoding="utf-8") as file:
+        with open(program_path, encoding="utf-8") as file:
             result = ap.process(file.read())
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
@@ -78,7 +78,7 @@ class TestPreprocessors(TestCase):
         """
         program_path = TEST_DIR.joinpath("res/test_program_constants.lp")
         ap = AssumptionPreprocessor()
-        with open(program_path, "r", encoding="utf-8") as file:
+        with open(program_path, encoding="utf-8") as file:
             ap.process(file.read())
         ap.control.ground([("base", [])])
         self.assertEqual(

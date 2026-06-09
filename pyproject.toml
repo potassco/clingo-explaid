@@ -13,7 +13,7 @@ authors = [
 ]
 maintainers = [{ name = "Hannes Weichelt", email = "hweichelt@uni-potsdam.de" }]
 description = "Tools to aid the development of explanation systems using clingo"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = {file = "LICENSE"}
 dynamic = [ "version" ]
 readme = "README.md"

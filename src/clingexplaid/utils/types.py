@@ -2,12 +2,12 @@
 Custom types for clingexplaid
 """
 
-from typing import Iterable, Set, Tuple, Union
+from collections.abc import Iterable
 
 import clingo
 
-SymbolSet = Set[clingo.Symbol]
-Literal = Tuple[clingo.Symbol, bool]
-LiteralSet = Set[Literal]
-Assumption = Union[Literal, int]
+SymbolSet = set[clingo.Symbol]
+Literal = tuple[clingo.Symbol, bool]
+LiteralSet = set[Literal]
+Assumption = Literal | int
 AssumptionSet = Iterable[Assumption]

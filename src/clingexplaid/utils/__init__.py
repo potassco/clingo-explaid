@@ -3,12 +3,17 @@ Utilities.
 """
 
 import re
-from typing import Dict, List, Set, Tuple
 
-from clingo.ast import ASTType
+from clingo.ast import AST
 
 
-def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signature: Tuple[str, int]) -> bool:
+def unwrap[T](optional: T | None) -> T:
+    if optional is None:
+        raise ValueError("Optional value is None")
+    return optional
+
+
+def match_ast_symbolic_atom_signature(ast_symbol: AST, signature: tuple[str, int]) -> bool:
     """
     Function to match the signature of an AST SymbolicAtom to a tuple containing a string and int value, representing a
     matching signature.
@@ -21,17 +26,12 @@ def match_ast_symbolic_atom_signature(ast_symbol: ASTType.SymbolicAtom, signatur
     return all((signature[0] == name, signature[1] == arity))
 
 
-__all__ = [
-    match_ast_symbolic_atom_signature.__name__,
-]
-
-
-def get_signatures_from_model_string(model_string: str) -> Set[Tuple[str, int]]:
+def get_signatures_from_model_string(model_string: str) -> set[tuple[str, int]]:
     """
     This function returns a dictionary of the signatures/arities of all atoms of a model string. Model strings are of
     the form: `"signature1(X1, ..., XN) ... signatureM(X1, ..., XK)"`
     """
-    signatures = set()
+    signatures: set[tuple[str, int]] = set()
     for atom_string in model_string.split():
         result = re.search(r"([^(]*)\(", atom_string)
         if result is None:
@@ -57,12 +57,12 @@ def get_signatures_from_model_string(model_string: str) -> Set[Tuple[str, int]]:
     return signatures
 
 
-def get_constants_from_arguments(argument_vector: List[str]) -> Dict[str, str]:
+def get_constants_from_arguments(argument_vector: list[str]) -> dict[str, str]:
     """
     Function that is used to parse the command line argument vector to extract a dictionary of provided constants and
     their values. For example "-c test=42" would be converted to {"test": "42"}.
     """
-    constants = {}
+    constants: dict[str, str] = {}
     next_constant = False
     for element in argument_vector:
         if next_constant:

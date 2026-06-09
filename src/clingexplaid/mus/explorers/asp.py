@@ -1,7 +1,7 @@
 """Explorer using ASP for getting MUS candidates"""
 
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
-from typing import Dict, Generator, Iterable, Optional, Set, Tuple
 
 import clingo
 
@@ -48,11 +48,11 @@ class ExplorerAsp(Explorer):
         self._control.configuration.solve.models = 0  # type: ignore
 
         self._assumption_counter = 0
-        self._assumption_to_rid: Dict[AssumptionWrapper, RepresentationID] = {}
-        self._rid_to_assumption: Dict[RepresentationID, AssumptionWrapper] = {}
+        self._assumption_to_rid: dict[AssumptionWrapper, RepresentationID] = {}
+        self._rid_to_assumption: dict[RepresentationID, AssumptionWrapper] = {}
 
-        self._rid_to_lid: Dict[RepresentationID, LiteralID] = {}
-        self._lid_to_rid: Dict[LiteralID, RepresentationID] = {}
+        self._rid_to_lid: dict[RepresentationID, LiteralID] = {}
+        self._lid_to_rid: dict[LiteralID, RepresentationID] = {}
 
         # Add assumptions to control
         for assumption in self._assumptions:
@@ -129,7 +129,7 @@ class ExplorerAsp(Explorer):
 
     def _add_satisfiability_indicators(
         self,
-    ) -> Tuple[Tuple[RepresentationID, LiteralID], Tuple[RepresentationID, LiteralID]]:
+    ) -> tuple[tuple[RepresentationID, LiteralID], tuple[RepresentationID, LiteralID]]:
         """Adds satisfiability indicator choices (1{_sat;_unsat}) to the class control"""
         aw_sat = AssumptionWrapper(literal=DEFAULT_LITERAL_ID, symbol=clingo.parse_term("0"), sign=True)
         aw_unsat = AssumptionWrapper(literal=DEFAULT_LITERAL_ID, symbol=clingo.parse_term("1"), sign=True)
@@ -144,7 +144,7 @@ class ExplorerAsp(Explorer):
             backend.add_rule(head=[], body=[-int(lid_sat), -int(lid_unsat)], choice=True)
         return (rid_sat, lid_sat), (rid_unsat, lid_unsat)
 
-    def _get_model(self) -> Optional[Set[clingo.Symbol]]:
+    def _get_model(self) -> set[clingo.Symbol] | None:
         with self._control.solve(assumptions=[int(self._lid_sat), int(self._lid_unsat)], yield_=True) as solve_handle:
             if solve_handle.get().satisfiable:
                 symbols = solve_handle.model().symbols(atoms=True)
@@ -162,7 +162,7 @@ class ExplorerAsp(Explorer):
     def _symbol_sat(self) -> clingo.Symbol:
         return clingo.parse_term(f"{ASSUMPTION_SYMBOL_NAME}({int(self._rid_sat)})")
 
-    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
+    def candidates(self) -> Generator[set[AssumptionWrapper], None, None]:
         while True:
             model = self._get_model()
             if model is None:
@@ -170,7 +170,7 @@ class ExplorerAsp(Explorer):
             rids = [RepresentationID(atom.arguments[0].number) for atom in model]
             yield {self._rid_to_assumption[rid] for rid in rids}
 
-    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
+    def explored(self, assumption_set: set[AssumptionWrapper]) -> ExplorationStatus:
         # Convert AssumptionWrappers for the assumption set to explorer literals
         a_literals = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumption_set]
         # Add negated literals of remaining assumptions
