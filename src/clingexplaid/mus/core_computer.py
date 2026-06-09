@@ -11,7 +11,7 @@ from clingo import Control, Symbol
 
 from ..utils.types import AssumptionSetDEPRECATED
 from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
-from .utils import AssumptionWrapper, UnsatisfiableSubset, unwrap
+from .utils import AssumptionWrapper, UnsatisfiableSubset, UnsatisfiableSubsetType, unwrap
 
 
 class CoreComputer:
@@ -59,7 +59,10 @@ class CoreComputer:
             a_sign = a_literal >= 0
             a_wrapper = AssumptionWrapper(literal=a_literal, symbol=assumption_symbol, sign=a_sign)
             wrapper_set.add(a_wrapper)
-        return UnsatisfiableSubset(assumptions=wrapper_set, minimal=minimal)
+        return UnsatisfiableSubset(
+            assumptions=wrapper_set,
+            type=UnsatisfiableSubsetType.MINIMAL if minimal else UnsatisfiableSubsetType.UNKNOWN,
+        )
 
     def _is_satisfiable(self, assumptions: Iterable[int] | None = None) -> bool:
         """Internal function using clingo.control.solve to check if a set of assumptions is satisfiable."""

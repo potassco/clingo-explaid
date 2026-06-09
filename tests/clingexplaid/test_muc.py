@@ -10,7 +10,7 @@ import clingo
 
 from clingexplaid.mus import CoreComputer
 from clingexplaid.mus.explorers import Explorer, ExplorerAsp, ExplorerPowerset
-from clingexplaid.mus.utils import UnsatisfiableSubset
+from clingexplaid.mus.utils import UnsatisfiableSubset, UnsatisfiableSubsetType
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
 
 from .test_main import TEST_DIR
@@ -203,7 +203,7 @@ class TestMUS(TestCase):
 
         mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl, timeout=0)
 
-        self.assertEqual(mus.minimal, False)
+        self.assertIs(mus.type, UnsatisfiableSubsetType.UNKNOWN)
 
     def test_core_computer_shrink_satisfiable(self) -> None:
         """

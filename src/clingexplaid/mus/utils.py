@@ -2,9 +2,22 @@
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
+from enum import Enum
 from typing import override
 
 from clingo import Symbol
+
+
+class SatisfiableSubsetType(Enum):
+    UNKNOWN = "unknown"
+    MAXIMAL = "maximal"
+    NON_MAXIMAL = "non-maxmimal"
+
+
+class UnsatisfiableSubsetType(Enum):
+    UNKNOWN = "unknown"
+    MINIMAL = "minimal"
+    NON_MINIMAL = "non-minimal"
 
 
 @dataclass
@@ -20,11 +33,10 @@ class AssumptionWrapper:
 
 
 @dataclass
-class UnsatisfiableSubset:
-    """Container class for unsatisfiable subsets"""
+class AssumptionSet:
+    """Container class for assumption set"""
 
     assumptions: set[AssumptionWrapper]
-    minimal: bool = False
 
     @staticmethod
     def _render_assumption(assumption: AssumptionWrapper) -> str:  # nocoverage
@@ -36,7 +48,7 @@ class UnsatisfiableSubset:
         assumptions: set[AssumptionWrapper],
     ) -> str:  # nocoverage
         out = "{"
-        out += ",".join([UnsatisfiableSubset._render_assumption(a) for a in assumptions])
+        out += ",".join([AssumptionSet._render_assumption(a) for a in assumptions])
         out += "}"
         return out
 
@@ -53,17 +65,29 @@ class UnsatisfiableSubset:
 
     @override
     def __str__(self) -> str:  # nocoverage
-        out = "UnsatisfiableSubset("
+        out = f"{self.__class__.__name__}("
         out += "assumptions="
-        out += UnsatisfiableSubset._render_assumption_set(self.assumptions)
-        out += ", minimal="
-        out += str(self.minimal)
+        out += AssumptionSet._render_assumption_set(self.assumptions)
         out += ")"
         return out
 
     @override
     def __repr__(self) -> str:
         return self.__str__()
+
+
+@dataclass
+class UnsatisfiableSubset(AssumptionSet):
+    """Container class for unsatisfiable assumption subset"""
+
+    type: UnsatisfiableSubsetType = UnsatisfiableSubsetType.UNKNOWN
+
+
+@dataclass
+class SatisfiableSubset(AssumptionSet):
+    """Container class for satisfiable assumption subset"""
+
+    type: SatisfiableSubsetType = SatisfiableSubsetType.UNKNOWN
 
 
 def unwrap(wrapped: Iterable[AssumptionWrapper]) -> set[int]:
