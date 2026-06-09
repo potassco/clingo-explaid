@@ -11,7 +11,7 @@ from clingo import Control, Symbol
 
 from ..utils.types import AssumptionSetDEPRECATED
 from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
-from .utils import AssumptionWrapper, UnsatisfiableSubset, UnsatisfiableSubsetType, unwrap
+from .utils import AssumptionWrapper, UnsatisfiableSubset, UnsatisfiableSubsetType, unwrap_assumptions
 
 
 class CoreComputer:
@@ -180,7 +180,7 @@ class CoreComputer:
                 warnings.warn("Timeout was reached")
                 break
 
-            mus = self._compute_single_minimal(assumptions=unwrap(current_subset), timeout=time_remaining)
+            mus = self._compute_single_minimal(assumptions=unwrap_assumptions(current_subset), timeout=time_remaining)
 
             # If the candidate subset was satisfiable, add it to the explorer and continue
             if len(list(mus.assumptions)) == 0:

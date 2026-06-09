@@ -90,6 +90,6 @@ class SatisfiableSubset(AssumptionSet):
     type: SatisfiableSubsetType = SatisfiableSubsetType.UNKNOWN
 
 
-def unwrap(wrapped: Iterable[AssumptionWrapper]) -> set[int]:
+def unwrap_assumptions(wrapped: Iterable[AssumptionWrapper]) -> set[int]:
     """Unwraps an iterable sequence of assumptions into its set of literals"""
     return {a.literal for a in wrapped}
