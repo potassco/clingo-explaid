@@ -9,8 +9,8 @@ from unittest import TestCase
 import clingo
 
 from clingexplaid.mus import CoreComputer
-from clingexplaid.mus.core_computer import UnsatisfiableSubset
 from clingexplaid.mus.explorers import Explorer, ExplorerAsp, ExplorerPowerset
+from clingexplaid.mus.utils import UnsatisfiableSubset
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
 
 from .test_main import TEST_DIR
