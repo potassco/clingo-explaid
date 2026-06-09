@@ -15,10 +15,7 @@ from .utils import AssumptionWrapper, UnsatisfiableSubset, UnsatisfiableSubsetTy
 
 
 class CoreComputer:
-    """
-    A container class that allows for a passed program_string and assumption_set to compute a minimal unsatisfiable
-    core.
-    """
+    """Handler to compute MUSs, MSSs, and MCSs"""
 
     def __init__(
         self,
