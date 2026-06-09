@@ -9,7 +9,6 @@ from collections.abc import Generator, Iterable
 import clingo
 from clingo import Control, Symbol
 
-from ..utils.types import AssumptionSetDEPRECATED
 from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
 from .utils import AssumptionWrapper, UnsatisfiableSubset, UnsatisfiableSubsetType, unwrap_assumptions
 
@@ -20,7 +19,7 @@ class CoreComputer:
     def __init__(
         self,
         control: clingo.Control,
-        assumption_set: AssumptionSetDEPRECATED,
+        assumption_set: set[int] | set[tuple[Symbol, bool]],
         explorer: type[Explorer] = ExplorerPowerset,
     ):
         self.control: Control = control
@@ -78,7 +77,7 @@ class CoreComputer:
                         self.explorer.add_sat(self._wrap_assumption_literals(assumptions))
                     return bool(solve_handle.get().satisfiable)
 
-    def _convert_assumptions(self, assumptions: AssumptionSetDEPRECATED) -> set[int]:
+    def _convert_assumptions(self, assumptions: set[int] | set[tuple[Symbol, bool]]) -> set[int]:
         """Convert assumptions to literal representation, e.g.: (Symbol, bool) -> (int, bool)"""
         converted: set[int] = set()
         for assumption in assumptions:
@@ -93,7 +92,7 @@ class CoreComputer:
 
     def _compute_single_minimal(
         self,
-        assumptions: AssumptionSetDEPRECATED | None = None,
+        assumptions: set[int] | set[tuple[Symbol, bool]] | None = None,
         timeout: float | None = None,
     ) -> UnsatisfiableSubset:
         """
@@ -144,7 +143,7 @@ class CoreComputer:
 
     def shrink(
         self,
-        assumptions: AssumptionSetDEPRECATED | None = None,
+        assumptions: set[int] | set[tuple[Symbol, bool]] | None = None,
         timeout: float | None = None,
     ) -> UnsatisfiableSubset:
         """

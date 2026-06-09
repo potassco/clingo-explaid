@@ -45,7 +45,7 @@ def get_mus_of_program(
     cc = CoreComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
 
     def shrink_on_model(core: Sequence[int]) -> None:
-        _ = cc.shrink(core, timeout=timeout)
+        _ = cc.shrink(set(core), timeout=timeout)
 
     ctl.solve(assumptions=list(ap.assumptions), on_core=shrink_on_model)
 
@@ -329,7 +329,7 @@ class TestMUS(TestCase):
         # Disabled exception assertion due to change in error handling
         mus = cc._compute_single_minimal(assumptions=None)  # pylint: disable=W0212
         self.assertEqual(mus, UnsatisfiableSubset(set()))
-        cc.shrink([])
+        cc.shrink(set())
 
     def test_core_computer_mus_to_string(self) -> None:
         """
