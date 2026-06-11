@@ -14,7 +14,7 @@ pip install clingexplaid
 
 ### Requirements
 
-- `python >= 3.9`
+- `python >= 3.10`
 - `clingo >= 5.7.1`
 
 ### Building from Source
