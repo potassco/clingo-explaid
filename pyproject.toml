@@ -46,7 +46,14 @@ format = [ "black", "isort", "autoflake" ]
 lint_pylint = [ "pylint" ]
 typecheck = [ "types-setuptools", "mypy" ]
 test = [ "coverage[toml]" ]
-doc = [ "sphinx", "furo", "nbsphinx", "sphinx_copybutton", "myst-parser" ]
+doc = [ "mkdocs",
+        "mkdocs-material",
+        "mkdocstrings>=1.0.4",
+        "mkdocstrings-python>=2.0",
+        "clindocs>=1.5.1",
+        "mkdocs-literate-nav",
+        "pygments_clingo",
+]
 dev = [ "clingexplaid[test,typecheck,lint_pylint]" ]
 
 [tool.setuptools.packages.find]
