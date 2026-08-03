@@ -6,16 +6,24 @@ API to aid the development of explanation systems using clingo
 
 ## Installation
 
+<!-- --8<-- [start:installation] -->
+
 Clingo-Explaid easily be installed with `pip`:
 
 ```bash
 pip install clingexplaid
 ```
 
+<!-- --8<-- [end:installation] -->
+
 ### Requirements
+
+<!-- --8<-- [start:requirements] -->
 
 - `python >= 3.10`
 - `clingo >= 5.7.1`
+
+<!-- --8<-- [end:requirements] -->
 
 ### Building from Source
 
@@ -28,6 +36,8 @@ The following Examples show use-cases for using `clingexplaid`'s API.
 ### Minimal Unsatisfiable Subsets (MUS)
 
 Transforming facts to Assumptions (necessary pre-processing step):
+
+<!-- --8<-- [start:example-assumption-trasformer] -->
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor
@@ -54,8 +64,12 @@ print(result)
 print(ap.control)
 ```
 
+<!-- --8<-- [end:example-assumption-trasformer] -->
+
 You can also use an existing control and pass it to the
 `AssumptionPreprocessor` as follows:
+
+<!-- --8<-- [start:example-assumption-trasformer-control] -->
 
 ```python
 import clingo
@@ -77,7 +91,11 @@ ctl.ground([("base", [])])
 ctl.solve()
 ```
 
+<!-- --8<-- [end:example-assumption-trasformer-control] -->
+
 Getting a single MUS:
+
+<!-- --8<-- [start:example-single-mus] -->
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterSignature
@@ -107,7 +125,11 @@ ap.control.solve(
 )
 ```
 
+<!-- --8<-- [end:example-single-mus] -->
+
 Getting multiple MUS:
+
+<!-- --8<-- [start:example-multi-mus] -->
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor
@@ -130,7 +152,11 @@ for i, mus in enumerate(mus_generator):
     print(f"MUS {i}:", cc.mus_to_string(mus))
 ```
 
+<!-- --8<-- [end:example-multi-mus] -->
+
 ### Unsatisfiable Constraints
+
+<!-- --8<-- [start:example-unsat] -->
 
 ```python
 from clingexplaid.unsat_constraints import UnsatConstraintComputer
