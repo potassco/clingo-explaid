@@ -7,6 +7,7 @@ from typing import Generator, Iterable, Iterator, Type
 
 import clingo
 from clingo import Symbol
+from musclingo.shrink import LinearElimination
 
 from ..utils.types import AssumptionSet
 from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
@@ -147,18 +148,9 @@ class CoreComputer:
         """
         _assumptions: set[int] = self._convert_assumptions(assumptions if assumptions is not None else self.assumptions)
 
-        _assumptions_candidates: set[int] = set(_assumptions)
-        _assumptions_mus: set[int] = set()
-        _check_mus = False
-        for a in _assumptions:
-            _assumptions_candidates.remove(a)
-            if self._is_satisfiable(_assumptions_candidates | _assumptions_mus):
-                _assumptions_mus.add(a)
-                _check_mus = True
-            if _check_mus:
-                if self._is_satisfiable(_assumptions_mus):
-                    return self._build_unsatisfiable_subset(_assumptions_mus, minimal=True)
-        return UnsatisfiableSubset(set(), minimal=False)
+        mus = LinearElimination(self.control).shrink_known(_assumptions)
+
+        return self._build_unsatisfiable_subset(mus, minimal=True)
 
     def shrink(
         self,
