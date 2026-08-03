@@ -14,7 +14,7 @@ from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
 from .utils import AssumptionWrapper
 
 
-@dataclass
+@dataclass(frozen=True)
 class UnsatisfiableSubset:
     """Container class for unsatisfiable subsets"""
 
