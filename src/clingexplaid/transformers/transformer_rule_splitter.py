@@ -33,7 +33,7 @@ class RuleSplitter(_ast.Transformer):
         if body:
             # remove MUS literals from rule
             cleaned_body_literals = [x for x in node.body if x.atom.symbol.name not in ("__mus__",)]
-            cleaned_body = "; ".join([str(l) for l in cleaned_body_literals])
+            cleaned_body = "; ".join([str(literal) for literal in cleaned_body_literals])
 
             # get all variables used in body (to later reference in head)
             variables = set()

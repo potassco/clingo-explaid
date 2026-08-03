@@ -54,8 +54,7 @@ class RuleIDTransformer(_ast.Transformer):
         out = []
         _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
         out.append(
-            f"{{_rule(1..{self._get_number_of_rules()})}}."
-            f" % Choice rule to allow all _rule atoms to become assumptions"
+            f"{{_rule(1..{self._get_number_of_rules()})}}. % Choice rule to allow all _rule atoms to become assumptions"
         )
 
         return "\n".join(out)

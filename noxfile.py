@@ -2,7 +2,7 @@ import os
 
 import nox
 
-nox.options.sessions = "lint_pylint", "typecheck", "test"
+nox.options.sessions = "lint", "typecheck", "test"
 
 EDITABLE_TESTS = True
 PYTHON_VERSIONS = None
@@ -55,12 +55,13 @@ def dev(session):
 
 
 @nox.session
-def lint_pylint(session):
+def lint(session):
     """
-    Run pylint.
+    Run ruff.
     """
-    session.install("-e", ".[lint_pylint]")
-    session.run("pylint", "clingexplaid", "tests")
+    session.install("-e", ".[lint]")
+    session.run("ruff", "check", "src/clingexplaid", "tests")
+    session.run("ruff", "format", "--check", "src/clingexplaid", "tests")
 
 
 @nox.session

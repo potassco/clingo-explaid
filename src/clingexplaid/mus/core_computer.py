@@ -5,7 +5,17 @@ MUS Module: Core Computer to get Minimal Unsatisfiable Subsets
 import time
 import warnings
 from dataclasses import dataclass
-from typing import Dict, Generator, Iterable, Iterator, Optional, Set, Tuple, Type, Union
+from typing import (
+    Dict,
+    Generator,
+    Iterable,
+    Iterator,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 import clingo
 from clingo import Symbol
@@ -28,7 +38,9 @@ class UnsatisfiableSubset:
         return f"{assumption.symbol}[{assumption.literal},{assumption_sign}]"
 
     @staticmethod
-    def _render_assumption_set(assumptions: Set[AssumptionWrapper]) -> str:  # nocoverage
+    def _render_assumption_set(
+        assumptions: Set[AssumptionWrapper],
+    ) -> str:  # nocoverage
         out = "{"
         out += ",".join([UnsatisfiableSubset._render_assumption(a) for a in assumptions])
         out += "}"
@@ -135,7 +147,9 @@ class CoreComputer:
         return converted
 
     def _compute_single_minimal(
-        self, assumptions: Optional[AssumptionSet] = None, timeout: Optional[float] = None
+        self,
+        assumptions: Optional[AssumptionSet] = None,
+        timeout: Optional[float] = None,
     ) -> UnsatisfiableSubset:
         """
         Function to compute a single minimal unsatisfiable subset from the passed set of assumptions and the program of
@@ -184,7 +198,9 @@ class CoreComputer:
         return self._build_unsatisfiable_subset(self._assumptions_minimal, minimal=not timeout_reached)
 
     def shrink(
-        self, assumptions: Optional[AssumptionSet] = None, timeout: Optional[float] = None
+        self,
+        assumptions: Optional[AssumptionSet] = None,
+        timeout: Optional[float] = None,
     ) -> UnsatisfiableSubset:
         """
         This function applies the unsatisfiable subset minimization (`self._compute_single_minimal`) on the assumptions

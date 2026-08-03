@@ -85,7 +85,12 @@ class SolverDecisionPropagator(Propagator):
             init.add_watch(query_solver_literal)
             init.add_watch(-query_solver_literal)
 
-    def propagate(self, control: clingo.PropagateControl, changes: Sequence[int], use_diff: bool = True) -> None:
+    def propagate(
+        self,
+        control: clingo.PropagateControl,
+        changes: Sequence[int],
+        use_diff: bool = True,
+    ) -> None:
         """
         Propagate method the is called when one the registered literals is propagated by clasp. Here useful information
         about the decision progress is recorded to be visualized later.
@@ -146,7 +151,9 @@ class SolverDecisionPropagator(Propagator):
         return new_decision_sequence
 
     @staticmethod
-    def get_decisions(assignment: clingo.Assignment) -> Tuple[List[int], Dict[int, List[int]]]:
+    def get_decisions(
+        assignment: clingo.Assignment,
+    ) -> Tuple[List[int], Dict[int, List[int]]]:
         """
         Helper function to extract a list of decisions and entailments from a clingo propagator assignment.
         """

@@ -10,7 +10,6 @@ $ clingexplaid -h
 
 ## Installing with pip
 
-
 The python clingexplaid package can be found [here](https://github.com/krr-up/clingo-explaid).
 
 ```console

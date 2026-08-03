@@ -5,7 +5,6 @@ Utilities.
 import re
 from typing import Dict, List, Set, Tuple
 
-import clingo
 from clingo.ast import ASTType
 
 
