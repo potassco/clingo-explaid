@@ -1,6 +1,7 @@
-from clingexplaid.transformers.transformer_assumption import FilterSignature
-
 # clingexplaid
+
+> [!CAUTION] This version uses a local dependency of `musclingo` for
+> development purposes. This should be fixed before it is released!
 
 API to aid the development of explanation systems using clingo
 
