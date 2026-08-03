@@ -4,13 +4,12 @@ Transformer Module: Split Rules into dedicated body and head parts
 
 import base64
 from pathlib import Path
-from typing import List, Union
 
 import clingo
-import clingo.ast as _ast
+from clingo.ast import AST, Function, Rule, SymbolicTerm, Transformer, parse_string
 
 
-class RuleSplitter(_ast.Transformer):
+class RuleSplitter(Transformer):
     """
     A transformer that is used to split rules into two. This is done using an intermediate predicate called `_body`,
     which contains a base64 representation of the original rule and all body variable assignments for explanation
@@ -20,9 +19,9 @@ class RuleSplitter(_ast.Transformer):
     """
 
     def __init__(self) -> None:
-        self.head_rules: List[clingo.ast.AST] = []
+        self.head_rules: list[AST] = []
 
-    def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
+    def visit_Rule(self, node: AST) -> AST:  # pylint: disable=C0103
         """
         Replaces the head of every rule with the intermediate `_body` predicate and stores all new head rules using this
         intermediary predicate in `self.head_rules`
@@ -51,15 +50,15 @@ class RuleSplitter(_ast.Transformer):
 
             # create a new '_body' head for the original rule
             new_head_arguments = [
-                _ast.SymbolicTerm(node.location, clingo.parse_term(f'"{rule_body_base64}"')),
-                _ast.Function(
+                SymbolicTerm(node.location, clingo.parse_term(f'"{rule_body_base64}"')),
+                Function(
                     location=node.location,
                     name="",
                     arguments=sorted(variables),
                     external=0,
                 ),
             ]
-            new_head = _ast.Function(
+            new_head = Function(
                 location=node.location,
                 name="_body",
                 arguments=new_head_arguments,
@@ -68,7 +67,7 @@ class RuleSplitter(_ast.Transformer):
             node.head = new_head
 
             # create new second rule that links the head with the '_body' matching predicate
-            new_head_rule = _ast.Rule(
+            new_head_rule = Rule(
                 location=node.location,
                 head=head,
                 body=[new_head],
@@ -86,15 +85,15 @@ class RuleSplitter(_ast.Transformer):
         program string.
         """
         self.head_rules = []
-        out = []
-        _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
+        out: list[str] = []
+        parse_string(string, lambda stm: out.append(str(self(stm))))
         out += [str(r) for r in self.head_rules]
 
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path], encoding: str = "utf-8") -> str:
+    def parse_file(self, path: str | Path, encoding: str = "utf-8") -> str:
         """
         Parses the file at path and returns a string with the transformed program.
         """
-        with open(path, "r", encoding=encoding) as f:
+        with open(path, encoding=encoding) as f:
             return self.parse_string(f.read())

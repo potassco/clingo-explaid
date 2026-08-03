@@ -10,9 +10,9 @@ structure recognition.
 
 import re
 from abc import abstractmethod
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict, Iterator, List, Sequence
 
 import clingo
 
@@ -65,7 +65,7 @@ class Matcher:
         Returns:
             The match result.
         """
-        assignment: Dict[str, Symbol] = {}
+        assignment: dict[str, Symbol] = {}
         if self.match(symbol, assignment):
             return Match(assignment)
         return None
@@ -383,7 +383,7 @@ class _Parser:
         """
         if not self._tokenizer.match("PUN", "("):
             return FunctionMatcher(name, [], positive)
-        args: List[Matcher] = []
+        args: list[Matcher] = []
         trail = bool(name)
 
         if not trail and self._tokenizer.match("PUN", ","):

@@ -32,6 +32,9 @@ pip-delete-this-directory.txt
 dmypy.json
 *egg-info*
 
+# pyright
+pyrightconfig.json
+
 # unclassified
 dist
 build

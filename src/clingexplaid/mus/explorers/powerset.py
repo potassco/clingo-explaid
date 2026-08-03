@@ -1,7 +1,7 @@
 """Explorers using the brute-force powerset approach"""
 
+from collections.abc import Generator, Iterable
 from itertools import chain, combinations
-from typing import Generator, Iterable, List, Set
 
 from ..utils import AssumptionWrapper
 from .base import ExplorationStatus, Explorer
@@ -12,8 +12,8 @@ class ExplorerPowerset(Explorer):
 
     def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().__init__(assumptions=assumptions)
-        self._found_sat: List[Set[AssumptionWrapper]] = []
-        self._found_mus: List[Set[AssumptionWrapper]] = []
+        self._found_sat: list[set[AssumptionWrapper]] = []
+        self._found_mus: list[set[AssumptionWrapper]] = []
         self._powerset = chain.from_iterable(
             combinations(assumptions, r) for r in reversed(range(len(list(assumptions)) + 1))
         )
@@ -32,7 +32,7 @@ class ExplorerPowerset(Explorer):
     def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         self._found_sat.append(set(assumptions))
 
-    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
+    def candidates(self) -> Generator[set[AssumptionWrapper], None, None]:
         for current_subset in (set(s) for s in self._powerset):
             # skip if empty subset
             if len(current_subset) == 0:
@@ -45,7 +45,7 @@ class ExplorerPowerset(Explorer):
                 continue
             yield current_subset
 
-    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
+    def explored(self, assumption_set: set[AssumptionWrapper]) -> ExplorationStatus:
         if any(assumption_set.issubset(s) for s in self._found_sat):  # nocoverage
             return ExplorationStatus.SATISFIABLE
         if any(assumption_set.issuperset(s) for s in self._found_mus):  # nocoverage

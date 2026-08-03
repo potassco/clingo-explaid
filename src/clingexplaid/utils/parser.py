@@ -5,7 +5,7 @@ The command line parser for the project.
 import sys
 from argparse import ArgumentParser
 from textwrap import dedent
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from . import logging
 
@@ -39,7 +39,7 @@ def get_parser() -> ArgumentParser:
         ("debug", logging.DEBUG),
     ]
 
-    def get(levels: list[tuple[str, int]], name: str) -> Optional[int]:
+    def get(levels: list[tuple[str, int]], name: str) -> int | None:
         for key, val in levels:
             if key == name:
                 return val

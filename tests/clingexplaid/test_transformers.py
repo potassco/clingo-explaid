@@ -66,7 +66,7 @@ class TestTransformers(TestCase):
         program_path = TEST_DIR.joinpath("res/test_program_constraints.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_constraints_id.lp")
         ct = ConstraintTransformer(constraint_head_symbol="unsat", include_id=True)
-        with open(program_path, "r", encoding="utf-8") as f:
+        with open(program_path, encoding="utf-8") as f:
             result = ct.parse_string(f.read())
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
@@ -94,7 +94,7 @@ class TestTransformers(TestCase):
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_optimization.lp")
         optrm = OptimizationRemover()
         result_files = optrm.parse_files([program_path])
-        with open(program_path, "r", encoding="utf-8") as f:
+        with open(program_path, encoding="utf-8") as f:
             result_string = optrm.parse_string(f.read())
         self.assertEqual(result_files.strip(), read_file(program_path_transformed).strip())
         self.assertEqual(result_files.strip(), result_string.strip())
@@ -110,7 +110,7 @@ class TestTransformers(TestCase):
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_facts.lp")
         ft = FactTransformer(signatures={("a", 1), ("d", 1), ("e", 1)})
         result_files = ft.parse_files([program_path])
-        with open(program_path, "r", encoding="utf-8") as f:
+        with open(program_path, encoding="utf-8") as f:
             result_string = ft.parse_string(f.read())
         self.assertEqual(result_files.strip(), read_file(program_path_transformed).strip())
         self.assertEqual(result_files.strip(), result_string.strip())

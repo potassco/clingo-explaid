@@ -3,14 +3,14 @@ Tests for the mus package
 """
 
 import random
-from typing import Iterable, List, Optional, Sequence, Set, Tuple, Type, Union
+from collections.abc import Iterable, Sequence
 from unittest import TestCase
 
 import clingo
 
 from clingexplaid.mus import CoreComputer
-from clingexplaid.mus.core_computer import UnsatisfiableSubset
 from clingexplaid.mus.explorers import Explorer, ExplorerAsp, ExplorerPowerset
+from clingexplaid.mus.utils import UnsatisfiableSubset, UnsatisfiableSubsetType
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
 
 from .test_main import TEST_DIR
@@ -20,11 +20,11 @@ EXPLORERS = (ExplorerPowerset, ExplorerAsp)
 
 def get_mus_of_program(
     program_string: str,
-    assumption_filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None,
-    control: Optional[clingo.Control] = None,
-    timeout: Optional[float] = None,
-    explorer: Type[Explorer] = ExplorerPowerset,
-) -> Tuple[UnsatisfiableSubset, CoreComputer]:
+    assumption_filters: Iterable[FilterPattern | FilterSignature] | None = None,
+    control: clingo.Control | None = None,
+    timeout: float | None = None,
+    explorer: type[Explorer] = ExplorerPowerset,
+) -> tuple[UnsatisfiableSubset, CoreComputer]:
     """
     Helper function to directly get the MUS of a given program string.
     """
@@ -45,7 +45,7 @@ def get_mus_of_program(
     cc = CoreComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
 
     def shrink_on_model(core: Sequence[int]) -> None:
-        _ = cc.shrink(core, timeout=timeout)
+        _ = cc.shrink(set(core), timeout=timeout)
 
     ctl.solve(assumptions=list(ap.assumptions), on_core=shrink_on_model)
 
@@ -62,8 +62,8 @@ class TestMUS(TestCase):
 
     def _assert_mus(
         self,
-        mus: Set[str],
-        valid_mus_string_lists: List[Set[str]],
+        mus: set[str],
+        valid_mus_string_lists: list[set[str]],
     ) -> None:
         """
         Asserts if a MUS is one of several valid MUS's.
@@ -203,7 +203,7 @@ class TestMUS(TestCase):
 
         mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl, timeout=0)
 
-        self.assertEqual(mus.minimal, False)
+        self.assertIs(mus.type, UnsatisfiableSubsetType.UNKNOWN)
 
     def test_core_computer_shrink_satisfiable(self) -> None:
         """
@@ -231,7 +231,7 @@ class TestMUS(TestCase):
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
             ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
-            with open(program_path, "r", encoding="utf-8") as file:
+            with open(program_path, encoding="utf-8") as file:
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
@@ -255,7 +255,7 @@ class TestMUS(TestCase):
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
             ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
-            with open(program_path, "r", encoding="utf-8") as file:
+            with open(program_path, encoding="utf-8") as file:
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
@@ -281,7 +281,7 @@ class TestMUS(TestCase):
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
             ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
-            with open(program_path, "r", encoding="utf-8") as file:
+            with open(program_path, encoding="utf-8") as file:
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
@@ -329,7 +329,7 @@ class TestMUS(TestCase):
         # Disabled exception assertion due to change in error handling
         mus = cc._compute_single_minimal(assumptions=None)  # pylint: disable=W0212
         self.assertEqual(mus, UnsatisfiableSubset(set()))
-        cc.shrink([])
+        cc.shrink(set())
 
     def test_core_computer_mus_to_string(self) -> None:
         """

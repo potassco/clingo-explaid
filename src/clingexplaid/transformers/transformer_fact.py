@@ -2,11 +2,11 @@
 Transformer Module: Fact Remover
 """
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence, Set, Tuple, Union
 
-import clingo
 from clingo import ast
+from clingo.ast import AST
 
 from ..utils import match_ast_symbolic_atom_signature
 from .constants import REMOVED_TOKEN
@@ -19,10 +19,10 @@ class FactTransformer(ast.Transformer):
 
     # pylint: disable=duplicate-code
 
-    def __init__(self, signatures: Optional[Set[Tuple[str, int]]] = None):
-        self.signatures = signatures if signatures is not None else set()
+    def __init__(self, signatures: set[tuple[str, int]] | None = None):
+        self.signatures: set[tuple[str, int]] = signatures if signatures is not None else set()
 
-    def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
+    def visit_Rule(self, node: AST) -> AST:  # pylint: disable=C0103
         """
         Removes all facts from a program that match the given signatures (if none are given all facts are removed).
         """
@@ -50,7 +50,7 @@ class FactTransformer(ast.Transformer):
         """
         # remove the transformed REMOVED_TOKENS from the resulting program string
         rules = program_string.split("\n")
-        out = []
+        out: list[str] = []
         for rule in rules:
             if not rule.startswith(REMOVED_TOKEN):
                 out.append(rule)
@@ -61,15 +61,15 @@ class FactTransformer(ast.Transformer):
         Function that applies the transformation to the `program_string` it's called with and returns the transformed
         program string.
         """
-        out = []
+        out: list[str] = []
         ast.parse_string(string, lambda stm: out.append(str(self(stm))))
         return self.post_transform("\n".join(out))
 
-    def parse_files(self, paths: Sequence[Union[str, Path]]) -> str:
+    def parse_files(self, paths: Sequence[str | Path]) -> str:
         """
         Parses the files and returns a string with the transformed program.
         """
-        out = []
+        out: list[str] = []
         ast.parse_files(
             [str(p) for p in paths],
             lambda stm: out.append(str(self(stm))),
