@@ -7,6 +7,8 @@ from typing import Generator, Iterable, Iterator, Type
 
 import clingo
 from clingo import Symbol
+from musclingo.algorithms.marco import MARCO
+from musclingo.lattice import AssumptionsLattice
 from musclingo.shrink import LinearElimination
 
 from ..utils.types import AssumptionSet
@@ -175,7 +177,16 @@ class CoreComputer:
         fully complete in reasonable time. The parameter `max_mus` can be used to specify the maximum number of
         mus that are found before stopping the search.
         """
-        pass
+        _assumptions: set[int] = self._convert_assumptions(self.assumptions)
+
+        lattice = AssumptionsLattice(_assumptions, bias=True)
+        strategy = LinearElimination(self.control)
+
+        algorithm = MARCO(lattice, strategy)
+
+        for type_, set_ in algorithm:
+            if type_ == "mus":
+                yield self._build_unsatisfiable_subset(set_, minimal=True)
 
     def mus_to_string(
         self,
