@@ -86,6 +86,9 @@ class CoreComputer:
         self.symbol_lookup: Dict[Symbol, int] = {}
         self.minimal: Optional[UnsatisfiableSubset] = None
         self._assumptions_minimal: Set[int] = set()
+        self.solve_calls: int = 0
+        self.solving_time_clingo: float = 0.0
+        self.solving_time_total: float = 0.0
 
         self._build_lookups()
 
@@ -128,8 +131,13 @@ class CoreComputer:
             case ExplorationStatus.UNSATISFIABLE:
                 return False
             case ExplorationStatus.UNKNOWN:
+                self.solve_calls += 1
+                start_t = time.perf_counter()
                 with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
-                    if solve_handle.get().satisfiable:
+                    is_satisfiable = solve_handle.get().satisfiable
+                    end_t = time.perf_counter()
+                    self.solving_time_clingo += end_t - start_t
+                    if is_satisfiable:
                         self.explorer.add_sat(self._wrap_assumption_literals(assumptions))
                     return bool(solve_handle.get().satisfiable)
 
@@ -179,6 +187,8 @@ class CoreComputer:
 
         # Iterate over the assumptions to find MUS members
         working_set: Set[int] = set(a_literals)
+
+        start_t_total = time.perf_counter()
         for assumption in a_literals:
             # Remove the current assumption from the working set
             working_set.remove(assumption)
@@ -194,6 +204,14 @@ class CoreComputer:
             if timeout is not None and time_start + timeout < time.perf_counter():
                 timeout_reached = True
                 break
+        end_t_total = time.perf_counter()
+        self.solving_time_total += end_t_total - start_t_total
+        print("Solving Time Clingo", self.solving_time_clingo)
+        print("Solving Time Total", self.solving_time_total)
+        print("Total Solve Calls", self.solve_calls)
+        print(
+            "Python Time", ((self.solving_time_total - self.solving_time_clingo) / self.solving_time_total) * 100, "%"
+        )
 
         return self._build_unsatisfiable_subset(self._assumptions_minimal, minimal=not timeout_reached)
 
