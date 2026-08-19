@@ -52,7 +52,7 @@ class CoreComputer:
             self.literal_lookup[abs(atom.literal)] = atom.symbol
             self.symbol_lookup[atom.symbol] = abs(atom.literal)
 
-    def _build_unsatisfiable_subset(self, assumptions: set[int], minimal: bool) -> Subset:
+    def _build_subset(self, assumptions: set[int], type: SubsetType) -> Subset:
         """Build up an unsatisfiable subset from the given set of assumptions"""
         wrapper_set = set()
         for a_literal in assumptions:
@@ -60,7 +60,7 @@ class CoreComputer:
             a_sign = a_literal >= 0
             a_wrapper = AssumptionWrapper(literal=a_literal, symbol=assumption_symbol, sign=a_sign)
             wrapper_set.add(a_wrapper)
-        return Subset(type=SubsetType.MinimalUnsatisfiableSubset, assumptions=wrapper_set)
+        return Subset(type=type, assumptions=wrapper_set)
 
     def _to_assumption_literals(self, assumptions: Iterable[int | tuple[Symbol, bool]]) -> set[int]:
         """Convert assumptions to literal representation, e.g.: (Symbol, bool) -> int"""
@@ -75,44 +75,47 @@ class CoreComputer:
                 converted.add(a_literal * a_sign_factor)
         return converted
 
-    def _compute_single_minimal(
+    def mus(
         self,
         assumptions: Iterable[int | tuple[Symbol, bool]] | None = None,
         timeout: float | None = None,
     ) -> Subset:
         """
-        Function to compute a single minimal unsatisfiable subset from the passed set of assumptions and the program of
-        the CoreComputer. If there is no minimal unsatisfiable subset, since for example the program with assumptions
-        assumed is satisfiable, an empty set is returned. The algorithm that is used to compute this minimal
-        unsatisfiable core is the iterative deletion algorithm.
+        Find a singlular MUS via linear elimination
         """
-        _assumptions: set[int] = self._to_assumption_literals(
-            assumptions if assumptions is not None else self.assumptions
-        )
+        literals: set[int] = self._to_assumption_literals(assumptions if assumptions is not None else self.assumptions)
 
-        mus = LinearElimination(self.control).shrink_known(_assumptions)
+        mus = LinearElimination(self.control).shrink_known(literals)
 
-        return self._build_unsatisfiable_subset(mus, minimal=True)
+        return self._build_subset(mus, SubsetType.MinimalUnsatisfiableSubset)
 
-    def get_multiple_minimal(
-        self, max_mus: int | None = None, timeout: float | None = None
+    def multiple(
+        self,
+        types: set[SubsetType] = {SubsetType.MinimalUnsatisfiableSubset},
+        maximum: int | None = None,
+        timeout: float | None = None,
     ) -> Generator[Subset, None, None]:
         """
-        This function generates all minimal unsatisfiable subsets of the provided assumption set. It implements the
-        generator pattern since finding all mus of an assumption set is exponential in nature and the search might not
-        fully complete in reasonable time. The parameter `max_mus` can be used to specify the maximum number of
-        mus that are found before stopping the search.
+        Find multiple fundamental subsets filtered by the `types` argument.
         """
-        _assumptions: set[int] = self._to_assumption_literals(self.assumptions)
+        literals: set[int] = self._to_assumption_literals(self.assumptions)
 
-        lattice = AssumptionsLattice(_assumptions, bias=True)
+        lattice = AssumptionsLattice(literals, bias=True)
         strategy = LinearElimination(self.control)
 
         algorithm = MARCO(lattice, strategy)
 
-        for type_, set_ in algorithm:
-            if type_ == "mus":
-                yield self._build_unsatisfiable_subset(set_, minimal=True)
+        found = 0
+        for subset_type, subset in algorithm:
+            if subset_type == "mus" and SubsetType.MinimalUnsatisfiableSubset in types:
+                found += 1
+                yield self._build_subset(subset, SubsetType.MinimalUnsatisfiableSubset)
+            elif subset_type == "mss" and SubsetType.MaximalSatisfiableSubset in types:
+                found += 1
+                yield self._build_subset(subset, SubsetType.MaximalSatisfiableSubset)
+            # exit on maximum subset reached
+            if maximum is not None and found >= maximum:
+                return
 
     def mus_to_string(
         self,
