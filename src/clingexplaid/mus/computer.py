@@ -112,6 +112,9 @@ class SubsetComputer:
             elif subset_type == "mss" and SubsetType.MaximalSatisfiableSubset in types:
                 found += 1
                 yield self._build_subset(subset, SubsetType.MaximalSatisfiableSubset)
+                mcs = literals.intersection(subset)
+                yield self._build_subset(mcs, SubsetType.MinimalCorrectionSet)
+
             # exit on maximum subset reached
             if maximum is not None and found >= maximum:
                 return
