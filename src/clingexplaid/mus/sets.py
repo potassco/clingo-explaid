@@ -47,7 +47,7 @@ class Subset(ABC):
         return out
 
     def __str__(self) -> str:
-        return f"{self.__class__}({self.assumptions_string})"
+        return f"{self.__class__.__name__}({self.assumptions_string})"
 
     __repr__ = __str__
 
