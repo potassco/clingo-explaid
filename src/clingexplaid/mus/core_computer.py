@@ -24,19 +24,17 @@ class CoreComputer:
     def __init__(
         self,
         control: clingo.Control,
-        assumption_set: Iterable[int | tuple[Symbol, bool]],
+        assumptions: Iterable[int | tuple[Symbol, bool]],
         explorer: Type[Explorer] = ExplorerPowerset,
     ):
         self.control = control
         self.literal_lookup: dict[int, Symbol] = {}
         self.symbol_lookup: dict[Symbol, int] = {}
-        self.minimal: Subset | None = None
-        self._assumptions_minimal: set[int] = set()
 
         self._build_lookups()
 
-        self.assumptions: set[int] = self._to_assumption_literals(assumption_set)
-        self.explorer = explorer(assumptions=self._wrap_assumption_literals(self.assumptions))
+        self.assumption_literals: set[int] = self._to_assumption_literals(assumptions)
+        self.explorer = explorer(assumptions=self._wrap_assumption_literals(self.assumption_literals))
 
     def _wrap_assumption_literals(self, literals: Iterable[int]) -> set[AssumptionWrapper]:
         return {self._get_assumption_wrapper(literal) for literal in literals}
@@ -83,7 +81,9 @@ class CoreComputer:
         """
         Find a singlular MUS via linear elimination
         """
-        literals: set[int] = self._to_assumption_literals(assumptions if assumptions is not None else self.assumptions)
+        literals: set[int] = self._to_assumption_literals(
+            assumptions if assumptions is not None else self.assumption_literals
+        )
 
         mus = LinearElimination(self.control).shrink_known(literals)
 
@@ -98,7 +98,7 @@ class CoreComputer:
         """
         Find multiple fundamental subsets filtered by the `types` argument.
         """
-        literals: set[int] = self._to_assumption_literals(self.assumptions)
+        literals: set[int] = self._to_assumption_literals(self.assumption_literals)
 
         lattice = AssumptionsLattice(literals, bias=True)
         strategy = LinearElimination(self.control)
