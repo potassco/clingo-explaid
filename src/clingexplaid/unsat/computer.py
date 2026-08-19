@@ -11,7 +11,13 @@ from musclingo.lattice import AssumptionsLattice
 from musclingo.shrink import LinearElimination
 
 from .explorers import Explorer, ExplorerPowerset
-from .sets import MaximalSatisfiableSubset, MinimalCorrectionSet, MinimalUnsatisfiableSubset, Subset
+from .sets import (
+    MaximalSatisfiableSubset,
+    MinimalCorrectionSet,
+    MinimalUnsatisfiableSubset,
+    Subset,
+    UnsatisfiableSubset,
+)
 from .utils import AssumptionWrapper
 
 
@@ -84,9 +90,12 @@ class SubsetComputer:
             assumptions if assumptions is not None else self.assumption_literals
         )
 
-        mus = LinearElimination(self.control).shrink_known(literals)
+        mus, interrupted = LinearElimination(self.control).shrink_known(literals, timeout)
 
-        return self._build_subset(mus, MinimalUnsatisfiableSubset)
+        if interrupted:
+            return self._build_subset(mus, UnsatisfiableSubset)
+        else:
+            return self._build_subset(mus, MinimalUnsatisfiableSubset)
 
     def multiple(
         self,
