@@ -6,7 +6,7 @@ from typing import Iterable, Set
 from clingo import Symbol
 
 
-@dataclass
+@dataclass(frozen=True)
 class AssumptionWrapper:
     """Container class for assumptions"""
 

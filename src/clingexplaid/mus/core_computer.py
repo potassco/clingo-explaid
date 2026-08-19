@@ -12,7 +12,7 @@ from musclingo.shrink import LinearElimination
 
 from ..utils.types import AssumptionSet
 from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
-from .sets import UnsatisfiableSubset
+from .sets import Subset, SubsetType
 from .utils import AssumptionWrapper
 
 
@@ -31,7 +31,7 @@ class CoreComputer:
         self.control = control
         self.literal_lookup: dict[int, Symbol] = {}
         self.symbol_lookup: dict[Symbol, int] = {}
-        self.minimal: UnsatisfiableSubset | None = None
+        self.minimal: Subset | None = None
         self._assumptions_minimal: set[int] = set()
 
         self._build_lookups()
@@ -53,7 +53,7 @@ class CoreComputer:
             self.literal_lookup[abs(atom.literal)] = atom.symbol
             self.symbol_lookup[atom.symbol] = abs(atom.literal)
 
-    def _build_unsatisfiable_subset(self, assumptions: set[int], minimal: bool) -> UnsatisfiableSubset:
+    def _build_unsatisfiable_subset(self, assumptions: set[int], minimal: bool) -> Subset:
         """Build up an unsatisfiable subset from the given set of assumptions"""
         wrapper_set = set()
         for a_literal in assumptions:
@@ -61,7 +61,7 @@ class CoreComputer:
             a_sign = a_literal >= 0
             a_wrapper = AssumptionWrapper(literal=a_literal, symbol=assumption_symbol, sign=a_sign)
             wrapper_set.add(a_wrapper)
-        return UnsatisfiableSubset(assumptions=wrapper_set, minimal=minimal)
+        return Subset(type=SubsetType.MinimalUnsatisfiableSubset, assumptions=wrapper_set)
 
     def _is_satisfiable(self, assumptions: Iterable[int] | None = None) -> bool:
         """Internal function using clingo.control.solve to check if a set of assumptions is satisfiable."""
@@ -97,7 +97,7 @@ class CoreComputer:
         self,
         assumptions: AssumptionSet | None = None,
         timeout: float | None = None,
-    ) -> UnsatisfiableSubset:
+    ) -> Subset:
         """
         Function to compute a single minimal unsatisfiable subset from the passed set of assumptions and the program of
         the CoreComputer. If there is no minimal unsatisfiable subset, since for example the program with assumptions
@@ -114,7 +114,7 @@ class CoreComputer:
         self,
         assumptions: AssumptionSet | None = None,
         timeout: float | None = None,
-    ) -> UnsatisfiableSubset:
+    ) -> Subset:
         """
         This function applies the unsatisfiable subset minimization (`self._compute_single_minimal`) on the assumptions
         set `assumptions` and stores the resulting MUS inside `self.minimal`.
@@ -126,7 +126,7 @@ class CoreComputer:
 
     def get_multiple_minimal(
         self, max_mus: int | None = None, timeout: float | None = None
-    ) -> Generator[UnsatisfiableSubset, None, None]:
+    ) -> Generator[Subset, None, None]:
         """
         This function generates all minimal unsatisfiable subsets of the provided assumption set. It implements the
         generator pattern since finding all mus of an assumption set is exponential in nature and the search might not
