@@ -1,5 +1,5 @@
 """
-MUS Module: Core Computer to get Minimal Unsatisfiable Subsets
+Container class for subset computation
 """
 
 from typing import Generator, Iterable, Type
@@ -17,8 +17,7 @@ from .utils import AssumptionWrapper
 
 class SubsetComputer:
     """
-    A container class that allows for a passed program_string and assumption_set to compute a minimal unsatisfiable
-    core.
+    Provides methods for computing fundamental subsets of unsatisfiable problems
     """
 
     def __init__(
