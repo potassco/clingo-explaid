@@ -8,7 +8,7 @@ from unittest import TestCase
 
 import clingo
 
-from clingexplaid.mus import CoreComputer
+from clingexplaid.mus import SubsetComputer
 from clingexplaid.mus.core_computer import UnsatisfiableSubset
 from clingexplaid.mus.explorers import Explorer, ExplorerAsp, ExplorerPowerset
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
@@ -24,7 +24,7 @@ def get_mus_of_program(
     control: Optional[clingo.Control] = None,
     timeout: Optional[float] = None,
     explorer: Type[Explorer] = ExplorerPowerset,
-) -> Tuple[UnsatisfiableSubset, CoreComputer]:
+) -> Tuple[UnsatisfiableSubset, SubsetComputer]:
     """
     Helper function to directly get the MUS of a given program string.
     """
@@ -42,7 +42,7 @@ def get_mus_of_program(
     ctl.add("base", [], transformed_program)
     ctl.ground([("base", [])])
 
-    cc = CoreComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
+    cc = SubsetComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
 
     def shrink_on_model(core: Sequence[int]) -> None:
         _ = cc.shrink(core, timeout=timeout)
@@ -235,7 +235,7 @@ class TestMUS(TestCase):
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
-            cc = CoreComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
+            cc = SubsetComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
 
             mus_generator = cc.get_multiple_minimal()
 
@@ -259,7 +259,7 @@ class TestMUS(TestCase):
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
-            cc = CoreComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
+            cc = SubsetComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
 
             mus_generator = cc.get_multiple_minimal(max_mus=2)
 
@@ -285,7 +285,7 @@ class TestMUS(TestCase):
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
-            cc = CoreComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
+            cc = SubsetComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
 
             mus_generator = cc.get_multiple_minimal(timeout=0)
 
@@ -301,7 +301,7 @@ class TestMUS(TestCase):
         """
 
         control = clingo.Control()
-        cc = CoreComputer(control, set())
+        cc = SubsetComputer(control, set())
         satisfiable = cc._is_satisfiable()  # pylint: disable=W0212
         self.assertTrue(satisfiable)
 
@@ -315,7 +315,7 @@ class TestMUS(TestCase):
         control.add("base", [], program)
         control.ground([("base", [])])
         assumptions = {(clingo.parse_term(c), True) for c in "abc"}
-        cc = CoreComputer(control, assumptions)
+        cc = SubsetComputer(control, assumptions)
         mus = cc._compute_single_minimal()  # pylint: disable=W0212
         self.assertEqual(mus, UnsatisfiableSubset(set()))
 
@@ -325,7 +325,7 @@ class TestMUS(TestCase):
         """
 
         control = clingo.Control()
-        cc = CoreComputer(control, set())
+        cc = SubsetComputer(control, set())
         # Disabled exception assertion due to change in error handling
         mus = cc._compute_single_minimal(assumptions=None)  # pylint: disable=W0212
         self.assertEqual(mus, UnsatisfiableSubset(set()))
@@ -337,7 +337,7 @@ class TestMUS(TestCase):
         """
 
         control = clingo.Control()
-        cc = CoreComputer(control, set())
+        cc = SubsetComputer(control, set())
         self.assertEqual(
             cc.mus_to_string({(clingo.parse_term(string), True) for string in ["this", "is", "a", "test"]}),
             {"this", "is", "a", "test"},

@@ -1,4 +1,4 @@
-from clingexplaid.mus import CoreComputer
+from clingexplaid.mus import SubsetComputer
 from clingexplaid.preprocessors import AssumptionPreprocessor
 
 PROGRAM = """
@@ -11,7 +11,7 @@ b(1..3).
 ap = AssumptionPreprocessor()
 ap.process(PROGRAM)
 ap.control.ground([("base", [])])
-cc = CoreComputer(ap.control, ap.assumptions)
+cc = SubsetComputer(ap.control, ap.assumptions)
 
 mus_generator = cc.get_multiple_minimal()
 for i, mus in enumerate(mus_generator):

@@ -1,6 +1,6 @@
 import time
 
-from clingexplaid.mus import CoreComputer
+from clingexplaid.mus import SubsetComputer
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterSignature
 
 PROGRAM = """
@@ -16,7 +16,7 @@ start_t = time.perf_counter()
 ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
 ap.process(PROGRAM)
 ap.control.ground([("base", [])])
-cc = CoreComputer(ap.control, ap.assumptions)
+cc = SubsetComputer(ap.control, ap.assumptions)
 
 
 def shrink_on_core(core) -> None:

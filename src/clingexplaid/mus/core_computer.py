@@ -15,7 +15,7 @@ from .sets import Subset, SubsetType
 from .utils import AssumptionWrapper
 
 
-class CoreComputer:
+class SubsetComputer:
     """
     A container class that allows for a passed program_string and assumption_set to compute a minimal unsatisfiable
     core.
