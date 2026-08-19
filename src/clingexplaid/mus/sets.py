@@ -17,9 +17,9 @@ def render_assumption(assumption: AssumptionWrapper) -> str:  # nocoverage
 
 
 def render_assumption_set(assumptions: set[AssumptionWrapper]) -> str:  # nocoverage
-    out = "{"
-    out += ",".join([render_assumption(a) for a in assumptions])
-    out += "}"
+    out = "{ "
+    out += ", ".join([render_assumption(a) for a in assumptions])
+    out += " }"
     return out
 
 
