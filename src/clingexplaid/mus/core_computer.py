@@ -11,7 +11,7 @@ from musclingo.lattice import AssumptionsLattice
 from musclingo.shrink import LinearElimination
 
 from ..utils.types import AssumptionSet
-from .explorers import ExplorationStatus, Explorer, ExplorerPowerset
+from .explorers import Explorer, ExplorerPowerset
 from .sets import Subset, SubsetType
 from .utils import AssumptionWrapper
 
@@ -36,7 +36,7 @@ class CoreComputer:
 
         self._build_lookups()
 
-        self.assumptions: set[int] = self._convert_assumptions(assumption_set)
+        self.assumptions: set[int] = self._to_assumption_literals(assumption_set)
         self.explorer = explorer(assumptions=self._wrap_assumption_literals(self.assumptions))
 
     def _wrap_assumption_literals(self, literals: Iterable[int]) -> set[AssumptionWrapper]:
@@ -63,24 +63,7 @@ class CoreComputer:
             wrapper_set.add(a_wrapper)
         return Subset(type=SubsetType.MinimalUnsatisfiableSubset, assumptions=wrapper_set)
 
-    def _is_satisfiable(self, assumptions: Iterable[int] | None = None) -> bool:
-        """Internal function using clingo.control.solve to check if a set of assumptions is satisfiable."""
-        if assumptions is None:
-            assumptions = self.assumptions
-        assumptions_wrapped = self._wrap_assumption_literals(assumptions)
-
-        match self.explorer.explored(assumptions_wrapped):  # nocoverage
-            case ExplorationStatus.SATISFIABLE:
-                return True
-            case ExplorationStatus.UNSATISFIABLE:
-                return False
-            case ExplorationStatus.UNKNOWN:
-                with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
-                    if solve_handle.get().satisfiable:
-                        self.explorer.add_sat(self._wrap_assumption_literals(assumptions))
-                    return bool(solve_handle.get().satisfiable)
-
-    def _convert_assumptions(self, assumptions: AssumptionSet) -> set[int]:
+    def _to_assumption_literals(self, assumptions: AssumptionSet) -> set[int]:
         """Convert assumptions to literal representation, e.g.: (Symbol, bool) -> (int, bool)"""
         converted = set()
         for assumption in assumptions:
@@ -104,25 +87,13 @@ class CoreComputer:
         assumed is satisfiable, an empty set is returned. The algorithm that is used to compute this minimal
         unsatisfiable core is the iterative deletion algorithm.
         """
-        _assumptions: set[int] = self._convert_assumptions(assumptions if assumptions is not None else self.assumptions)
+        _assumptions: set[int] = self._to_assumption_literals(
+            assumptions if assumptions is not None else self.assumptions
+        )
 
         mus = LinearElimination(self.control).shrink_known(_assumptions)
 
         return self._build_unsatisfiable_subset(mus, minimal=True)
-
-    def shrink(
-        self,
-        assumptions: AssumptionSet | None = None,
-        timeout: float | None = None,
-    ) -> Subset:
-        """
-        This function applies the unsatisfiable subset minimization (`self._compute_single_minimal`) on the assumptions
-        set `assumptions` and stores the resulting MUS inside `self.minimal`.
-
-        Returns the MUS as a set of assumptions.
-        """
-        self.minimal = self._compute_single_minimal(assumptions=assumptions, timeout=timeout)
-        return self.minimal
 
     def get_multiple_minimal(
         self, max_mus: int | None = None, timeout: float | None = None
@@ -133,7 +104,7 @@ class CoreComputer:
         fully complete in reasonable time. The parameter `max_mus` can be used to specify the maximum number of
         mus that are found before stopping the search.
         """
-        _assumptions: set[int] = self._convert_assumptions(self.assumptions)
+        _assumptions: set[int] = self._to_assumption_literals(self.assumptions)
 
         lattice = AssumptionsLattice(_assumptions, bias=True)
         strategy = LinearElimination(self.control)
