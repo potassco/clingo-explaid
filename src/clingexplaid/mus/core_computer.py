@@ -10,7 +10,6 @@ from musclingo.algorithms.marco import MARCO
 from musclingo.lattice import AssumptionsLattice
 from musclingo.shrink import LinearElimination
 
-from ..utils.types import AssumptionSet
 from .explorers import Explorer, ExplorerPowerset
 from .sets import Subset, SubsetType
 from .utils import AssumptionWrapper
@@ -25,7 +24,7 @@ class CoreComputer:
     def __init__(
         self,
         control: clingo.Control,
-        assumption_set: AssumptionSet,
+        assumption_set: Iterable[int | tuple[Symbol, bool]],
         explorer: Type[Explorer] = ExplorerPowerset,
     ):
         self.control = control
@@ -63,8 +62,8 @@ class CoreComputer:
             wrapper_set.add(a_wrapper)
         return Subset(type=SubsetType.MinimalUnsatisfiableSubset, assumptions=wrapper_set)
 
-    def _to_assumption_literals(self, assumptions: AssumptionSet) -> set[int]:
-        """Convert assumptions to literal representation, e.g.: (Symbol, bool) -> (int, bool)"""
+    def _to_assumption_literals(self, assumptions: Iterable[int | tuple[Symbol, bool]]) -> set[int]:
+        """Convert assumptions to literal representation, e.g.: (Symbol, bool) -> int"""
         converted = set()
         for assumption in assumptions:
             if isinstance(assumption, int):
@@ -78,7 +77,7 @@ class CoreComputer:
 
     def _compute_single_minimal(
         self,
-        assumptions: AssumptionSet | None = None,
+        assumptions: Iterable[int | tuple[Symbol, bool]] | None = None,
         timeout: float | None = None,
     ) -> Subset:
         """
