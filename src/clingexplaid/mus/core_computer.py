@@ -116,23 +116,3 @@ class CoreComputer:
             # exit on maximum subset reached
             if maximum is not None and found >= maximum:
                 return
-
-    def mus_to_string(
-        self,
-        mus: Iterable[tuple[clingo.Symbol, bool] | int],
-        literal_lookup: dict[int, clingo.Symbol] | None = None,
-    ) -> set[str]:
-        """
-        Converts a MUS into a set containing the string representations of the contained assumptions
-        """
-        # take class literal_lookup as default if no other is provided
-        if literal_lookup is None:
-            literal_lookup = self.literal_lookup
-
-        mus_string = set()
-        for a in mus:
-            if isinstance(a, int):
-                mus_string.add(str(literal_lookup[a]))  # nocoverage
-            else:
-                mus_string.add(str(a[0]))
-        return mus_string
