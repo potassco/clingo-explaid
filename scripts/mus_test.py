@@ -16,12 +16,12 @@ start_t = time.perf_counter()
 ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
 ap.process(PROGRAM)
 ap.control.ground([("base", [])])
-cc = SubsetComputer(ap.control, ap.assumptions)
+sc = SubsetComputer(ap.control, ap.assumptions)
 
 
 def shrink_on_core(core) -> None:
-    mus_literals = cc.shrink(core)
-    print("MUS:", cc.mus_to_string(mus_literals))
+    mus = sc.mus(core)
+    print(mus)
 
 
 ap.control.solve(assumptions=list(ap.assumptions), on_core=shrink_on_core)

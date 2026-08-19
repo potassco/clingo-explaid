@@ -11,8 +11,8 @@ b(1..3).
 ap = AssumptionPreprocessor()
 ap.process(PROGRAM)
 ap.control.ground([("base", [])])
-cc = SubsetComputer(ap.control, ap.assumptions)
+sc = SubsetComputer(ap.control, ap.assumptions)
 
-mus_generator = cc.get_multiple_minimal()
+mus_generator = sc.multiple()
 for i, mus in enumerate(mus_generator):
-    print(f"MUS {i}:", cc.mus_to_string(mus))
+    print(f"{i}:", mus)
