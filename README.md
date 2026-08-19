@@ -82,7 +82,7 @@ Getting a single MUS:
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterSignature
-from clingexplaid.mus import CoreComputer
+from clingexplaid.mus import SubsetComputer
 
 PROGRAM = """
 a(1..3).
@@ -96,11 +96,11 @@ a(X) :- b(X).
 ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
 ap.process(PROGRAM)
 ap.control.ground([("base", [])])
-cc = CoreComputer(ap.control, ap.assumptions)
+sc = SubsetComputer(ap.control, ap.assumptions)
 
 def shrink_on_core(core) -> None:
-    mus_literals = cc.shrink(core)
-    print("MUS:", cc.mus_to_string(mus_literals))
+    mus = sc.mus(core)
+    print(mus)
 
 ap.control.solve(
     assumptions=list(ap.assumptions),
@@ -112,7 +112,7 @@ Getting multiple MUS:
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor
-from clingexplaid.mus import CoreComputer
+from clingexplaid.mus import SubsetComputer
 
 PROGRAM = """
 a(1..3).
@@ -124,11 +124,10 @@ b(1..3).
 ap = AssumptionPreprocessor()
 ap.process(PROGRAM)
 ap.control.ground([("base", [])])
-cc = CoreComputer(ap.control, ap.assumptions)
+sc = SubsetComputer(ap.control, ap.assumptions)
 
-mus_generator = cc.get_multiple_minimal()
-for i, mus in enumerate(mus_generator):
-    print(f"MUS {i}:", cc.mus_to_string(mus))
+for i, mus in enumerate(sc.multiple()):
+    print(f"{i}:", mus)
 ```
 
 ### Unsatisfiable Constraints
