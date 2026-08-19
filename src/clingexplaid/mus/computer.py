@@ -11,7 +11,7 @@ from musclingo.lattice import AssumptionsLattice
 from musclingo.shrink import LinearElimination
 
 from .explorers import Explorer, ExplorerPowerset
-from .sets import Subset, SubsetType
+from .sets import MaximalSatisfiableSubset, MinimalCorrectionSet, MinimalUnsatisfiableSubset, Subset
 from .utils import AssumptionWrapper
 
 
@@ -49,7 +49,7 @@ class SubsetComputer:
             self.literal_lookup[abs(atom.literal)] = atom.symbol
             self.symbol_lookup[atom.symbol] = abs(atom.literal)
 
-    def _build_subset(self, assumptions: set[int], type: SubsetType) -> Subset:
+    def _build_subset(self, assumptions: set[int], type: type[Subset]) -> Subset:
         """Build up an unsatisfiable subset from the given set of assumptions"""
         wrapper_set = set()
         for a_literal in assumptions:
@@ -57,7 +57,7 @@ class SubsetComputer:
             a_sign = a_literal >= 0
             a_wrapper = AssumptionWrapper(literal=a_literal, symbol=assumption_symbol, sign=a_sign)
             wrapper_set.add(a_wrapper)
-        return Subset(type=type, assumptions=wrapper_set)
+        return type(assumptions=wrapper_set)
 
     def _to_assumption_literals(self, assumptions: Iterable[int | tuple[Symbol, bool]]) -> set[int]:
         """Convert assumptions to literal representation, e.g.: (Symbol, bool) -> int"""
@@ -86,11 +86,13 @@ class SubsetComputer:
 
         mus = LinearElimination(self.control).shrink_known(literals)
 
-        return self._build_subset(mus, SubsetType.MinimalUnsatisfiableSubset)
+        return self._build_subset(mus, MinimalUnsatisfiableSubset)
 
     def multiple(
         self,
-        types: set[SubsetType] = {SubsetType.MinimalUnsatisfiableSubset},
+        types: set[type[MinimalUnsatisfiableSubset] | type[MaximalSatisfiableSubset] | type[MinimalCorrectionSet]] = {
+            MinimalUnsatisfiableSubset
+        },
         maximum: int | None = None,
         timeout: float | None = None,
     ) -> Generator[Subset, None, None]:
@@ -106,14 +108,14 @@ class SubsetComputer:
 
         found = 0
         for subset_type, subset in algorithm:
-            if subset_type == "mus" and SubsetType.MinimalUnsatisfiableSubset in types:
+            if subset_type == "mus" and MinimalUnsatisfiableSubset in types:
                 found += 1
-                yield self._build_subset(subset, SubsetType.MinimalUnsatisfiableSubset)
-            elif subset_type == "mss" and SubsetType.MaximalSatisfiableSubset in types:
+                yield self._build_subset(subset, MinimalUnsatisfiableSubset)
+            elif subset_type == "mss" and MaximalSatisfiableSubset in types:
                 found += 1
-                yield self._build_subset(subset, SubsetType.MaximalSatisfiableSubset)
+                yield self._build_subset(subset, MaximalSatisfiableSubset)
                 mcs = literals.intersection(subset)
-                yield self._build_subset(mcs, SubsetType.MinimalCorrectionSet)
+                yield self._build_subset(mcs, MinimalCorrectionSet)
 
             # exit on maximum subset reached
             if maximum is not None and found >= maximum:

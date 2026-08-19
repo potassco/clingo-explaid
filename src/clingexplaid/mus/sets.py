@@ -2,9 +2,9 @@
 Container classes for sets
 """
 
+from abc import ABC
 from collections.abc import Iterator
 from dataclasses import dataclass
-from enum import Enum
 
 import clingo
 
@@ -23,19 +23,10 @@ def render_assumption_set(assumptions: set[AssumptionWrapper]) -> str:  # nocove
     return out
 
 
-class SubsetType(Enum):
-    UnsatisfiableSubset = "US"
-    SatisfiableSubset = "SS"
-    MinimalUnsatisfiableSubset = "MUS"
-    MaximalSatisfiableSubset = "MSS"
-    MinimalCorrectionSet = "MCS"
-
-
 @dataclass(frozen=True)
-class Subset:
+class Subset(ABC):
     """Container class for different types for subsets"""
 
-    type: SubsetType
     assumptions: set[AssumptionWrapper]
 
     def iter_symbols(self) -> Iterator[tuple[clingo.Symbol, bool]]:
@@ -49,11 +40,28 @@ class Subset:
     def __iter__(self) -> Iterator[tuple[clingo.Symbol, bool] | int]:
         return self.iter_symbols()
 
-    def __str__(self) -> str:  # nocoverage
-        out = f"{self.type.name}("
-        out += "assumptions="
+    @property
+    def assumptions_string(self) -> str:  # nocoverage
+        out = "assumptions="
         out += render_assumption_set(self.assumptions)
-        out += ")"
         return out
 
+    def __str__(self) -> str:
+        return f"{self.__class__}({self.assumptions_string})"
+
     __repr__ = __str__
+
+
+class SatisfiableSubset(Subset): ...
+
+
+class UnsatisfiableSubset(Subset): ...
+
+
+class MinimalUnsatisfiableSubset(Subset): ...
+
+
+class MaximalSatisfiableSubset(Subset): ...
+
+
+class MinimalCorrectionSet(Subset): ...
