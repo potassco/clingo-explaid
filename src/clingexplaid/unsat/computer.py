@@ -7,7 +7,7 @@ import warnings
 from typing import Generator, Iterable, Type, cast
 
 import clingo
-from clingo import Symbol
+from clingo import SolveHandle, Symbol
 from musclingo.algorithms.marco import MARCO
 from musclingo.lattice import AssumptionsLattice
 from musclingo.shrink import LinearElimination
@@ -78,6 +78,15 @@ class SubsetComputer:
                 converted.add(a_literal * a_sign_factor)
         return converted
 
+    def is_valid(self, assumptions: set[int]) -> bool:
+        """Checks whether the program with the provided assumptions is unsatisfiable"""
+        try:
+            with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
+                assert not cast(SolveHandle, solve_handle).get().satisfiable
+            return True
+        except AssertionError:
+            return False
+
     def mus(
         self,
         assumptions: Iterable[int | tuple[Symbol, bool]] | None = None,
@@ -89,6 +98,9 @@ class SubsetComputer:
         literals: set[int] = self._to_assumption_literals(
             assumptions if assumptions is not None else self.assumption_literals
         )
+
+        if not self.is_valid(literals):
+            return UnsatisfiableSubset(set())
 
         mus, interrupted = LinearElimination(self.control).shrink_known(literals, timeout)
 
@@ -111,6 +123,9 @@ class SubsetComputer:
         Find multiple fundamental subsets filtered by the `types` argument.
         """
         literals: set[int] = self._to_assumption_literals(self.assumption_literals)
+
+        if not self.is_valid(literals):
+            return
 
         lattice = AssumptionsLattice(literals, bias=True)
         strategy = LinearElimination(self.control)
