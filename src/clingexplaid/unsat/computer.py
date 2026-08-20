@@ -2,6 +2,8 @@
 Container class for subset computation
 """
 
+import time
+import warnings
 from typing import Generator, Iterable, Type, cast
 
 import clingo
@@ -115,6 +117,7 @@ class SubsetComputer:
 
         algorithm = MARCO(lattice, strategy)
 
+        t_start = time.perf_counter()
         found = 0
         for subset_type, subset in algorithm:
             if subset_type == "mus" and MinimalUnsatisfiableSubset in types:
@@ -128,6 +131,10 @@ class SubsetComputer:
 
             # exit on maximum subset reached
             if maximum is not None and found >= maximum:
+                return
+            # exit on timeout reached
+            if timeout is not None and time.perf_counter() >= t_start + timeout:
+                warnings.warn("Timeout was reached when exploring subset space of unsatisfiable program")
                 return
 
     @property
