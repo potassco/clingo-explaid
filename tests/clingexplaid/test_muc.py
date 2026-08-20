@@ -8,10 +8,10 @@ from unittest import TestCase
 
 import clingo
 
-from clingexplaid.mus import SubsetComputer
-from clingexplaid.mus.core_computer import UnsatisfiableSubset
-from clingexplaid.mus.explorers import Explorer, ExplorerAsp, ExplorerPowerset
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
+from clingexplaid.unsat import Subset, SubsetComputer
+from clingexplaid.unsat.explorers import Explorer, ExplorerAsp, ExplorerPowerset
+from clingexplaid.unsat.sets import UnsatisfiableSubset
 
 from .test_main import TEST_DIR
 
@@ -24,7 +24,7 @@ def get_mus_of_program(
     control: Optional[clingo.Control] = None,
     timeout: Optional[float] = None,
     explorer: Type[Explorer] = ExplorerPowerset,
-) -> Tuple[UnsatisfiableSubset, SubsetComputer]:
+) -> Tuple[Subset, SubsetComputer]:
     """
     Helper function to directly get the MUS of a given program string.
     """
@@ -42,17 +42,17 @@ def get_mus_of_program(
     ctl.add("base", [], transformed_program)
     ctl.ground([("base", [])])
 
-    cc = SubsetComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
+    sc = SubsetComputer(ctl, ap.assumptions, explorer=explorer)
 
     def shrink_on_model(core: Sequence[int]) -> None:
-        _ = cc.shrink(core, timeout=timeout)
+        _ = sc.mus(core, timeout=timeout)
 
     ctl.solve(assumptions=list(ap.assumptions), on_core=shrink_on_model)
 
     # if the instance was satisfiable and the on_core function wasn't called an empty set is returned, else the mus.
-    result = cc.minimal if cc.minimal is not None else UnsatisfiableSubset(set())
+    result = sc.last_mus if sc.last_mus is not None else UnsatisfiableSubset(set())
 
-    return result, cc
+    return result, sc
 
 
 class TestMUS(TestCase):
@@ -87,7 +87,7 @@ class TestMUS(TestCase):
 
         mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
-        if cc.minimal is None:
+        if cc.last_mus is None:
             self.fail()
         self._assert_mus(cc.mus_to_string(mus), [{"a(1)", "a(4)", "a(5)"}])
 

@@ -2,7 +2,7 @@
 Container class for subset computation
 """
 
-from typing import Generator, Iterable, Type
+from typing import Generator, Iterable, Type, cast
 
 import clingo
 from clingo import Symbol
@@ -40,6 +40,7 @@ class SubsetComputer:
 
         self.assumption_literals: set[int] = self._to_assumption_literals(assumptions)
         self.explorer = explorer(assumptions=self._wrap_assumption_literals(self.assumption_literals))
+        self._last_mus: MinimalUnsatisfiableSubset | None = None
 
     def _wrap_assumption_literals(self, literals: Iterable[int]) -> set[AssumptionWrapper]:
         return {self._get_assumption_wrapper(literal) for literal in literals}
@@ -95,7 +96,9 @@ class SubsetComputer:
         if interrupted:
             return self._build_subset(mus, UnsatisfiableSubset)
         else:
-            return self._build_subset(mus, MinimalUnsatisfiableSubset)
+            mus_out = cast(MinimalUnsatisfiableSubset, self._build_subset(mus, MinimalUnsatisfiableSubset))
+            self._last_mus = mus_out
+            return mus_out
 
     def multiple(
         self,
@@ -129,3 +132,7 @@ class SubsetComputer:
             # exit on maximum subset reached
             if maximum is not None and found >= maximum:
                 return
+
+    @property
+    def last_mus(self) -> MinimalUnsatisfiableSubset | None:
+        return self._last_mus
