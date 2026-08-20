@@ -1,6 +1,4 @@
-"""
-Container class for subset computation
-"""
+"""Container class for subset computation"""
 
 import time
 import warnings
@@ -48,7 +46,6 @@ class SubsetComputer:
         return AssumptionWrapper(literal=literal, symbol=self.literal_lookup[abs(literal)], sign=literal >= 0)
 
     def _build_lookups(self) -> None:
-        """Build up the literal and symbol lookup dictionaries from a grounded clingo Control object"""
         self.literal_lookup = {}
         self.symbol_lookup = {}
         for atom in self.control.symbolic_atoms:
@@ -56,7 +53,6 @@ class SubsetComputer:
             self.symbol_lookup[atom.symbol] = abs(atom.literal)
 
     def _build_subset(self, assumptions: set[int], type: type[Subset]) -> Subset:
-        """Build up an unsatisfiable subset from the given set of assumptions"""
         wrapper_set = set()
         for a_literal in assumptions:
             assumption_symbol = self.literal_lookup[abs(a_literal)]
@@ -66,7 +62,6 @@ class SubsetComputer:
         return type(assumptions=wrapper_set)
 
     def _to_assumption_literals(self, assumptions: Iterable[int | tuple[Symbol, bool]]) -> set[int]:
-        """Convert assumptions to literal representation, e.g.: (Symbol, bool) -> int"""
         converted = set()
         for assumption in assumptions:
             if isinstance(assumption, int):
@@ -79,7 +74,19 @@ class SubsetComputer:
         return converted
 
     def is_valid(self, assumptions: set[int]) -> bool:
-        """Checks whether the program with the provided assumptions is unsatisfiable"""
+        """
+        Checks whether the program with the provided assumptions is valid.
+
+        Parameters
+        ----------
+        assumptions
+            A set of assumption literals to check the `SubsetComputer`'s program's validity against.
+
+        Returns
+        -------
+        valid
+            Indicates wheter the `SubsetComputer`'s input is valid.
+        """
         try:
             with self.control.solve(assumptions=list(assumptions), yield_=True) as solve_handle:
                 assert not cast(SolveHandle, solve_handle).get().satisfiable
@@ -94,6 +101,19 @@ class SubsetComputer:
     ) -> Subset:
         """
         Find a singlular MUS via linear elimination
+
+        Parameters
+        ----------
+        assumptions
+            A set of assumption literals that for an unsatisfiable subset (US).
+        timeout
+            Sets a timeout in seconds, that if exceeded stops the search and returns the already found MUS literals.
+
+        Returns
+        -------
+        mus
+            A `MinimalUnsatisfiableSubset` if one is found or an `UnsatisfiableSubset` if `timeout` is exceeded are the
+            input is invalid.
         """
         literals: set[int] = self._to_assumption_literals(
             assumptions if assumptions is not None else self.assumption_literals
@@ -121,6 +141,20 @@ class SubsetComputer:
     ) -> Generator[Subset, None, None]:
         """
         Find multiple fundamental subsets filtered by the `types` argument.
+
+        Parameters
+        ----------
+        types
+            A set of `Subset` classes that filters which kinds of subsets are yielded in the search.
+        maximum
+            The maximum amout of subsets to be found. The search is stopped after this amout is reached.
+        timeout
+            Sets a timeout in seconds, that if exceeded stops the subset search.
+
+        Yields
+        ------
+        subset
+            A subets matching the types specified in `types`.
         """
         literals: set[int] = self._to_assumption_literals(self.assumption_literals)
 
@@ -137,7 +171,9 @@ class SubsetComputer:
         for subset_type, subset in algorithm:
             if subset_type == "mus" and MinimalUnsatisfiableSubset in types:
                 found += 1
-                yield self._build_subset(subset, MinimalUnsatisfiableSubset)
+                mus_out = cast(MinimalUnsatisfiableSubset, self._build_subset(subset, MinimalUnsatisfiableSubset))
+                self._last_mus = mus_out
+                yield mus_out
             elif subset_type == "mss" and MaximalSatisfiableSubset in types:
                 found += 1
                 yield self._build_subset(subset, MaximalSatisfiableSubset)
@@ -154,4 +190,5 @@ class SubsetComputer:
 
     @property
     def last_mus(self) -> MinimalUnsatisfiableSubset | None:
+        """The last MUS that was found"""
         return self._last_mus
