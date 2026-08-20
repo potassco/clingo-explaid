@@ -11,7 +11,7 @@ import clingo
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
 from clingexplaid.unsat import Subset, SubsetComputer
 from clingexplaid.unsat.explorers import Explorer, ExplorerAsp, ExplorerPowerset
-from clingexplaid.unsat.sets import UnsatisfiableSubset
+from clingexplaid.unsat.sets import MinimalUnsatisfiableSubset, UnsatisfiableSubset
 
 from .test_main import TEST_DIR
 
@@ -85,11 +85,11 @@ class TestMUS(TestCase):
             """
         filters = {FilterSignature("a", 1)}
 
-        mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
+        mus, sc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
-        if cc.last_mus is None:
+        if sc.last_mus is None:
             self.fail()
-        self._assert_mus(cc.mus_to_string(mus), [{"a(1)", "a(4)", "a(5)"}])
+        self._assert_mus(mus.symbol_strings, [{"a(1)", "a(4)", "a(5)"}])
 
     def test_core_computer_shrink_single_atomic_mus(self) -> None:
         """
@@ -104,11 +104,11 @@ class TestMUS(TestCase):
             """
         filters = {FilterSignature("a", 1)}
 
-        mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
+        mus, sc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
-        if cc.minimal is None:
+        if sc.last_mus is None:
             self.fail()
-        self._assert_mus(cc.mus_to_string(mus), [{"a(3)"}])
+        self._assert_mus(mus.symbol_strings, [{"a(3)"}])
 
     def test_core_computer_shrink_multiple_atomic_mus(self) -> None:
         """
@@ -126,13 +126,13 @@ class TestMUS(TestCase):
                 """
             filters = {FilterSignature("a", 1)}
 
-            mus, cc = get_mus_of_program(
+            mus, sc = get_mus_of_program(
                 program_string=program, assumption_filters=filters, control=ctl, explorer=explorer
             )
 
-            if cc.minimal is None:
+            if sc.last_mus is None:
                 self.fail()
-            self._assert_mus(cc.mus_to_string(mus), [{"a(3)"}, {"a(5)"}, {"a(9)"}])
+            self._assert_mus(mus.symbol_strings, [{"a(3)"}, {"a(5)"}, {"a(9)"}])
 
     def test_core_computer_shrink_multiple_mus(self) -> None:
         """
@@ -150,14 +150,14 @@ class TestMUS(TestCase):
                 """
             filters = {FilterSignature("a", 1)}
 
-            mus, cc = get_mus_of_program(
+            mus, sc = get_mus_of_program(
                 program_string=program, assumption_filters=filters, control=ctl, explorer=explorer
             )
 
-            if cc.minimal is None:
+            if sc.last_mus is None:
                 self.fail()
             self._assert_mus(
-                cc.mus_to_string(mus),
+                mus.symbol_strings,
                 [
                     {"a(3)", "a(9)", "a(5)"},
                     {"a(5)", "a(1)", "a(2)"},
@@ -180,11 +180,11 @@ class TestMUS(TestCase):
             """
         filters = {FilterSignature("a", 1)}
 
-        mus, cc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
+        mus, sc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
 
-        if cc.minimal is None:
+        if sc.last_mus is None:
             self.fail()
-        self._assert_mus(cc.mus_to_string(mus), [{f"a({i})" for i in random_core}])
+        self._assert_mus(mus.symbol_strings, [{f"a({i})" for i in random_core}])
 
     def test_core_computer_shrink_timeout(self) -> None:
         """
@@ -203,7 +203,7 @@ class TestMUS(TestCase):
 
         mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl, timeout=0)
 
-        self.assertEqual(mus.minimal, False)
+        self.assertIsInstance(mus, MinimalUnsatisfiableSubset)
 
     def test_core_computer_shrink_satisfiable(self) -> None:
         """
@@ -235,11 +235,11 @@ class TestMUS(TestCase):
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
-            cc = SubsetComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
+            sc = SubsetComputer(ctl, ap.assumptions, explorer=explorer)
 
-            mus_generator = cc.get_multiple_minimal()
+            mus_generator = sc.multiple()
 
-            mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
+            mus_string_sets = [mus.symbol_strings for mus in list(mus_generator)]
             for mus_string_set in mus_string_sets:
                 self.assertIn(
                     mus_string_set,
@@ -259,11 +259,11 @@ class TestMUS(TestCase):
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
-            cc = SubsetComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
+            sc = SubsetComputer(ctl, ap.assumptions, explorer=explorer)
 
-            mus_generator = cc.get_multiple_minimal(max_mus=2)
+            mus_generator = sc.multiple(maximum=2)
 
-            mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
+            mus_string_sets = [mus.symbol_strings for mus in list(mus_generator)]
             for mus_string_set in mus_string_sets:
                 self.assertIn(
                     mus_string_set,
@@ -285,25 +285,15 @@ class TestMUS(TestCase):
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
-            cc = SubsetComputer(control=ctl, assumption_set=ap.assumptions, explorer=explorer)
+            sc = SubsetComputer(ctl, ap.assumptions, explorer=explorer)
 
-            mus_generator = cc.get_multiple_minimal(timeout=0)
+            mus_generator = sc.multiple(timeout=0)
 
-            mus_string_sets = [cc.mus_to_string(mus) for mus in list(mus_generator)]
+            mus_string_sets = [mus.symbol_strings for mus in list(mus_generator)]
 
             self.assertEqual(len(mus_string_sets), 0)
 
     # INTERNAL
-
-    def test_core_computer_internal_solve_no_assumptions(self) -> None:
-        """
-        Test the CoreComputer's `_solve` function with no assumptions.
-        """
-
-        control = clingo.Control()
-        cc = SubsetComputer(control, set())
-        satisfiable = cc._is_satisfiable()  # pylint: disable=W0212
-        self.assertTrue(satisfiable)
 
     def test_core_computer_internal_compute_single_minimal_satisfiable(self) -> None:
         """
@@ -315,8 +305,8 @@ class TestMUS(TestCase):
         control.add("base", [], program)
         control.ground([("base", [])])
         assumptions = {(clingo.parse_term(c), True) for c in "abc"}
-        cc = SubsetComputer(control, assumptions)
-        mus = cc._compute_single_minimal()  # pylint: disable=W0212
+        sc = SubsetComputer(control, assumptions)
+        mus = sc.mus()  # pylint: disable=W0212
         self.assertEqual(mus, UnsatisfiableSubset(set()))
 
     def test_core_computer_internal_compute_single_minimal_no_assumptions(self) -> None:
@@ -325,20 +315,7 @@ class TestMUS(TestCase):
         """
 
         control = clingo.Control()
-        cc = SubsetComputer(control, set())
+        sc = SubsetComputer(control, set())
         # Disabled exception assertion due to change in error handling
-        mus = cc._compute_single_minimal(assumptions=None)  # pylint: disable=W0212
+        mus = sc.mus(assumptions=None)  # pylint: disable=W0212
         self.assertEqual(mus, UnsatisfiableSubset(set()))
-        cc.shrink([])
-
-    def test_core_computer_mus_to_string(self) -> None:
-        """
-        Test the CoreComputer's `_compute_single_minimal` function with no assumptions.
-        """
-
-        control = clingo.Control()
-        cc = SubsetComputer(control, set())
-        self.assertEqual(
-            cc.mus_to_string({(clingo.parse_term(string), True) for string in ["this", "is", "a", "test"]}),
-            {"this", "is", "a", "test"},
-        )  # pylint: disable=W0212

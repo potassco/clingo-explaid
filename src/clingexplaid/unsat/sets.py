@@ -46,6 +46,10 @@ class Subset(ABC):
         out += render_assumption_set(self.assumptions)
         return out
 
+    @property
+    def symbol_strings(self) -> set[str]:
+        return {str(sym) for (sym, _) in self.iter_symbols()}
+
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.assumptions_string})"
 
