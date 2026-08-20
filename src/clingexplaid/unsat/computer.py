@@ -39,13 +39,10 @@ class SubsetComputer:
         self._build_lookups()
 
         self.assumption_literals: set[int] = self._to_assumption_literals(assumptions)
-        self.explorer = explorer(assumptions=self._wrap_assumption_literals(self.assumption_literals))
+        self.explorer = explorer(assumptions={self._wrap(literal) for literal in self.assumption_literals})
         self._last_mus: MinimalUnsatisfiableSubset | None = None
 
-    def _wrap_assumption_literals(self, literals: Iterable[int]) -> set[AssumptionWrapper]:
-        return {self._get_assumption_wrapper(literal) for literal in literals}
-
-    def _get_assumption_wrapper(self, literal: int) -> AssumptionWrapper:
+    def _wrap(self, literal: int) -> AssumptionWrapper:
         return AssumptionWrapper(literal=literal, symbol=self.literal_lookup[abs(literal)], sign=literal >= 0)
 
     def _build_lookups(self) -> None:
