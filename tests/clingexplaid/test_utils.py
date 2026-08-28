@@ -1,21 +1,17 @@
-"""
-Tests for the utils package
-"""
+"""Tests for the utils package."""
 
 from typing import List
 from unittest import TestCase
 
 import clingo
-from clingo.ast import parse_string
+from clingo.ast import AST, ASTType, parse_string
 
 from clingexplaid.utils import get_constant_string, get_constants_from_arguments, get_signatures_from_model_string
 from clingexplaid.utils.symbols import ast_symbolic_atom_to_symbol
 
 
 class TestUtils(TestCase):
-    """
-    Test cases for clingexplaid.
-    """
+    """Test cases for clingexplaid."""
 
     def test_get_signatures_from_model_string(self) -> None:
         """
@@ -34,9 +30,7 @@ class TestUtils(TestCase):
         self.assertEqual(get_constants_from_arguments(["--const", "-a", "test/42"]), {})
 
     def test_get_constant_strings(self) -> None:
-        """
-        Test getting constant strings
-        """
+        """Test getting constant strings."""
         self.assertEqual(get_constant_string("test", "42"), "test=42")
         self.assertEqual(get_constant_string("name", "value"), "name=value")
         with self.assertRaises(ValueError):
@@ -48,7 +42,7 @@ class TestUtils(TestCase):
         """
         Test converting an AST to a symbol.
         """
-        ast_list: List[clingo.ast.AST] = []
+        ast_list: List[AST] = []
         parse_string(
             """
             test(1).
@@ -63,5 +57,5 @@ class TestUtils(TestCase):
             clingo.parse_term("variables(1,2,3,4,5)"),
         ]
 
-        for ast, result in zip([a for a in ast_list if a.ast_type == clingo.ast.ASTType.Rule], results):
+        for ast, result in zip([a for a in ast_list if a.ast_type == ASTType.Rule], results, strict=True):
             self.assertEqual(ast_symbolic_atom_to_symbol(ast.head), result)
