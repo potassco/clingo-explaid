@@ -1,25 +1,30 @@
 repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.8
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        exclude: ^\.github/
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.16
-    hooks:
-      - id: ruff-check
-        args: ["--fix"]
-        exclude: ^\.github/
-      - id: ruff-format
-        exclude: ^\.github/
+        exclude: ^.github/
 
   - repo: https://github.com/executablebooks/mdformat
     rev: 1.0.0
     hooks:
       - id: mdformat
         args: ["--wrap", "79"]
-        exclude: ^doc/
+        exclude: ^docs/
         additional_dependencies:
           - mdformat-gfm
+
+  - repo: https://github.com/allganize/ty-pre-commit
+    rev: v0.0.46
+    hooks:
+      - id: ty-check
+        exclude: "^noxfile\\.py$"
+        additional_dependencies: ["pytest"]
