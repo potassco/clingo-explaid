@@ -1,7 +1,8 @@
-from clingexplaid.mus import SubsetComputer
-from clingexplaid.mus.sets import MaximalSatisfiableSubset, MinimalCorrectionSet, MinimalUnsatisfiableSubset
+"""Test script to enumerate all elevant subsets of a program."""
 
 from clingexplaid.preprocessors import AssumptionPreprocessor
+from clingexplaid.unsat import SubsetComputer
+from clingexplaid.unsat.sets import MaximalSatisfiableSubset, MinimalCorrectionSet, MinimalUnsatisfiableSubset
 
 PROGRAM = """
 a(1..3).
