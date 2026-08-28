@@ -1,6 +1,4 @@
-"""
-Unsat Constraint Utilities
-"""
+"""Unsat Constraint Utilities."""
 
 import re
 from typing import Dict, Optional, Sequence
@@ -14,39 +12,29 @@ from .constants import UNSAT_CONSTRAINT_SIGNATURE
 
 
 class UnsatConstraintComputer:
-    """
-    A container class that allows for a passed unsatisfiable program_string to identify the underlying constraints
-    making it unsatisfiable
-    """
+    """Computes the constraints of an unsatisfiable program that are the cause for the unsatisfiability."""
 
     def __init__(
         self,
         control: Optional[clingo.Control] = None,
-    ):
+    ) -> None:
         self.control = control if control is not None else clingo.Control()
         self.program_transformed: Optional[str] = None
         self.initialized: bool = False
 
-        self._file_constraint_lookup: Dict[int, clingo.ast.Location] = {}
+        self._file_constraint_lookup: Dict[int, Location] = {}
 
     def parse_string(self, program_string: str) -> None:
-        """
-        Method to parse a provided program string
-        """
+        """Initialize the `UnsatConstraintComputer` with a program string."""
         ct = ConstraintTransformer(UNSAT_CONSTRAINT_SIGNATURE, include_id=True)
         self.program_transformed = ct.parse_string(program_string)
         self._file_constraint_lookup = ct.constraint_location_lookup
         self.initialized = True
 
     def parse_files(self, files: Sequence[str]) -> None:
-        """
-        Method to parse a provided sequence of filenames
-        """
+        """Initialize the `UnsatConstraintComputer` with a list of program."""
         ct = ConstraintTransformer(UNSAT_CONSTRAINT_SIGNATURE, include_id=True)
-        if not files:
-            program_transformed = ct.parse_files("-")  # nocoverage
-        else:
-            program_transformed = ct.parse_files(files)
+        program_transformed = ct.parse_files(files) if files else ct.parse_files("-")  # nocoverage
 
         # remove optimization statements
         optr = OptimizationRemover()
@@ -57,16 +45,11 @@ class UnsatConstraintComputer:
         self.initialized = True
 
     def get_constraint_location(self, constraint_id: int) -> Optional[Location]:
-        """
-        Method to get the file that a constraint (identified by its `constraint_id`) is located in.
-        """
+        """Return the location of the constraint with `constraint_id`."""
         return self._file_constraint_lookup.get(constraint_id)
 
     def get_unsat_constraints(self, assumption_string: Optional[str] = None) -> Dict[int, str]:
-        """
-        Method to get the unsat constraints of an initialized `UnsatConstraintComputer` Object.
-        """
-
+        """Return the unsatisfiable constraints of the initialized `UnsatConstraintComputer`."""
         # only execute if the UnsatConstraintComputer was properly initialized
         if not self.initialized:
             raise ValueError(
