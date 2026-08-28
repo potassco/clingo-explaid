@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import clingo
-from clingo.ast import ProgramBuilder, parse_files, parse_string
+from clingo.ast import AST, Aggregate, ASTType, ConditionalLiteral, ProgramBuilder, Rule, parse_files, parse_string
 
 from ..exceptions import UnprocessedException
 from ..utils.match import match
@@ -72,8 +72,8 @@ class AssumptionPreprocessor:
             warnings.warn("No filters provided: no facts will be transformed to assumptions", stacklevel=2)
 
     @staticmethod
-    def _to_ast(symbol: Union[str, clingo.Symbol]) -> clingo.ast.AST:
-        parsed_ast: List[clingo.ast.AST] = []
+    def _to_ast(symbol: Union[str, clingo.Symbol]) -> AST:
+        parsed_ast: List[AST] = []
         parse_string(f"{symbol}.", parsed_ast.append)
         ast_symbol = parsed_ast[1]  # return AST symbol (parsed_ast[0] = '#program base.')
         return ast_symbol
@@ -109,7 +109,7 @@ class AssumptionPreprocessor:
             rules.append(f"#const {constant}={value}.")
         return "\n".join(rules) + "\n"
 
-    def _unpool(self, ast_symbol: clingo.ast.AST) -> Set[clingo.Symbol]:
+    def _unpool(self, ast_symbol: AST) -> Set[clingo.Symbol]:
         if ".." in str(ast_symbol):
             # Case range in ast symbol (i.e. 1..10)
             # Solved using grounding, but if possible, I'd rather avoid this if possible
@@ -127,14 +127,14 @@ class AssumptionPreprocessor:
         atoms_unpooled = ast_symbol.unpool()
         return {clingo.parse_term(str(a)) for a in atoms_unpooled}
 
-    def _transform_rule(self, rule: clingo.ast.AST) -> List[clingo.ast.AST]:
-        if rule.head.ast_type != clingo.ast.ASTType.Literal:
+    def _transform_rule(self, rule: AST) -> List[AST]:
+        if rule.head.ast_type != ASTType.Literal:
             return [rule]
         if rule.body:
             return [rule]
 
         atoms_unpooled = self._unpool(rule.head)
-        atoms_choice: Set[clingo.ast.AST] = set()
+        atoms_choice: Set[AST] = set()
         atoms_retained: Set[clingo.Symbol] = set()
         for atom in atoms_unpooled:
             filters_apply = self._any_filters_apply(atom)
@@ -143,9 +143,9 @@ class AssumptionPreprocessor:
                 atoms_retained.add(atom)
                 continue
             ast = AssumptionPreprocessor._to_ast(atom)
-            ast_choice_literal = clingo.ast.ConditionalLiteral(location=rule.location, literal=ast.head, condition=[])
+            ast_choice_literal = ConditionalLiteral(location=rule.location, literal=ast.head, condition=[])
             atoms_choice.add(ast_choice_literal)
-        atoms_retained_ast: Set[clingo.ast.AST] = set()
+        atoms_retained_ast: Set[AST] = set()
         for atom in atoms_retained:
             atoms_retained_ast.add(AssumptionPreprocessor._to_ast(atom))
 
@@ -154,20 +154,20 @@ class AssumptionPreprocessor:
             for a_choice in atoms_choice:
                 self._add_assumption_string(str(a_choice), True)
 
-            choice_rule = clingo.ast.Rule(
+            choice_rule = Rule(
                 location=rule.location,
-                head=clingo.ast.Aggregate(
+                head=Aggregate(
                     location=rule.location,
                     left_guard=None,
-                    elements=list(sorted(atoms_choice, key=str)),
+                    elements=sorted(atoms_choice, key=str),
                     right_guard=None,
                 ),
                 body=[],
             )
             return [choice_rule, *sorted(atoms_retained_ast, key=str)]
-        return list(sorted(atoms_retained_ast, key=str))
+        return sorted(atoms_retained_ast, key=str)
 
-    def register_ast(self, ast: clingo.ast.AST, builder: clingo.ast.ProgramBuilder) -> None:
+    def register_ast(self, ast: AST, builder: ProgramBuilder) -> None:
         """
         Register the provided AST to the builder and the parsed rules list.
 
@@ -178,21 +178,21 @@ class AssumptionPreprocessor:
         builder
             Builder object which the `ast` is registered to.
         """
-        if ast.ast_type == clingo.ast.ASTType.Definition:
+        if ast.ast_type == ASTType.Definition:
             self._add_constant(str(ast.name), ast.value.symbol)
         self._parsed_rules.append(str(ast))
         builder.add(ast)
 
-    def _process_ast_list(self, ast_list: List[clingo.ast.AST], builder: ProgramBuilder) -> None:
+    def _process_ast_list(self, ast_list: List[AST], builder: ProgramBuilder) -> None:
         for ast in ast_list:
-            if ast.ast_type == clingo.ast.ASTType.Rule:
+            if ast.ast_type == ASTType.Rule:
                 for new_ast in self._transform_rule(ast):
-                    if new_ast.ast_type != clingo.ast.ASTType.Rule:  # nocoverage
-                        new_rule = clingo.ast.Rule(location=ast.location, head=new_ast, body=[])
+                    if new_ast.ast_type != ASTType.Rule:  # nocoverage
+                        new_rule = Rule(location=ast.location, head=new_ast, body=[])
                         self.register_ast(new_rule, builder)
                     else:
                         self.register_ast(new_ast, builder)
-            elif ast.ast_type == clingo.ast.ASTType.Definition:
+            elif ast.ast_type == ASTType.Definition:
                 self.register_ast(ast, builder)
             else:
                 self.register_ast(ast, builder)
@@ -211,7 +211,7 @@ class AssumptionPreprocessor:
         transformed_string
             The transformed ASP program
         """
-        ast_list: List[clingo.ast.AST] = []
+        ast_list: List[AST] = []
         with ProgramBuilder(self.control) as builder:
             parse_string(program_string, ast_list.append)
             self._process_ast_list(ast_list, builder)
@@ -233,9 +233,9 @@ class AssumptionPreprocessor:
             The combined transformed ASP program of all the input `files`.
         """
         if files is None:
-            warnings.warn("Nothing to process, no files provided")
+            warnings.warn("Nothing to process, no files provided", stacklevel=2)
             return ""
-        ast_list: List[clingo.ast.AST] = []
+        ast_list: List[AST] = []
         with ProgramBuilder(self.control) as builder:
             parse_files(files, ast_list.append)
             self._process_ast_list(ast_list, builder)
