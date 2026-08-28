@@ -133,6 +133,10 @@ ap.control.solve(
 )
 ```
 
+The `SubsetComputer.mus()` method can simple be swapped with
+`SubsetComputer.mss()` or `SubsetComputer.mcs()` to compute the respective
+other subset types
+
 <!-- --8<-- [end:example-mus-single] -->
 
 <!-- --8<-- [start:example-mus-multiple] -->
