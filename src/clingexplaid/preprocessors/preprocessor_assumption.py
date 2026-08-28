@@ -1,6 +1,4 @@
-"""
-Transformer Module: Assumption Transformer for converting facts to choices that can be assumed
-"""
+"""Assumption Preprocessor for converting facts to choices that can be assumed."""
 
 import warnings
 from dataclasses import dataclass
@@ -15,30 +13,43 @@ from ..utils.match import match
 
 @dataclass
 class FilterSignature:
-    """Filters the facts converted to assumptions by signature"""
+    """Filter to select which facts are converted to assumptions by signature."""
 
     name: str
     arity: int
 
     def __hash__(self) -> int:
+        """
+        Return the hash value of the `FilterSignature`.
+
+        Returns
+        -------
+        hash
+            Tuple containing `name` and `arity` of the `FilterSignature`.
+        """
         return hash((self.name, self.arity))
 
 
 @dataclass
 class FilterPattern:
-    """Filters the facts converted to assumptions by pattern"""
+    """Filter to select which facts are converted to assumptions by a pattern."""
 
     pattern: str
 
     def __hash__(self) -> int:
+        """
+        Return the hash value of the `FilterPattern`.
+
+        Returns
+        -------
+        hash
+            Hashed `pattern` string of the `FilterPattern`.
+        """
         return hash(self.pattern)
 
 
 class AssumptionPreprocessor:
-    """
-    A transformer that transforms facts that match with one of the signatures provided (no signatures means all facts)
-    into choice rules and also provides the according assumptions for them.
-    """
+    """Preprocessor object that transforms program facts to choices for them tobe assumed."""
 
     # pylint: disable=too-many-instance-attributes
 
@@ -47,7 +58,7 @@ class AssumptionPreprocessor:
         filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None,
         control: Optional[clingo.Control] = None,
         fail_on_unprocessed: bool = True,
-    ):
+    ) -> None:
         self.control = control if control is not None else clingo.Control()
         self.filters: Set[Union[FilterPattern, FilterSignature]] = set(filters) if filters is not None else set()
         self._filters_convert_nothing = bool(filters is not None and len(list(filters)) == 0)
@@ -58,7 +69,7 @@ class AssumptionPreprocessor:
         self._assumptions: Set[Tuple[clingo.Symbol, bool]] = set()
 
         if self._filters_convert_nothing:
-            warnings.warn("When an empty list of filters is provided, no facts will be transformed to assumptions")
+            warnings.warn("No filters provided: no facts will be transformed to assumptions", stacklevel=2)
 
     @staticmethod
     def _to_ast(symbol: Union[str, clingo.Symbol]) -> clingo.ast.AST:
@@ -157,7 +168,16 @@ class AssumptionPreprocessor:
         return list(sorted(atoms_retained_ast, key=str))
 
     def register_ast(self, ast: clingo.ast.AST, builder: clingo.ast.ProgramBuilder) -> None:
-        """Registers the provided AST to the builder and the parsed rules list"""
+        """
+        Register the provided AST to the builder and the parsed rules list.
+
+        Parameters
+        ----------
+        ast
+            `AST` object that is registered to the `builder`.
+        builder
+            Builder object which the `ast` is registered to.
+        """
         if ast.ast_type == clingo.ast.ASTType.Definition:
             self._add_constant(str(ast.name), ast.value.symbol)
         self._parsed_rules.append(str(ast))
@@ -178,7 +198,19 @@ class AssumptionPreprocessor:
                 self.register_ast(ast, builder)
 
     def process(self, program_string: str) -> str:
-        """Processes the provided program string and returns the transformed program string (control is also updated)"""
+        """
+        Process the provided program string and return the transformed program string (control is also updated).
+
+        Parameters
+        ----------
+        program_string
+            The ASP program to be transformed.
+
+        Returns
+        -------
+        transformed_string
+            The transformed ASP program
+        """
         ast_list: List[clingo.ast.AST] = []
         with ProgramBuilder(self.control) as builder:
             parse_string(program_string, ast_list.append)
@@ -187,7 +219,19 @@ class AssumptionPreprocessor:
         return "\n".join(self._parsed_rules)
 
     def process_files(self, files: Optional[List[str]] = None) -> str:
-        """Processes the provided files and returns the transformed program string (control is also updated)"""
+        """
+        Process the provided files and return the transformed program string (control is also updated).
+
+        Parameters
+        ----------
+        files
+            A list of ASP program files to be transformed
+
+        Returns
+        -------
+        transformed_string
+            The combined transformed ASP program of all the input `files`.
+        """
         if files is None:
             warnings.warn("Nothing to process, no files provided")
             return ""
@@ -200,7 +244,7 @@ class AssumptionPreprocessor:
 
     @property
     def assumptions(self) -> Set[Tuple[clingo.Symbol, bool]]:
-        """Property that returns the assumptions generated by the preprocessor after calling `process`"""
+        """Assumptions generated by the preprocessor after calling `process`."""
         if not self._processed:
             if self._fail_on_unprocessed:
                 raise UnprocessedException(
@@ -208,13 +252,14 @@ class AssumptionPreprocessor:
                 )
             warnings.warn(
                 "Unprocessed Error: It is impossible to retrieve assumptions without invoking the "
-                "`process` function first"
+                "`process` function first",
+                stacklevel=2,
             )  # nocoverage
         return set(self._assumptions)
 
     @property
     def constants(self) -> Dict[str, clingo.Symbol]:
-        """Property that returns the constants generated by the preprocessor after calling `process`"""
+        """Constants generated by the preprocessor after calling `process`."""
         if not self._processed:  # nocoverage
             if self._fail_on_unprocessed:
                 raise UnprocessedException(
@@ -222,6 +267,7 @@ class AssumptionPreprocessor:
                 )
             warnings.warn(
                 "Unprocessed Error: It is impossible to retrieve constants without invoking the "
-                "`process function first`"
+                "`process function first`",
+                stacklevel=2,
             )
         return self._constants
