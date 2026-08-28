@@ -27,4 +27,4 @@ repos:
     hooks:
       - id: ty-check
         exclude: "^noxfile\\.py$"
-        additional_dependencies: ["pytest"]
+        additional_dependencies: [".", "pytest"]
