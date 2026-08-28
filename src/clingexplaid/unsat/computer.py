@@ -31,7 +31,7 @@ class SubsetComputer:
         control: clingo.Control,
         assumptions: Iterable[int | tuple[Symbol, bool]],
         explorer: Type[Explorer] = ExplorerPowerset,
-    ):
+    ) -> None:
         self.control = control
         self.literal_lookup: dict[int, Symbol] = {}
         self.symbol_lookup: dict[Symbol, int] = {}
@@ -133,9 +133,8 @@ class SubsetComputer:
 
     def multiple(
         self,
-        types: set[type[MinimalUnsatisfiableSubset] | type[MaximalSatisfiableSubset] | type[MinimalCorrectionSet]] = {
-            MinimalUnsatisfiableSubset
-        },
+        types: set[type[MinimalUnsatisfiableSubset] | type[MaximalSatisfiableSubset] | type[MinimalCorrectionSet]]
+        | None = None,
         maximum: int | None = None,
         timeout: float | None = None,
     ) -> Generator[Subset, None, None]:
@@ -146,6 +145,7 @@ class SubsetComputer:
         ----------
         types
             A set of `Subset` classes that filters which kinds of subsets are yielded in the search.
+            Equals `{MinimalUnsatisfiableSubset}` by default.
         maximum
             The maximum amout of subsets to be found. The search is stopped after this amout is reached.
         timeout
@@ -156,6 +156,7 @@ class SubsetComputer:
         subset
             A subets matching the types specified in `types`.
         """
+        types = types if types is not None else {MinimalUnsatisfiableSubset}
         literals: set[int] = self._to_assumption_literals(self.assumption_literals)
 
         if not self.is_valid(literals):
@@ -185,7 +186,7 @@ class SubsetComputer:
                 return
             # exit on timeout reached
             if timeout is not None and time.perf_counter() >= t_start + timeout:
-                warnings.warn("Timeout was reached when exploring subset space of unsatisfiable program")
+                warnings.warn("Timeout was reached when exploring subset space of unsatisfiable program", stacklevel=2)
                 return
 
     @property
