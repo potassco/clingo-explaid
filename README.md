@@ -40,6 +40,8 @@ The following Examples show use-cases for `clingexplaid`'s API.
 
 #### Pre-Processing
 
+<!-- --8<-- [start:example-pre-simple] -->
+
 Transforming facts to Assumptions (necessary pre-processing step):
 
 ```python
@@ -67,6 +69,10 @@ print(result)
 print(ap.control)
 ```
 
+<!-- --8<-- [end:example-pre-simple] -->
+
+<!-- --8<-- [start:example-pre-control] -->
+
 You can also use an existing control and pass it to the
 `AssumptionPreprocessor` as follows:
 
@@ -91,11 +97,13 @@ ctl.ground([("base", [])])
 ctl.solve()
 ```
 
+<!-- --8<-- [end:example-pre-control] -->
+
 #### Computing relevant subsets (MUS, MSS, MCS)
 
 <!-- --8<-- [start:example-mus-single] -->
 
-Getting a single MUS:
+Finding a single MUS:
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterSignature
@@ -127,7 +135,9 @@ ap.control.solve(
 
 <!-- --8<-- [end:example-mus-single] -->
 
-Getting multiple MUS:
+<!-- --8<-- [start:example-mus-multiple] -->
+
+Finding multiple MUSs:
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor
@@ -149,7 +159,11 @@ for i, mus in enumerate(sc.multiple()):
     print(f"{i}:", mus)
 ```
 
-Getting multiple relevant subsets (MUS, MSS, and MCS):
+<!-- --8<-- [end:example-mus-multiple] -->
+
+<!-- --8<-- [start:example-mus-multiple-any] -->
+
+Finding multiple relevant subsets (MUS, MSS, and MCS):
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor
@@ -176,6 +190,8 @@ types = [MinimalUnsatisfiableSubset, MaximalSatisfiableSubset, MinimalCorrection
 for i, subset in enumerate(sc.multiple(types)):
     print(f"{i}:", subset)
 ```
+
+<!-- --8<-- [end:example-mus-multiple-any] -->
 
 ### Unsatisfiable Constraints
 

@@ -7,17 +7,43 @@ hide:
 
 Welcome to the **Examples** section of our documentation!
 
-Here, you'll find a comprehensive set of practical examples designed to help
-you get the most out of our system. Whether you're a first-time user or an
-experienced pro, these guides will walk you through common use cases and
-provide step-by-step instructions.
+Here, you'll find a comprehensive set of practical examples designed to
+highlight the typical use-cases of th system. Whether you're a first-time
+user or an experienced pro, these guides will walk you through common use
+cases and provide step-by-step instructions.
 
-## How to Use This Section
+<div class="grid cards" markdown>
 
-Each example includes:
+-   :material-cancel: __Unsatisfiable Subsets__
 
-1. **Instructions** to run the example.
-1. **Code snippets** to demonstrate implementation.
-1. **Helpful visuals** to illustrate key concepts.
+    ---
 
-Dive in and start exploring!
+    How to compute relevant subsets for unsatisfiability
+
+    [:octicons-arrow-right-24: See Examples](subsets)
+
+-   :material-arrow-left: __Unsatisfiable Constraints__
+
+    ---
+
+    How to find the constraints causing unsatisfiability
+
+    [:octicons-arrow-right-24: See Examples](constraints)
+
+-   :material-cog: __Pre-Processors__
+
+    ---
+
+    How to use the available pre-processors
+
+    [:octicons-arrow-right-24: See Examples](preprocessors)
+
+-   :material-cog: __Transformers__
+
+    ---
+
+    How to use the available transformers
+
+    [:octicons-arrow-right-24: See Examples](transformers)
+
+</div>
