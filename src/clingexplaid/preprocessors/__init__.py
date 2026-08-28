@@ -1,4 +1,4 @@
-"""Preprocessors for Clingexplaid"""
+"""Preprocessors for Clingo-Explaid."""
 
 from .preprocessor_assumption import (
     AssumptionPreprocessor,

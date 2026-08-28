@@ -13,7 +13,7 @@ authors = [
 ]
 maintainers = [{ name = "Hannes Weichelt", email = "hweichelt@uni-potsdam.de" }]
 description = "Tools to aid the development of explanation systems using clingo"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {file = "LICENSE"}
 dynamic = [ "version" ]
 readme = "README.md"
@@ -43,9 +43,17 @@ Source = "https://github.com/potassco/clingo-explaid"
 
 [project.optional-dependencies]
 lint = [ "ruff" ]
-typecheck = [ "types-setuptools", "mypy" ]
-test = [ "coverage[toml]" ]
-doc = [ "sphinx", "furo", "nbsphinx", "sphinx_copybutton", "myst-parser" ]
+typecheck = ["pytest", "ty"]
+test = ["pytest", "pytest-cov", "coverage[toml]"]
+doc = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings>=1.0.4",
+    "mkdocstrings-python>=2.0",
+    "clindocs>=1.5.1",
+    "mkdocs-literate-nav",
+    "pygments_clingo",
+]
 dev = [ "clingexplaid[test,typecheck,lint,lint_pylint]" ]
 
 [tool.setuptools.packages.find]
@@ -57,43 +65,34 @@ local_scheme = "no-local-version"
 
 [tool.ruff]
 line-length = 120
-extend-exclude = ["doc"]
+target-version = "py311"
+exclude = [
+    "/usr/**",
+    "**/site-packages/**",
+    "**/node_modules/**",
+    "**/typeshed-fallback/**",
+]
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+extend-select = ["I", "E", "F", "B", "C4", "D", "ARG", "SIM", "ANN", "Q"]
+ignore = [
+    "E741",
+    "D200",
+    "D203",
+    "D212",
+    "D413",
+    "B023", # broken lint
+    "D107", # don't require a docstring for constructors
+]
 
-[tool.isort]
-profile = "black"
-line_length = 120
+[tool.ruff.lint.per-file-ignores]
+"noxfile.py" = ["ANN"]
 
-[tool.black]
-line-length = 120
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
 
-[tool.pylint.format]
-max-line-length = 120
-
-[tool.pylint.design]
-max-args = 10
-max-attributes = 7
-max-bool-expr = 5
-max-branches = 12
-max-locals = 30
-max-parents = 7
-max-public-methods = 20
-max-returns = 10
-max-statements = 50
-min-public-methods = 1
-
-[tool.pylint.similarities]
-ignore-comments = true
-ignore-docstrings = true
-ignore-imports = true
-ignore-signatures = true
-
-[tool.pylint.basic]
-argument-rgx = "^[a-z][a-z0-9]*((_[a-z0-9]+)*_?)?$"
-variable-rgx = "^[a-z][a-z0-9]*((_[a-z0-9]+)*_?)?$"
-good-names = ["_"]
 
 [tool.coverage.run]
 source = ["clingexplaid", "tests"]

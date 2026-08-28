@@ -1,4 +1,4 @@
-"""Container class for subset computation"""
+"""Container class for subset computation."""
 
 import time
 import warnings
@@ -23,7 +23,7 @@ from .utils import AssumptionWrapper
 
 class SubsetComputer:
     """
-    Provides methods for computing fundamental subsets of unsatisfiable problems
+    Compute fundamental subsets of unsatisfiable problems.
     """
 
     def __init__(
@@ -31,7 +31,7 @@ class SubsetComputer:
         control: clingo.Control,
         assumptions: Iterable[int | tuple[Symbol, bool]],
         explorer: Type[Explorer] = ExplorerPowerset,
-    ):
+    ) -> None:
         self.control = control
         self.literal_lookup: dict[int, Symbol] = {}
         self.symbol_lookup: dict[Symbol, int] = {}
@@ -41,6 +41,8 @@ class SubsetComputer:
         self.assumption_literals: set[int] = self._to_assumption_literals(assumptions)
         self.explorer = explorer(assumptions={self._wrap(literal) for literal in self.assumption_literals})
         self._last_mus: MinimalUnsatisfiableSubset | None = None
+        self._last_mss: MaximalSatisfiableSubset | None = None
+        self._last_mcs: MinimalCorrectionSet | None = None
 
     def _wrap(self, literal: int) -> AssumptionWrapper:
         return AssumptionWrapper(literal=literal, symbol=self.literal_lookup[abs(literal)], sign=literal >= 0)
@@ -75,7 +77,7 @@ class SubsetComputer:
 
     def is_valid(self, assumptions: set[int]) -> bool:
         """
-        Checks whether the program with the provided assumptions is valid.
+        Check whether the program with the provided assumptions is valid.
 
         Parameters
         ----------
@@ -100,19 +102,19 @@ class SubsetComputer:
         timeout: float | None = None,
     ) -> Subset:
         """
-        Find a singlular MUS via linear elimination
+        Find a singlular MUS via linear elimination.
 
         Parameters
         ----------
         assumptions
-            A set of assumption literals that for an unsatisfiable subset (US).
+            A set of assumption literals that form an unsatisfiable subset (US).
         timeout
             Sets a timeout in seconds, that if exceeded stops the search and returns the already found MUS literals.
 
         Returns
         -------
         mus
-            A `MinimalUnsatisfiableSubset` if one is found or an `UnsatisfiableSubset` if `timeout` is exceeded are the
+            A `MinimalUnsatisfiableSubset` if one is found or an `UnsatisfiableSubset` if `timeout` is exceeded or the
             input is invalid.
         """
         literals: set[int] = self._to_assumption_literals(
@@ -131,11 +133,51 @@ class SubsetComputer:
             self._last_mus = mus_out
             return mus_out
 
+    def mss(
+        self,
+        assumptions: Iterable[int | tuple[Symbol, bool]] | None = None,
+    ) -> MaximalSatisfiableSubset | None:
+        """
+        Find a singlular MSS. This method is a wrapper around `SubsetComputer.multiple()`.
+
+        Parameters
+        ----------
+        assumptions
+            A set of assumption literals that form an unsatisfiable subset (US).
+
+        Returns
+        -------
+        mss
+            A `MaximalSatisfiableSubset` if one is found or `None` if the input is invalid.
+        """
+        for mss in self.multiple(types={MaximalSatisfiableSubset}, assumptions=assumptions, maximum=1):
+            return cast(MaximalSatisfiableSubset, mss)
+
+    def mcs(
+        self,
+        assumptions: Iterable[int | tuple[Symbol, bool]] | None = None,
+    ) -> MinimalCorrectionSet | None:
+        """
+        Find a singlular MCS. This method is a wrapper around `SubsetComputer.multiple()`.
+
+        Parameters
+        ----------
+        assumptions
+            A set of assumption literals that form an unsatisfiable subset (US).
+
+        Returns
+        -------
+        mcs
+            A `MinimalCorrectionSet` if one is found or `None` if the input is invalid.
+        """
+        for mcs in self.multiple(types={MinimalCorrectionSet}, assumptions=assumptions, maximum=1):
+            return cast(MinimalCorrectionSet, mcs)
+
     def multiple(
         self,
-        types: set[type[MinimalUnsatisfiableSubset] | type[MaximalSatisfiableSubset] | type[MinimalCorrectionSet]] = {
-            MinimalUnsatisfiableSubset
-        },
+        assumptions: Iterable[int | tuple[Symbol, bool]] | None = None,
+        types: set[type[MinimalUnsatisfiableSubset] | type[MaximalSatisfiableSubset] | type[MinimalCorrectionSet]]
+        | None = None,
         maximum: int | None = None,
         timeout: float | None = None,
     ) -> Generator[Subset, None, None]:
@@ -144,8 +186,11 @@ class SubsetComputer:
 
         Parameters
         ----------
+        assumptions
+            A set of assumption literals that form an unsatisfiable subset (US).
         types
             A set of `Subset` classes that filters which kinds of subsets are yielded in the search.
+            Equals `{MinimalUnsatisfiableSubset}` by default.
         maximum
             The maximum amout of subsets to be found. The search is stopped after this amout is reached.
         timeout
@@ -156,7 +201,9 @@ class SubsetComputer:
         subset
             A subets matching the types specified in `types`.
         """
-        literals: set[int] = self._to_assumption_literals(self.assumption_literals)
+        types = types if types is not None else {MinimalUnsatisfiableSubset}
+        assumptions = assumptions if assumptions is not None else self.assumption_literals
+        literals: set[int] = self._to_assumption_literals(assumptions)
 
         if not self.is_valid(literals):
             return
@@ -176,19 +223,23 @@ class SubsetComputer:
                 yield mus_out
             elif subset_type == "mss" and MaximalSatisfiableSubset in types:
                 found += 1
-                yield self._build_subset(subset, MaximalSatisfiableSubset)
+                mss_out = cast(MaximalSatisfiableSubset, self._build_subset(subset, MaximalSatisfiableSubset))
+                self._last_mss = mss_out
+                yield mss_out
                 mcs = literals.intersection(subset)
-                yield self._build_subset(mcs, MinimalCorrectionSet)
+                mcs_out = cast(MinimalCorrectionSet, self._build_subset(mcs, MinimalCorrectionSet))
+                self._last_mcs = mcs_out
+                yield mcs_out
 
             # exit on maximum subset reached
             if maximum is not None and found >= maximum:
                 return
             # exit on timeout reached
             if timeout is not None and time.perf_counter() >= t_start + timeout:
-                warnings.warn("Timeout was reached when exploring subset space of unsatisfiable program")
+                warnings.warn("Timeout was reached when exploring subset space of unsatisfiable program", stacklevel=2)
                 return
 
     @property
     def last_mus(self) -> MinimalUnsatisfiableSubset | None:
-        """The last MUS that was found"""
+        """The last MUS that was found."""
         return self._last_mus
