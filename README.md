@@ -3,11 +3,19 @@
 > [!CAUTION] This version uses a local dependency of `musclingo` for
 > development purposes. This should be fixed before it is released!
 
-API to aid the development of explanation systems using clingo
+<!-- --8<-- [start:description] -->
+
+clingo-explaid is a python library for explaining why an ASP program is
+unsatisfiable. Its API offers preprocessing, subset computation, and constraint
+analysis tools for building explanation systems on top of clingo.
+
+<!-- --8<-- [end:description] -->
 
 ## Installation
 
-Clingo-Explaid easily be installed with `pip`:
+<!-- --8<-- [start:installation] -->
+
+Clingo-Explaid can easily be installed with `pip`:
 
 ```bash
 pip install clingexplaid
@@ -17,6 +25,8 @@ pip install clingexplaid
 
 - `python >= 3.11`
 - `clingo >= 5.7.1`
+
+<!-- --8<-- [end:installation] -->
 
 ### Building from Source
 
@@ -83,6 +93,8 @@ ctl.solve()
 
 #### Computing relevant subsets (MUS, MSS, MCS)
 
+<!-- --8<-- [start:example-mus-single] -->
+
 Getting a single MUS:
 
 ```python
@@ -112,6 +124,8 @@ ap.control.solve(
     on_core=shrink_on_core
 )
 ```
+
+<!-- --8<-- [end:example-mus-single] -->
 
 Getting multiple MUS:
 
