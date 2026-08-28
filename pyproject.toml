@@ -82,6 +82,7 @@ ignore = [
     "D212",
     "D413",
     "B023", # broken lint
+    "D107", # don't require a docstring for constructors
 ]
 
 [tool.ruff.lint.per-file-ignores]
