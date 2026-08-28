@@ -1,11 +1,11 @@
 ---
-title: "API Reference"
-icon: "material/book-open-variant"
+title: "Preprocessors"
+icon: "material/cog"
 ---
 
-# API
+# Preprocessors
 
-::: clingexplaid
+::: clingexplaid.preprocessors
     handler: python
     options:
       members: true

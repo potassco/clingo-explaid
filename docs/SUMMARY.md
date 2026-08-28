@@ -5,8 +5,13 @@
 * Reference
     * [Reference](reference/index.md)
     * [Encodings](reference/encodings/index.md)
-    * [API](reference/api/index.md)
-    * [CLI](reference/cli/index.md)
+    * API Documentation
+        * [Unsat](reference/api/unsat.md)
+        * [Preprocessors](reference/api/preprocessors.md)
+        * [Transformers](reference/api/transformers.md)
+        * [Propagators](reference/api/propagators.md)
+        * [Utils](reference/api/utils.md)
+        * [Exceptions](reference/api/exceptions.md)
 * Examples
     * [Examples](examples/index.md)
 * Community

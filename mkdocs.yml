@@ -22,7 +22,7 @@ theme:
     - header.autohide
     - navigation.instant
     - navigation.tracking
-    # - navigation.sections
+    - navigation.sections
     - navigation.indexes
     - content.code.annotate
     # - toc.integrate
