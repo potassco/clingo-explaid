@@ -1,4 +1,4 @@
-"""Container class for subset computation"""
+"""Container class for subset computation."""
 
 import time
 import warnings
@@ -23,7 +23,7 @@ from .utils import AssumptionWrapper
 
 class SubsetComputer:
     """
-    Provides methods for computing fundamental subsets of unsatisfiable problems
+    Compute fundamental subsets of unsatisfiable problems.
     """
 
     def __init__(
@@ -75,7 +75,7 @@ class SubsetComputer:
 
     def is_valid(self, assumptions: set[int]) -> bool:
         """
-        Checks whether the program with the provided assumptions is valid.
+        Check whether the program with the provided assumptions is valid.
 
         Parameters
         ----------
@@ -100,7 +100,7 @@ class SubsetComputer:
         timeout: float | None = None,
     ) -> Subset:
         """
-        Find a singlular MUS via linear elimination
+        Find a singlular MUS via linear elimination.
 
         Parameters
         ----------
@@ -190,5 +190,5 @@ class SubsetComputer:
 
     @property
     def last_mus(self) -> MinimalUnsatisfiableSubset | None:
-        """The last MUS that was found"""
+        """The last MUS that was found."""
         return self._last_mus
