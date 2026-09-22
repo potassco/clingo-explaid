@@ -58,10 +58,7 @@ c(1..10).
 d(1..3).
 """
 
-ap = AssumptionPreprocessor(filters=[
-    FilterSignature("a", 1),
-    FilterPattern("d(2)")
-])
+ap = AssumptionPreprocessor(filters=[FilterSignature("a", 1), FilterPattern("d(2)")])
 result = ap.process(PROGRAM)
 # You can either use the return value of `ap.process`
 print(result)
@@ -83,13 +80,7 @@ from clingexplaid.preprocessors import AssumptionPreprocessor, FilterSignature, 
 FILE = "local/encoding.lp"
 
 ctl = clingo.Control("0")
-ap = AssumptionPreprocessor(
-    control=ctl,
-    filters=[
-        FilterSignature("a", 1),
-        FilterPattern("d(2)")
-    ]
-)
+ap = AssumptionPreprocessor(control=ctl, filters=[FilterSignature("a", 1), FilterPattern("d(2)")])
 ap.process_files([FILE])
 
 # The transformed files are added to ctl so it can be directly used
@@ -123,14 +114,13 @@ ap.process(PROGRAM)
 ap.control.ground([("base", [])])
 sc = SubsetComputer(ap.control, ap.assumptions)
 
+
 def shrink_on_core(core) -> None:
     mus = sc.mus(core)
     print(mus)
 
-ap.control.solve(
-    assumptions=list(ap.assumptions),
-    on_core=shrink_on_core
-)
+
+ap.control.solve(assumptions=list(ap.assumptions), on_core=shrink_on_core)
 ```
 
 The `SubsetComputer.mus()` method can simple be swapped with
