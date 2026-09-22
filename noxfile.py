@@ -11,7 +11,7 @@ nox.options.default_venv_backend = "uv|virtualenv"
 
 PYTHON_VERSIONS = None
 if "GITHUB_ACTIONS" in os.environ:
-    PYTHON_VERSIONS = ["3.11", "3.12", "3.13", "3.14", "3.15"]
+    PYTHON_VERSIONS = ["3.11", "3.12", "3.13", "3.14"]
 
 
 @nox.session
