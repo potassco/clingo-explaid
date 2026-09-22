@@ -1,7 +1,7 @@
-"""Explorer using ASP for getting MUS candidates"""
+"""Explorer using ASP for getting MUS candidates."""
 
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
-from typing import Dict, Generator, Iterable, Optional, Set, Tuple
 
 import clingo
 
@@ -14,30 +14,32 @@ DEFAULT_LITERAL_ID = 0
 
 @dataclass(frozen=True)
 class RepresentationID:
-    """ID for internal assumption representations of ExplorerASP"""
+    """ID for internal assumption representations of ExplorerASP."""
 
     id: int
 
     def __int__(self) -> int:  # nocoverage
+        """Return the representation ID."""
         return self.id
 
 
 @dataclass(frozen=True)
 class LiteralID:
-    """ID for internal literal representations of ExplorerASP"""
+    """ID for internal literal representations of ExplorerASP."""
 
     id: int
 
     def __int__(self) -> int:  # nocoverage
+        """Return the literal ID."""
         return self.id
 
 
 class ExploredException(Exception):
-    """The explored encoding returned unsatisfiable, this cannot be interpreted"""
+    """The explored encoding returned unsatisfiable, this cannot be interpreted."""
 
 
 class ExplorerAsp(Explorer):
-    """Oracle using an ASP explore encoding for getting MUS candidates"""
+    """Oracle using an ASP explore encoding for getting MUS candidates."""
 
     # pylint: disable=too-many-instance-attributes
 
@@ -48,11 +50,11 @@ class ExplorerAsp(Explorer):
         self._control.configuration.solve.models = 0  # type: ignore
 
         self._assumption_counter = 0
-        self._assumption_to_rid: Dict[AssumptionWrapper, RepresentationID] = {}
-        self._rid_to_assumption: Dict[RepresentationID, AssumptionWrapper] = {}
+        self._assumption_to_rid: dict[AssumptionWrapper, RepresentationID] = {}
+        self._rid_to_assumption: dict[RepresentationID, AssumptionWrapper] = {}
 
-        self._rid_to_lid: Dict[RepresentationID, LiteralID] = {}
-        self._lid_to_rid: Dict[LiteralID, RepresentationID] = {}
+        self._rid_to_lid: dict[RepresentationID, LiteralID] = {}
+        self._lid_to_rid: dict[LiteralID, RepresentationID] = {}
 
         # Add assumptions to control
         for assumption in self._assumptions:
@@ -62,6 +64,7 @@ class ExplorerAsp(Explorer):
         (self._rid_sat, self._lid_sat), (self._rid_unsat, self._lid_unsat) = self._add_satisfiability_indicators()
 
     def reset(self) -> None:
+        """Reset the exploration status."""
         self._mus_count = 0
         self._control = clingo.Control(["--heuristic=Domain"])
         self._control.configuration.solve.models = 0  # type: ignore
@@ -82,9 +85,11 @@ class ExplorerAsp(Explorer):
 
     @property
     def mus_count(self) -> int:
+        """The amount for MUS already found."""
         return self._mus_count
 
     def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
+        """Add a found satisfiable subset to the explorer."""
         # take difference of subset with all assumptions
         rule_assumptions = [a for a in self.assumptions if a not in assumptions]
         rule_literal_ids = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in rule_assumptions]
@@ -94,6 +99,7 @@ class ExplorerAsp(Explorer):
             backend.add_rule([], rule_body)
 
     def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
+        """Add a found MUS to the explorer."""
         rule_body = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumptions] + [int(self._lid_unsat)]
         with self._control.backend() as backend:
             backend.add_rule([], rule_body)
@@ -116,7 +122,7 @@ class ExplorerAsp(Explorer):
         return literal_id
 
     def _add_assumption(self, assumption: AssumptionWrapper) -> None:
-        """Adds an assumption to the class control"""
+        """Add an assumption to the class control."""
         representation_id = self._register_assumption_representation(assumption)
         with self._control.backend() as backend:
             literal_id = self._register_assumption_atom(assumption, backend)
@@ -129,8 +135,8 @@ class ExplorerAsp(Explorer):
 
     def _add_satisfiability_indicators(
         self,
-    ) -> Tuple[Tuple[RepresentationID, LiteralID], Tuple[RepresentationID, LiteralID]]:
-        """Adds satisfiability indicator choices (1{_sat;_unsat}) to the class control"""
+    ) -> tuple[tuple[RepresentationID, LiteralID], tuple[RepresentationID, LiteralID]]:
+        """Add satisfiability indicator choices (1{_sat;_unsat}) to the class control."""
         aw_sat = AssumptionWrapper(literal=DEFAULT_LITERAL_ID, symbol=clingo.parse_term("0"), sign=True)
         aw_unsat = AssumptionWrapper(literal=DEFAULT_LITERAL_ID, symbol=clingo.parse_term("1"), sign=True)
         rid_sat = self._register_assumption_representation(aw_sat)
@@ -144,7 +150,7 @@ class ExplorerAsp(Explorer):
             backend.add_rule(head=[], body=[-int(lid_sat), -int(lid_unsat)], choice=True)
         return (rid_sat, lid_sat), (rid_unsat, lid_unsat)
 
-    def _get_model(self) -> Optional[Set[clingo.Symbol]]:
+    def _get_model(self) -> set[clingo.Symbol] | None:
         with self._control.solve(assumptions=[int(self._lid_sat), int(self._lid_unsat)], yield_=True) as solve_handle:
             if solve_handle.get().satisfiable:
                 symbols = solve_handle.model().symbols(atoms=True)
@@ -162,7 +168,8 @@ class ExplorerAsp(Explorer):
     def _symbol_sat(self) -> clingo.Symbol:
         return clingo.parse_term(f"{ASSUMPTION_SYMBOL_NAME}({int(self._rid_sat)})")
 
-    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
+    def candidates(self) -> Generator[set[AssumptionWrapper], None, None]:
+        """Propose the next candidate sets for the exploration."""
         while True:
             model = self._get_model()
             if model is None:
@@ -170,7 +177,8 @@ class ExplorerAsp(Explorer):
             rids = [RepresentationID(atom.arguments[0].number) for atom in model]
             yield {self._rid_to_assumption[rid] for rid in rids}
 
-    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
+    def explored(self, assumption_set: set[AssumptionWrapper]) -> ExplorationStatus:
+        """Check wether an assumption subset was already explored."""
         # Convert AssumptionWrappers for the assumption set to explorer literals
         a_literals = [int(self._rid_to_lid[self._assumption_to_rid[a]]) for a in assumption_set]
         # Add negated literals of remaining assumptions

@@ -1,14 +1,14 @@
-"""Abstract base class for all Explorers"""
+"""Abstract base class for all Explorers."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Generator, Iterable
 from enum import Enum
-from typing import Generator, Iterable, Set
 
 from ..utils import AssumptionWrapper
 
 
 class ExplorationStatus(Enum):
-    """Status of an assumption subset in an ongoing exploration process"""
+    """Status of an assumption subset in an ongoing exploration process."""
 
     SATISFIABLE = 1
     UNSATISFIABLE = 2
@@ -16,37 +16,37 @@ class ExplorationStatus(Enum):
 
 
 class Explorer(ABC):
-    """Abstract base class for all oracles"""
+    """Abstract base class for all oracles."""
 
     def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         self._assumptions = set(assumptions)
 
     @property
-    def assumptions(self) -> Set[AssumptionWrapper]:  # nocoverage
-        """All assumptions that the oracle can choose from"""
+    def assumptions(self) -> set[AssumptionWrapper]:  # nocoverage
+        """All assumptions that the oracle can choose from."""
         return self._assumptions
 
     @property
     @abstractmethod
     def mus_count(self) -> int:  # nocoverage
-        """Number of MUS that have been found with the explorer"""
+        """Number of MUS that have been found with the explorer."""
 
     @abstractmethod
     def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
-        """Adds a satisfiable assumption set"""
+        """Add a satisfiable assumption set."""
 
     @abstractmethod
     def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
-        """Adds a mus"""
+        """Add a mus."""
 
     @abstractmethod
     def reset(self) -> None:
-        """Resets the found assumption sets"""
+        """Reset the found assumption sets."""
 
     @abstractmethod
-    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
-        """Returns the exploration status of a set of assumptions"""
+    def explored(self, assumption_set: set[AssumptionWrapper]) -> ExplorationStatus:
+        """Return the exploration status of a set of assumptions."""
 
     @abstractmethod
-    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
-        """Generator that produces the assumption set candidates"""
+    def candidates(self) -> Generator[set[AssumptionWrapper], None, None]:
+        """Check wether an assumption subset was already explored."""

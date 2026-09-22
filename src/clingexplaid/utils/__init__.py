@@ -1,12 +1,11 @@
 """Utilities."""
 
 import re
-from typing import Dict, List, Set, Tuple
 
 from clingo.ast import AST
 
 
-def match_ast_symbolic_atom_signature(ast_symbol: AST, signature: Tuple[str, int]) -> bool:
+def match_ast_symbolic_atom_signature(ast_symbol: AST, signature: tuple[str, int]) -> bool:
     """Match the signature of an AST SymbolicAtom to a tuple containing a string and int value."""
     symbol = str(ast_symbol.symbol)
     name = symbol.split("(", maxsplit=1)[0]
@@ -15,7 +14,7 @@ def match_ast_symbolic_atom_signature(ast_symbol: AST, signature: Tuple[str, int
     return all((signature[0] == name, signature[1] == arity))
 
 
-def get_signatures_from_model_string(model_string: str) -> Set[Tuple[str, int]]:
+def get_signatures_from_model_string(model_string: str) -> set[tuple[str, int]]:
     """Return the signatures of all atoms of a model string."""
     signatures = set()
     for atom_string in model_string.split():
@@ -43,7 +42,7 @@ def get_signatures_from_model_string(model_string: str) -> Set[Tuple[str, int]]:
     return signatures
 
 
-def get_constants_from_arguments(argument_vector: List[str]) -> Dict[str, str]:
+def get_constants_from_arguments(argument_vector: list[str]) -> dict[str, str]:
     """Return dict containing the constants specified on the command line arguments."""
     constants = {}
     next_constant = False

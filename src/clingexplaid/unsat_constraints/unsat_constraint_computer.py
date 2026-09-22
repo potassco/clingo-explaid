@@ -1,7 +1,7 @@
 """Unsat Constraint Utilities."""
 
 import re
-from typing import Dict, Optional, Sequence
+from collections.abc import Sequence
 
 import clingo
 from clingo.ast import Location
@@ -16,13 +16,13 @@ class UnsatConstraintComputer:
 
     def __init__(
         self,
-        control: Optional[clingo.Control] = None,
+        control: clingo.Control | None = None,
     ) -> None:
         self.control = control if control is not None else clingo.Control()
-        self.program_transformed: Optional[str] = None
+        self.program_transformed: str | None = None
         self.initialized: bool = False
 
-        self._file_constraint_lookup: Dict[int, Location] = {}
+        self._file_constraint_lookup: dict[int, Location] = {}
 
     def parse_string(self, program_string: str) -> None:
         """Initialize the `UnsatConstraintComputer` with a program string."""
@@ -44,11 +44,11 @@ class UnsatConstraintComputer:
         self._file_constraint_lookup = ct.constraint_location_lookup
         self.initialized = True
 
-    def get_constraint_location(self, constraint_id: int) -> Optional[Location]:
+    def get_constraint_location(self, constraint_id: int) -> Location | None:
         """Return the location of the constraint with `constraint_id`."""
         return self._file_constraint_lookup.get(constraint_id)
 
-    def get_unsat_constraints(self, assumption_string: Optional[str] = None) -> Dict[int, str]:
+    def get_unsat_constraints(self, assumption_string: str | None = None) -> dict[int, str]:
         """Return the unsatisfiable constraints of the initialized `UnsatConstraintComputer`."""
         # only execute if the UnsatConstraintComputer was properly initialized
         if not self.initialized:
@@ -95,7 +95,7 @@ class UnsatConstraintComputer:
                 ]
                 solve_handle.resume()
                 model = solve_handle.model()
-            unsat_constraints: Dict[int, str] = {}
+            unsat_constraints: dict[int, str] = {}
             for a in unsat_constraint_atoms:
                 constraint_id = a.arguments[0].number
                 constraint = str(constraint_lookup.get(constraint_id))

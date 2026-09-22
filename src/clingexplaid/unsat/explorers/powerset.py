@@ -1,38 +1,43 @@
-"""Explorers using the brute-force powerset approach"""
+"""Explorers using the brute-force powerset approach."""
 
+from collections.abc import Generator, Iterable
 from itertools import chain, combinations
-from typing import Generator, Iterable, List, Set
 
 from ..utils import AssumptionWrapper
 from .base import ExplorationStatus, Explorer
 
 
 class ExplorerPowerset(Explorer):
-    """Oracle using the brute-force powerset approach"""
+    """Oracle using the brute-force powerset approach."""
 
     def __init__(self, assumptions: Iterable[AssumptionWrapper]) -> None:
         super().__init__(assumptions=assumptions)
-        self._found_sat: List[Set[AssumptionWrapper]] = []
-        self._found_mus: List[Set[AssumptionWrapper]] = []
+        self._found_sat: list[set[AssumptionWrapper]] = []
+        self._found_mus: list[set[AssumptionWrapper]] = []
         self._powerset = chain.from_iterable(
             combinations(assumptions, r) for r in reversed(range(len(list(assumptions)) + 1))
         )
 
     def reset(self) -> None:
+        """Reset the exploration status."""
         self._found_sat = []
         self._found_mus = []
 
     @property
     def mus_count(self) -> int:
+        """The amount for MUS already found."""
         return len(self._found_mus)
 
     def add_mus(self, assumptions: Iterable[AssumptionWrapper]) -> None:
+        """Add a found MUS to the explorer."""
         self._found_mus.append(set(assumptions))
 
     def add_sat(self, assumptions: Iterable[AssumptionWrapper]) -> None:
+        """Add a found satisfiable subset to the explorer."""
         self._found_sat.append(set(assumptions))
 
-    def candidates(self) -> Generator[Set[AssumptionWrapper], None, None]:
+    def candidates(self) -> Generator[set[AssumptionWrapper], None, None]:
+        """Propose the next candidate sets for the exploration."""
         for current_subset in (set(s) for s in self._powerset):
             # skip if empty subset
             if len(current_subset) == 0:
@@ -45,7 +50,8 @@ class ExplorerPowerset(Explorer):
                 continue
             yield current_subset
 
-    def explored(self, assumption_set: Set[AssumptionWrapper]) -> ExplorationStatus:
+    def explored(self, assumption_set: set[AssumptionWrapper]) -> ExplorationStatus:
+        """Check wether an assumption subset was already explored."""
         if any(assumption_set.issubset(s) for s in self._found_sat):  # nocoverage
             return ExplorationStatus.SATISFIABLE
         if any(assumption_set.issuperset(s) for s in self._found_mus):  # nocoverage

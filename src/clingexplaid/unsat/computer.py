@@ -2,7 +2,8 @@
 
 import time
 import warnings
-from typing import Generator, Iterable, Type, cast
+from collections.abc import Generator, Iterable
+from typing import cast
 
 import clingo
 from clingo import SolveHandle, Symbol
@@ -30,7 +31,7 @@ class SubsetComputer:
         self,
         control: clingo.Control,
         assumptions: Iterable[int | tuple[Symbol, bool]],
-        explorer: Type[Explorer] = ExplorerPowerset,
+        explorer: type[Explorer] = ExplorerPowerset,
     ) -> None:
         self.control = control
         self.literal_lookup: dict[int, Symbol] = {}
