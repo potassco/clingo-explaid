@@ -88,6 +88,9 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "noxfile.py" = ["ANN"]
 
+[tool.ty.src]
+exclude = ["noxfile.py"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
