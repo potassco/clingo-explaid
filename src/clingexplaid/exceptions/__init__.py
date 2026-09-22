@@ -1,8 +1,7 @@
-"""Exceptions for ClingExplaid"""
+"""Exceptions for Clingo-Explaid."""
 
 
 class UnprocessedException(Exception):
     """
-    Exception raised if the assumptions property of an AssumptionPreprocessor is called before it is used to
-    preprocess a program.
+    The assumptions property of an AssumptionPreprocessor was called before the program was processed.
     """
