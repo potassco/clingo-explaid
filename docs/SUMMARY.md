@@ -4,7 +4,6 @@
     * [Help](use/help.md)
 * Reference
     * [Reference](reference/index.md)
-    * [Encodings](reference/encodings/index.md)
     * API Documentation
         * [Unsat](reference/api/unsat.md)
         * [Preprocessors](reference/api/preprocessors.md)

@@ -5,7 +5,7 @@
 
 <!-- --8<-- [start:description] -->
 
-clingo-explaid is a python library for explaining why an ASP program is
+`clingexplaid` is a python library for explaining why an ASP program is
 unsatisfiable. Its API offers preprocessing, subset computation, and constraint
 analysis tools for building explanation systems on top of clingo.
 

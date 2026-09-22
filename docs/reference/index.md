@@ -6,8 +6,5 @@ This section contains detailed documentation and technical information about
 the system. It’s designed for those who want to explore the inner workings,
 learn about specific components, or access essential resources.
 
-<!-- - **Advanced Topics:** Gain insights into complex use cases and integrations. -->
-!!! tip
-
-    Use this section to find the information you need, whether you’re debugging,
-    extending functionality, or learning more about the system.
+All important interfaces for development are documented in the API Documentation.
+If you are looking for an introduction on how to use this system check out the [quick start guide](../use/quick-start).
