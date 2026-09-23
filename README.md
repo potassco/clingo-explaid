@@ -155,6 +155,50 @@ for i, mus in enumerate(sc.multiple()):
 
 <!-- --8<-- [end:example-mus-multiple] -->
 
+<!-- --8<-- [start:example-mus-multiple-lattice] -->
+
+Finding multiple MUSs with a custom lattice:
+
+Clingo-Explaid's `SubsetComputer` uses an internal `Lattice` to decide the
+order in which subset candidates are explored. By default it uses the
+`AssumptionLattice`, which is defined in this MUS core utilities repository
+[`musclingo`](https://github.com/potassco/musclingo). You can also use your own
+lattice, by defining a custom `LatticeFactory` that provides it to the
+`SubsetComputer`. The following is an example showing this by re-implementing
+the `AssumptionLattice`.
+
+```python
+from clingexplaid.preprocessors import AssumptionPreprocessor
+from clingexplaid.unsat import SubsetComputer
+from clingexplaid.unsat.lattice import LatticeFactory
+
+PROGRAM = """
+a(1..3).
+b(1..3).
+
+:- a(X), b(X).
+"""
+
+class MyLatticeFactory(LatticeFactory):
+    def __init__(self, bias: bool):
+        super().__init__()
+        self._bias = bias
+
+    def new(self, literals: set[int]):
+        return AssumptionLattice(literals, bias=self._bias)
+
+
+ap = AssumptionPreprocessor()
+ap.process(PROGRAM)
+ap.control.ground([("base", [])])
+sc = SubsetComputer(ap.control, ap.assumptions, lattice_factory=MyLatticeFactory(True))
+
+for i, mus in enumerate(sc.multiple()):
+    print(f"{i}:", mus)
+```
+
+<!-- --8<-- [end:example-mus-multiple-lattice] -->
+
 <!-- --8<-- [start:example-mus-multiple-any] -->
 
 Finding multiple relevant subsets (MUS, MSS, and MCS):

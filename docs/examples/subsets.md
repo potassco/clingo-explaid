@@ -17,3 +17,5 @@ We separate the examples into ones for finding a single subset versus ones for f
 --8<-- "README.md:example-mus-multiple"
 
 --8<-- "README.md:example-mus-multiple-any"
+
+--8<-- "README.md:example-mus-multiple-lattice"
