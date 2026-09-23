@@ -8,10 +8,9 @@ from typing import cast
 import clingo
 from clingo import SolveHandle, Symbol
 from musclingo.algorithms.marco import MARCO
-from musclingo.lattice import AssumptionsLattice
 from musclingo.shrink import LinearElimination
 
-from .explorers import Explorer, ExplorerPowerset
+from .lattice import AssumptionLatticeFactory, LatticeFactory
 from .sets import (
     MaximalSatisfiableSubset,
     MinimalCorrectionSet,
@@ -20,6 +19,8 @@ from .sets import (
     UnsatisfiableSubset,
 )
 from .utils import AssumptionWrapper
+
+DEFAULT_LATTICE_FACOTRY = AssumptionLatticeFactory(bias=True)
 
 
 class SubsetComputer:
@@ -31,16 +32,18 @@ class SubsetComputer:
         self,
         control: clingo.Control,
         assumptions: Iterable[int | tuple[Symbol, bool]],
-        explorer: type[Explorer] = ExplorerPowerset,
+        lattice_factory: LatticeFactory | None = None,
     ) -> None:
         self.control = control
         self.literal_lookup: dict[int, Symbol] = {}
         self.symbol_lookup: dict[Symbol, int] = {}
+        self._lattice_factory: LatticeFactory = (
+            lattice_factory if lattice_factory is not None else DEFAULT_LATTICE_FACOTRY
+        )
 
         self._build_lookups()
 
         self.assumption_literals: set[int] = self._to_assumption_literals(assumptions)
-        self.explorer = explorer(assumptions={self._wrap(literal) for literal in self.assumption_literals})
         self._last_mus: MinimalUnsatisfiableSubset | None = None
         self._last_mss: MaximalSatisfiableSubset | None = None
         self._last_mcs: MinimalCorrectionSet | None = None
@@ -209,7 +212,7 @@ class SubsetComputer:
         if not self.is_valid(literals):
             return
 
-        lattice = AssumptionsLattice(literals, bias=True)
+        lattice = self._lattice_factory.new(literals)
         strategy = LinearElimination(self.control)
 
         algorithm = MARCO(lattice, strategy)

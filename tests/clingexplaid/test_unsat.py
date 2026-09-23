@@ -8,12 +8,12 @@ import clingo
 
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
 from clingexplaid.unsat import Subset, SubsetComputer
-from clingexplaid.unsat.explorers import Explorer, ExplorerAsp, ExplorerPowerset
+from clingexplaid.unsat.lattice import AssumptionLatticeFactory, LatticeFactory
 from clingexplaid.unsat.sets import UnsatisfiableSubset
 
 from .test_main import TEST_DIR
 
-EXPLORERS = (ExplorerPowerset, ExplorerAsp)
+LATTICE_FACTORIES = (AssumptionLatticeFactory(bias=False),)
 
 
 def get_mus_of_program(
@@ -21,7 +21,7 @@ def get_mus_of_program(
     assumption_filters: Iterable[FilterPattern | FilterSignature] | None = None,
     control: clingo.Control | None = None,
     timeout: float | None = None,
-    explorer: type[Explorer] = ExplorerPowerset,
+    lattice_factory: LatticeFactory | None = None,
 ) -> tuple[Subset, SubsetComputer]:
     """Get the MUS of a given program string."""
     assumption_filters = set() if assumption_filters is None else set(assumption_filters)
@@ -34,7 +34,7 @@ def get_mus_of_program(
     ctl.add("base", [], transformed_program)
     ctl.ground([("base", [])])
 
-    sc = SubsetComputer(ctl, ap.assumptions, explorer=explorer)
+    sc = SubsetComputer(ctl, ap.assumptions, lattice_factory=lattice_factory)
 
     def shrink_on_model(core: Sequence[int]) -> None:
         _ = sc.mus(core, timeout=timeout)
@@ -94,7 +94,7 @@ class TestMUS(TestCase):
 
     def test_core_computer_shrink_multiple_atomic_mus(self) -> None:
         """Test the CoreComputer's `shrink` function with multiple atomic MUS's."""
-        for explorer in EXPLORERS:
+        for lattice_factory in LATTICE_FACTORIES:
             ctl = clingo.Control()
 
             program = """
@@ -106,7 +106,7 @@ class TestMUS(TestCase):
             filters = {FilterSignature("a", 1)}
 
             mus, sc = get_mus_of_program(
-                program_string=program, assumption_filters=filters, control=ctl, explorer=explorer
+                program_string=program, assumption_filters=filters, control=ctl, lattice_factory=lattice_factory
             )
 
             if sc.last_mus is None:
@@ -115,7 +115,7 @@ class TestMUS(TestCase):
 
     def test_core_computer_shrink_multiple_mus(self) -> None:
         """Test the CoreComputer's `shrink` function with multiple MUS's."""
-        for explorer in EXPLORERS:
+        for lattice_factory in LATTICE_FACTORIES:
             ctl = clingo.Control()
 
             program = """
@@ -127,7 +127,7 @@ class TestMUS(TestCase):
             filters = {FilterSignature("a", 1)}
 
             mus, sc = get_mus_of_program(
-                program_string=program, assumption_filters=filters, control=ctl, explorer=explorer
+                program_string=program, assumption_filters=filters, control=ctl, lattice_factory=lattice_factory
             )
 
             if sc.last_mus is None:
@@ -190,7 +190,7 @@ class TestMUS(TestCase):
 
     def test_core_computer_get_multiple_minimal(self) -> None:
         """Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's."""
-        for explorer in EXPLORERS:
+        for lattice_factory in LATTICE_FACTORIES:
             ctl = clingo.Control()
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
@@ -199,7 +199,7 @@ class TestMUS(TestCase):
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
-            sc = SubsetComputer(ctl, ap.assumptions, explorer=explorer)
+            sc = SubsetComputer(ctl, ap.assumptions, lattice_factory=lattice_factory)
 
             mus_generator = sc.multiple()
 
@@ -212,7 +212,7 @@ class TestMUS(TestCase):
 
     def test_core_computer_get_multiple_minimal_max_mus_2(self) -> None:
         """Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's."""
-        for explorer in EXPLORERS:
+        for lattice_factory in LATTICE_FACTORIES:
             ctl = clingo.Control()
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
@@ -221,7 +221,7 @@ class TestMUS(TestCase):
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
-            sc = SubsetComputer(ctl, ap.assumptions, explorer=explorer)
+            sc = SubsetComputer(ctl, ap.assumptions, lattice_factory=lattice_factory)
 
             mus_generator = sc.multiple(maximum=2)
 
@@ -236,7 +236,7 @@ class TestMUS(TestCase):
 
     def test_core_computer_get_multiple_minimal_timeout(self) -> None:
         """Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's."""
-        for explorer in EXPLORERS:
+        for lattice_factory in LATTICE_FACTORIES:
             ctl = clingo.Control()
 
             program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
@@ -245,7 +245,7 @@ class TestMUS(TestCase):
                 parsed = ap.process(file.read())
             ctl.add("base", [], parsed)
             ctl.ground([("base", [])])
-            sc = SubsetComputer(ctl, ap.assumptions, explorer=explorer)
+            sc = SubsetComputer(ctl, ap.assumptions, lattice_factory=lattice_factory)
 
             mus_generator = sc.multiple(timeout=0)
 
