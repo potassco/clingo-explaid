@@ -176,6 +176,7 @@ b(1..3).
 :- a(X), b(X).
 """
 
+
 class MyLatticeFactory(LatticeFactory):
     def __init__(self, bias: bool):
         super().__init__()
