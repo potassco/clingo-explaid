@@ -36,13 +36,11 @@ Please refer to [DEVELOPEMENT](DEVELOPMENT.md)
 
 The following Examples show use-cases for `clingexplaid`'s API.
 
-### Unsatisfiable Functionality
-
-#### Pre-Processing
+### Pre-Processing
 
 <!-- --8<-- [start:example-pre-simple] -->
 
-Transforming facts to Assumptions (necessary pre-processing step):
+#### Transforming facts to Assumptions
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor
@@ -70,8 +68,7 @@ print(ap.control)
 
 <!-- --8<-- [start:example-pre-control] -->
 
-You can also use an existing control and pass it to the
-`AssumptionPreprocessor` as follows:
+#### Transforming facts to Assumptions with custom Control
 
 ```python
 import clingo
@@ -90,11 +87,11 @@ ctl.solve()
 
 <!-- --8<-- [end:example-pre-control] -->
 
-#### Computing relevant subsets (MUS, MSS, MCS)
+### Computing relevant subsets (MUS, MSS, MCS)
 
 <!-- --8<-- [start:example-mus-single] -->
 
-Finding a single MUS:
+#### Finding a single MUS
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterSignature
@@ -131,7 +128,7 @@ other subset types
 
 <!-- --8<-- [start:example-mus-multiple] -->
 
-Finding multiple MUSs:
+#### Finding multiple MUSs
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor
@@ -157,7 +154,7 @@ for i, mus in enumerate(sc.multiple()):
 
 <!-- --8<-- [start:example-mus-multiple-lattice] -->
 
-Finding multiple MUSs with a custom lattice:
+#### Finding multiple MUSs with a custom Lattice
 
 Clingo-Explaid's `SubsetComputer` uses an internal `Lattice` to decide the
 order in which subset candidates are explored. By default it uses the
@@ -201,7 +198,7 @@ for i, mus in enumerate(sc.multiple()):
 
 <!-- --8<-- [start:example-mus-multiple-any] -->
 
-Finding multiple relevant subsets (MUS, MSS, and MCS):
+#### Finding multiple relevant subsets (MUS, MSS, and MCS)
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor
