@@ -10,14 +10,25 @@ structure recognition.
 
 import re
 from abc import abstractmethod
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict, Iterator, List, Sequence
 
 import clingo
 
 # from clingo.core import Library
 from clingo.symbol import Infimum, Number, Supremum, Symbol, parse_term
+
+PARSER_TOKEN_PATTERNS = {
+    "NEG": r"-",
+    "SUP": "#sup",
+    "INF": "#inf",
+    "STR": r'"([^\\"\n\000]|\\"|\\\\|\\n)*"',
+    "NUM": r"\d+",
+    "VAR": r"_|[A-Z][a-zA-Z_']*",
+    "IDF": r"[_']*[a-z]['A-Za-z0-9_]*",
+    "PUN": r"[(),]",
+}
 
 
 @dataclass
@@ -35,6 +46,7 @@ class Match:
 class Matcher:
     """
     Abstract base class for matchers.
+
     A matcher encapsulates the logic required to match a Symbol against a pattern.
     Subclasses must implement the match method.
     """
@@ -65,7 +77,7 @@ class Matcher:
         Returns:
             The match result.
         """
-        assignment: Dict[str, Symbol] = {}
+        assignment: dict[str, Symbol] = {}
         if self.match(symbol, assignment):
             return Match(assignment)
         return None
@@ -93,24 +105,27 @@ class FunctionMatcher(Matcher):
 
     def match(self, symbol: Symbol, assignment: dict[str, Symbol]) -> bool:
         """
-        Check if the given symbol is a function or tuple with the expected
-        name, arguments, and polarity.
+        Check if the given symbol is a function or tuple with the expected name, arguments, and polarity.
 
         For tuples only the arguments are checked.
 
-        Args:
-            symbol: The function symbol to match.
-            assignment: Dictionary holding current variable assignments.
+        Parameters
+        ----------
+        symbol
+            The function symbol to match.
+        assignment
+            Dictionary holding current variable assignments.
 
-        Returns:
-            True if the function symbol matches; False otherwise.
+        Returns
+        -------
+            `True` if the function symbol matches; False otherwise.
         """
         if not self.name:
             return symbol.match("", len(self.arguments)) and all(
-                m.match(arg, assignment) for m, arg in zip(self.arguments, symbol.arguments)
+                m.match(arg, assignment) for m, arg in zip(self.arguments, symbol.arguments, strict=True)
             )
         return symbol.match(self.name, len(self.arguments), self.positive) and all(
-            m.match(arg, assignment) for m, arg in zip(self.arguments, symbol.arguments)
+            m.match(arg, assignment) for m, arg in zip(self.arguments, symbol.arguments, strict=True)
         )
 
 
@@ -149,6 +164,7 @@ class ValueMatcher(Matcher):
 class VariableMatcher(Matcher):
     """
     Matcher for variables. It binds a symbol to a variable name in the assignment.
+
     Attributes:
         name: The variable name.
     """
@@ -157,18 +173,24 @@ class VariableMatcher(Matcher):
 
     def match(self, symbol: Symbol, assignment: dict[str, Symbol]) -> bool:
         """
-        Attempt to match a variable. If the variable is already bound in the assignment,
-        then the symbol must be equal to the bound symbol. Otherwise, bind the variable.
+        Attempt to match a variable.
+
+        If the variable is already bound in the assignment, then the symbol must be equal to the bound symbol.
+        Otherwise, bind the variable.
 
         Anonymous variables with name "_" are handled specially, they do not
         interact with the assignment and always match.
 
-        Args:
-            symbol: The symbol to bind or compare.
-            assignment: The variable assignment mapping.
+        Parameters
+        ----------
+        symbol
+            The symbol to bind or compare.
+        assignment
+            The variable assignment mapping.
 
-        Returns:
-            bool: True if the variable matches or is successfully bound.
+        Returns
+        -------
+            True if the variable matches or is successfully bound.
         """
         if self.name != "_":
             if self.name in assignment:
@@ -190,15 +212,20 @@ class _Token:
 class _Tokenizer:
     """
     Tokenizes a given expressions.
+
     Also provides convenience functions to help parsing.
     """
 
-    def __init__(self, expression: str, patterns: dict[str, str]):
+    def __init__(self, expression: str, patterns: dict[str, str]) -> None:
         """
         Initialize the tokenizer with an expression string.
 
-        Args:
-            expression: The matcher expression to tokenize.
+        Parameters
+        ----------
+        expression
+            The matcher expression to tokenize.
+        patterns
+            The regex patterns to match
         """
         regex = re.compile("|".join(f"(?P<{t}>{p})" for t, p in patterns.items()))
         self._tokens = _Tokenizer._tokenize(expression, regex)
@@ -209,10 +236,15 @@ class _Tokenizer:
         """
         Tokenize the input expression using the given regular.
 
-        Args:
-            expression: The expression to tokenize.
+        Parameters
+        ----------
+        expression
+            The expression to tokenize.
+        regex
+            The regex pattern used for tokenizing
 
-        Yields:
+        Yields
+        ------
             Tokens capturing token type and value.
         """
         for m in re.finditer(regex, expression):
@@ -226,7 +258,8 @@ class _Tokenizer:
         """
         Advance to the next token in the input and return the current one.
 
-        Returns:
+        Returns
+        -------
             The current token.
         """
         token = self._token
@@ -239,12 +272,16 @@ class _Tokenizer:
         """
         Check if the current token matches the expected token type and (optionally) value.
 
-        Args:
-            expected_token: The expected token type.
-            expected_value: The expected token value, if any.
+        Parameters
+        ----------
+        expected_token
+            The expected token type.
+        expected_value
+            The expected token value, if any.
 
-        Returns:
-            True if current token matches expectations.
+        Returns
+        -------
+            `True` if current token matches expectations.
         """
         return self._token.token == expected_token and (expected_value is None or self._token.value == expected_value)
 
@@ -252,10 +289,19 @@ class _Tokenizer:
         """
         Assert that the current token matches the expected type and value and consume it.
 
-        Raises:
+        Parameters
+        ----------
+        expected_token
+            The expected token type.
+        expected_value
+            The expected token value, if any.
+
+        Raises
+        ------
             SyntaxError: If the current token does not match.
 
-        Returns:
+        Returns
+        -------
             The current token.
         """
         if token := self.match(expected_token, expected_value):
@@ -266,11 +312,15 @@ class _Tokenizer:
         """
         If the current token matches the expected type and value, consume it.
 
-        Args:
-            expected_token: The token type to match.
-            expected_value: The token value to match, if applicable.
+        Parameters
+        ----------
+        expected_token
+            The token type to match.
+        expected_value
+            The token value to match, if applicable.
 
-        Returns:
+        Returns
+        -------
             The current token.
         """
         if self.peek(expected_token, expected_value):
@@ -282,10 +332,13 @@ def unquote(quoted: str) -> str:
     """
     Unquote the given string as clingo would.
 
-    Args:
-        quoted: The quoted string.
+    Parameters
+    ----------
+    quoted
+        The quoted string.
 
-    Returns:
+    Returns
+    -------
         The unquoted string.
     """
     result = []
@@ -311,29 +364,21 @@ def unquote(quoted: str) -> str:
 class _Parser:
     """
     A recursive descent parser that tokenizes and parses matcher expressions.
+
     The parser converts a string representation of a matcher (such as 'f(X,10)')
     into a corresponding Matcher object.
     """
 
-    TOKEN_PATTERNS = {
-        "NEG": r"-",
-        "SUP": "#sup",
-        "INF": "#inf",
-        "STR": r'"([^\\"\n\000]|\\"|\\\\|\\n)*"',
-        "NUM": r"\d+",
-        "VAR": r"_|[A-Z][a-zA-Z_']*",
-        "IDF": r"[_']*[a-z]['A-Za-z0-9_]*",
-        "PUN": r"[(),]",
-    }
-
-    def __init__(self, expression: str):
+    def __init__(self, expression: str) -> None:
         """
         Initialize the parser with the given expression.
 
-        Args:
-            expression: The expression to parse.
+        Parameters
+        ----------
+        expression
+            The expression to parse.
         """
-        self._tokenizer = _Tokenizer(expression, _Parser.TOKEN_PATTERNS)
+        self._tokenizer = _Tokenizer(expression, PARSER_TOKEN_PATTERNS)
 
     def _parse_matcher(self) -> Matcher:
         """
@@ -341,7 +386,8 @@ class _Parser:
 
         This function handles numbers, strings, variables, negations, and functions.
 
-        Returns:
+        Returns
+        -------
             The parsed matcher object.
         """
         if token := self._tokenizer.match("SUP"):
@@ -374,16 +420,20 @@ class _Parser:
         Also supports tuples for which the name must be empty and the polarity
         true. Tuples can have a trailing comma in their argument list.
 
-        Args:
-            name: The name of the function.
-            positive: The polarity of the function (True for positive, False for negated).
+        Parameters
+        ----------
+        name
+            The name of the function.
+        positive
+            The polarity of the function (True for positive, False for negated).
 
-        Returns:
+        Returns
+        -------
             The constructed function matcher.
         """
         if not self._tokenizer.match("PUN", "("):
             return FunctionMatcher(name, [], positive)
-        args: List[Matcher] = []
+        args: list[Matcher] = []
         trail = bool(name)
 
         if not trail and self._tokenizer.match("PUN", ","):
@@ -408,7 +458,8 @@ class _Parser:
 
         Ensures that the entire input has been consumed.
 
-        Returns:
+        Returns
+        -------
             The final matcher constructed from the input expression.
         """
         result = self._parse_matcher()
@@ -420,10 +471,14 @@ class _Parser:
 def compile_matcher(expression: str) -> Matcher:
     """
     Compile an expression string into a Matcher object.
-    Args:
-        expression: The matcher expression to compile.
 
-    Returns:
+    Parameters
+    ----------
+    expression
+        The matcher expression to compile.
+
+    Returns
+    -------
         The compiled matcher.
     """
     return _Parser(expression).parse()
@@ -431,23 +486,24 @@ def compile_matcher(expression: str) -> Matcher:
 
 def match(expression: str, symbol: clingo.Symbol) -> Match | None:
     """
-    Convenience function to compile an expression and match it against a symbol.
-    Args:
-        expression: The matcher expression.
-        symbol: The symbol to match against.
+    Compile an expression and match it against a symbol.
 
-    Returns:
-        A Match object with the variable assignment if the symbol matches,
-        or None if it does not.
+    Parameters
+    ----------
+    expression
+        The matcher expression.
+    symbol
+        The symbol to match against.
+
+    Returns
+    -------
+        A Match object with the variable assignment if the symbol matches, or None if it does not.
     """
     return compile_matcher(expression)(symbol)
 
 
 def main() -> None:
-    """
-    Some tests for exposition.
-    """
-
+    """Test for exposition."""
     m = match("(,)", parse_term("(1,2)"))
     assert (
         m and not m.assignment

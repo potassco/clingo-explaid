@@ -3,11 +3,19 @@
 > [!CAUTION] This version uses a local dependency of `musclingo` for
 > development purposes. This should be fixed before it is released!
 
-API to aid the development of explanation systems using clingo
+<!-- --8<-- [start:description] -->
+
+`clingexplaid` is a python library for explaining why an ASP program is
+unsatisfiable. Its API offers preprocessing, subset computation, and constraint
+analysis tools for building explanation systems on top of clingo.
+
+<!-- --8<-- [end:description] -->
 
 ## Installation
 
-Clingo-Explaid easily be installed with `pip`:
+<!-- --8<-- [start:installation] -->
+
+Clingo-Explaid can easily be installed with `pip`:
 
 ```bash
 pip install clingexplaid
@@ -15,18 +23,24 @@ pip install clingexplaid
 
 ### Requirements
 
-- `python >= 3.10`
+- `python >= 3.11`
 - `clingo >= 5.7.1`
+
+<!-- --8<-- [end:installation] -->
 
 ### Building from Source
 
 Please refer to [DEVELOPEMENT](DEVELOPMENT.md)
 
-## API
+## API Usage
 
-The following Examples show use-cases for using `clingexplaid`'s API.
+The following Examples show use-cases for `clingexplaid`'s API.
 
-### Minimal Unsatisfiable Subsets (MUS)
+### Unsatisfiable Functionality
+
+#### Pre-Processing
+
+<!-- --8<-- [start:example-pre-simple] -->
 
 Transforming facts to Assumptions (necessary pre-processing step):
 
@@ -44,16 +58,17 @@ c(1..10).
 d(1..3).
 """
 
-ap = AssumptionPreprocessor(filters=[
-    FilterSignature("a", 1),
-    FilterPattern("d(2)")
-])
+ap = AssumptionPreprocessor(filters=[FilterSignature("a", 1), FilterPattern("d(2)")])
 result = ap.process(PROGRAM)
 # You can either use the return value of `ap.process`
 print(result)
 # Or use `ap.control` with your transformed program already added
 print(ap.control)
 ```
+
+<!-- --8<-- [end:example-pre-simple] -->
+
+<!-- --8<-- [start:example-pre-control] -->
 
 You can also use an existing control and pass it to the
 `AssumptionPreprocessor` as follows:
@@ -65,12 +80,7 @@ from clingexplaid.preprocessors import AssumptionPreprocessor, FilterSignature, 
 FILE = "local/encoding.lp"
 
 ctl = clingo.Control("0")
-ap = AssumptionPreprocessor(
-    control=ctl,
-    filters=[
-    FilterSignature("a", 1),
-    FilterPattern("d(2)")
-])
+ap = AssumptionPreprocessor(control=ctl, filters=[FilterSignature("a", 1), FilterPattern("d(2)")])
 ap.process_files([FILE])
 
 # The transformed files are added to ctl so it can be directly used
@@ -78,11 +88,17 @@ ctl.ground([("base", [])])
 ctl.solve()
 ```
 
-Getting a single MUS:
+<!-- --8<-- [end:example-pre-control] -->
+
+#### Computing relevant subsets (MUS, MSS, MCS)
+
+<!-- --8<-- [start:example-mus-single] -->
+
+Finding a single MUS:
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterSignature
-from clingexplaid.mus import SubsetComputer
+from clingexplaid.unsat import SubsetComputer
 
 PROGRAM = """
 a(1..3).
@@ -98,21 +114,28 @@ ap.process(PROGRAM)
 ap.control.ground([("base", [])])
 sc = SubsetComputer(ap.control, ap.assumptions)
 
+
 def shrink_on_core(core) -> None:
     mus = sc.mus(core)
     print(mus)
 
-ap.control.solve(
-    assumptions=list(ap.assumptions),
-    on_core=shrink_on_core
-)
+
+ap.control.solve(assumptions=list(ap.assumptions), on_core=shrink_on_core)
 ```
 
-Getting multiple MUS:
+The `SubsetComputer.mus()` method can simple be swapped with
+`SubsetComputer.mss()` or `SubsetComputer.mcs()` to compute the respective
+other subset types
+
+<!-- --8<-- [end:example-mus-single] -->
+
+<!-- --8<-- [start:example-mus-multiple] -->
+
+Finding multiple MUSs:
 
 ```python
 from clingexplaid.preprocessors import AssumptionPreprocessor
-from clingexplaid.mus import SubsetComputer
+from clingexplaid.unsat import SubsetComputer
 
 PROGRAM = """
 a(1..3).
@@ -129,6 +152,40 @@ sc = SubsetComputer(ap.control, ap.assumptions)
 for i, mus in enumerate(sc.multiple()):
     print(f"{i}:", mus)
 ```
+
+<!-- --8<-- [end:example-mus-multiple] -->
+
+<!-- --8<-- [start:example-mus-multiple-any] -->
+
+Finding multiple relevant subsets (MUS, MSS, and MCS):
+
+```python
+from clingexplaid.preprocessors import AssumptionPreprocessor
+from clingexplaid.unsat import SubsetComputer
+from clingexplaid.unsat.sets import [
+    MinimalUnsatisfiableSubset,
+    MaximalSatisfiableSubset,
+    MinimalCorrectionSet
+]
+
+PROGRAM = """
+a(1..3).
+b(1..3).
+
+:- a(X), b(X).
+"""
+
+ap = AssumptionPreprocessor()
+ap.process(PROGRAM)
+ap.control.ground([("base", [])])
+sc = SubsetComputer(ap.control, ap.assumptions)
+
+types = [MinimalUnsatisfiableSubset, MaximalSatisfiableSubset, MinimalCorrectionSet]
+for i, subset in enumerate(sc.multiple(types)):
+    print(f"{i}:", subset)
+```
+
+<!-- --8<-- [end:example-mus-multiple-any] -->
 
 ### Unsatisfiable Constraints
 

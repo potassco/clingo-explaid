@@ -1,9 +1,7 @@
-"""
-Tests for the mus package
-"""
+"""Tests for the unsat package."""
 
 import random
-from typing import Iterable, List, Optional, Sequence, Set, Tuple, Type, Union
+from collections.abc import Iterable, Sequence
 from unittest import TestCase
 
 import clingo
@@ -20,19 +18,13 @@ EXPLORERS = (ExplorerPowerset, ExplorerAsp)
 
 def get_mus_of_program(
     program_string: str,
-    assumption_filters: Optional[Iterable[Union[FilterPattern, FilterSignature]]] = None,
-    control: Optional[clingo.Control] = None,
-    timeout: Optional[float] = None,
-    explorer: Type[Explorer] = ExplorerPowerset,
-) -> Tuple[Subset, SubsetComputer]:
-    """
-    Helper function to directly get the MUS of a given program string.
-    """
-
-    if assumption_filters is None:
-        assumption_filters = set()
-    else:
-        assumption_filters = set(assumption_filters)
+    assumption_filters: Iterable[FilterPattern | FilterSignature] | None = None,
+    control: clingo.Control | None = None,
+    timeout: float | None = None,
+    explorer: type[Explorer] = ExplorerPowerset,
+) -> tuple[Subset, SubsetComputer]:
+    """Get the MUS of a given program string."""
+    assumption_filters = set() if assumption_filters is None else set(assumption_filters)
 
     ctl = control if control is not None else clingo.Control()
 
@@ -56,27 +48,20 @@ def get_mus_of_program(
 
 
 class TestMUS(TestCase):
-    """
-    Test cases for MUS functionality.
-    """
+    """Test cases for MUS functionality."""
 
     def _assert_mus(
         self,
-        mus: Set[str],
-        valid_mus_string_lists: List[Set[str]],
+        mus: set[str],
+        valid_mus_string_lists: list[set[str]],
     ) -> None:
-        """
-        Asserts if a MUS is one of several valid MUS's.
-        """
+        """Assert if a MUS is one of several valid MUS's."""
         valid_mus_list = [{clingo.parse_term(s) for s in lit_strings} for lit_strings in valid_mus_string_lists]
         parsed_mus = {clingo.parse_term(s) for s in mus}
         self.assertIn(parsed_mus, valid_mus_list)
 
     def test_core_computer_shrink_single_mus(self) -> None:
-        """
-        Test the CoreComputer's `shrink` function with a single MUS.
-        """
-
+        """Test the CoreComputer's `shrink` function with a single MUS."""
         ctl = clingo.Control()
 
         program = """
@@ -92,10 +77,7 @@ class TestMUS(TestCase):
         self._assert_mus(mus.symbol_strings, [{"a(1)", "a(4)", "a(5)"}])
 
     def test_core_computer_shrink_single_atomic_mus(self) -> None:
-        """
-        Test the CoreComputer's `shrink` function with a single atomic MUS.
-        """
-
+        """Test the CoreComputer's `shrink` function with a single atomic MUS."""
         ctl = clingo.Control()
 
         program = """
@@ -111,10 +93,7 @@ class TestMUS(TestCase):
         self._assert_mus(mus.symbol_strings, [{"a(3)"}])
 
     def test_core_computer_shrink_multiple_atomic_mus(self) -> None:
-        """
-        Test the CoreComputer's `shrink` function with multiple atomic MUS's.
-        """
-
+        """Test the CoreComputer's `shrink` function with multiple atomic MUS's."""
         for explorer in EXPLORERS:
             ctl = clingo.Control()
 
@@ -135,10 +114,7 @@ class TestMUS(TestCase):
             self._assert_mus(mus.symbol_strings, [{"a(3)"}, {"a(5)"}, {"a(9)"}])
 
     def test_core_computer_shrink_multiple_mus(self) -> None:
-        """
-        Test the CoreComputer's `shrink` function with multiple MUS's.
-        """
-
+        """Test the CoreComputer's `shrink` function with multiple MUS's."""
         for explorer in EXPLORERS:
             ctl = clingo.Control()
 
@@ -166,10 +142,7 @@ class TestMUS(TestCase):
             )
 
     def test_core_computer_shrink_large_instance_random(self) -> None:
-        """
-        Test the CoreComputer's `shrink` function with a large random assumption set.
-        """
-
+        """Test the CoreComputer's `shrink` function with a large random assumption set."""
         ctl = clingo.Control()
 
         n_assumptions = 1000
@@ -187,10 +160,7 @@ class TestMUS(TestCase):
         self._assert_mus(mus.symbol_strings, [{f"a({i})" for i in random_core}])
 
     def test_core_computer_shrink_timeout(self) -> None:
-        """
-        Test the CoreComputer's `shrink` function with a satisfiable assumption set.
-        """
-
+        """Test the CoreComputer's `shrink` function with a satisfiable assumption set."""
         ctl = clingo.Control()
 
         n_assumptions = 3000
@@ -206,10 +176,7 @@ class TestMUS(TestCase):
         self.assertIsInstance(mus, UnsatisfiableSubset)
 
     def test_core_computer_shrink_satisfiable(self) -> None:
-        """
-        Test the CoreComputer's `shrink` function with a satisfiable assumption set.
-        """
-
+        """Test the CoreComputer's `shrink` function with a satisfiable assumption set."""
         ctl = clingo.Control()
 
         program = """
@@ -222,10 +189,7 @@ class TestMUS(TestCase):
         self.assertEqual(mus, UnsatisfiableSubset(set()))
 
     def test_core_computer_get_multiple_minimal(self) -> None:
-        """
-        Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
-        """
-
+        """Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's."""
         for explorer in EXPLORERS:
             ctl = clingo.Control()
 
@@ -247,9 +211,7 @@ class TestMUS(TestCase):
                 )
 
     def test_core_computer_get_multiple_minimal_max_mus_2(self) -> None:
-        """
-        Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
-        """
+        """Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's."""
         for explorer in EXPLORERS:
             ctl = clingo.Control()
 
@@ -273,9 +235,7 @@ class TestMUS(TestCase):
             self.assertEqual(len(mus_string_sets), 2)
 
     def test_core_computer_get_multiple_minimal_timeout(self) -> None:
-        """
-        Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's.
-        """
+        """Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's."""
         for explorer in EXPLORERS:
             ctl = clingo.Control()
 
@@ -300,10 +260,7 @@ class TestMUS(TestCase):
     # INTERNAL
 
     def test_core_computer_internal_compute_single_minimal_satisfiable(self) -> None:
-        """
-        Test the CoreComputer's `_compute_single_minimal` function with a satisfiable assumption set.
-        """
-
+        """Test the CoreComputer's `_compute_single_minimal` function with a satisfiable assumption set."""
         control = clingo.Control()
         program = "a.b.c."
         control.add("base", [], program)
@@ -314,10 +271,7 @@ class TestMUS(TestCase):
         self.assertEqual(mus, UnsatisfiableSubset(set()))
 
     def test_core_computer_internal_compute_single_minimal_no_assumptions(self) -> None:
-        """
-        Test the CoreComputer's `_compute_single_minimal` function with no assumptions.
-        """
-
+        """Test the CoreComputer's `_compute_single_minimal` function with no assumptions."""
         control = clingo.Control()
         sc = SubsetComputer(control, set())
         # Disabled exception assertion due to change in error handling

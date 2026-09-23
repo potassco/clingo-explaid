@@ -1,9 +1,7 @@
-"""
-Propagator Module: Decision Order
-"""
+"""Propagator for the decision order."""
 
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import clingo
 from clingo import Propagator
@@ -15,18 +13,17 @@ NEGATIVE_STRING = "[-]"
 
 @dataclass
 class Decision:
-    """
-    Dataclass representing a solver decision
-    """
+    """A solver decision."""
 
     positive: bool
     literal: int
-    symbol: Optional[clingo.Symbol]
+    symbol: clingo.Symbol | None
 
-    def matches_any(self, signatures: Set[Tuple[str, int]], show_internal: bool = True) -> bool:
+    def matches_any(self, signatures: set[tuple[str, int]], show_internal: bool = True) -> bool:
         """
-        Checks if the decisions symbol matches any of the provided `signatures`. If  the decisions is an internal
-        literal `show_internal` is returned.
+        Check if the decisions symbol matches any of the provided `signatures`.
+
+        If  the decisions is an internal literal `show_internal` is returned.
         """
         if self.symbol is not None:
             for sig, arity in signatures:
@@ -38,37 +35,34 @@ class Decision:
         return False
 
     def __str__(self) -> str:
+        """Return a string representation of the decision."""
         symbol_string = str(self.symbol) if self.symbol is not None else INTERNAL_STRING
         sign_string = POSITIVE_STRING if self.positive else NEGATIVE_STRING
         return f"{sign_string} {symbol_string} [{self.literal}]"
 
 
 class SolverDecisionPropagator(Propagator):
-    """
-    Propagator for showing the Solver Decisions of clingo
-    """
+    """Propagator for showing the Solver Decisions of clingo."""
 
     def __init__(
         self,
-        signatures: Optional[Set[Tuple[str, int]]] = None,
-        callback_propagate: Optional[Callable[[List[Union[Decision, List[Decision]]]], None]] = None,
-        callback_undo: Optional[Callable[[], None]] = None,
-    ):
+        signatures: set[tuple[str, int]] | None = None,
+        callback_propagate: Callable[[list[Decision | list[Decision]]], None] | None = None,
+        callback_undo: Callable[[], None] | None = None,
+    ) -> None:
         # pylint: disable=missing-function-docstring
-        self.literal_symbol_lookup: Dict[int, clingo.Symbol] = {}
+        self.literal_symbol_lookup: dict[int, clingo.Symbol] = {}
         self.signatures = signatures if signatures is not None else set()
 
-        self.callback_propagate: Callable[[List[Union[Decision, List[Decision]]]], None] = (
-            callback_propagate if callback_propagate is not None else lambda x: None
+        self.callback_propagate: Callable[[list[Decision | list[Decision]]], None] = (
+            callback_propagate if callback_propagate is not None else lambda _: None
         )
         self.callback_undo: Callable[[], None] = callback_undo if callback_undo is not None else lambda: None
 
-        self.last_decisions: List[Union[Decision, List[Decision]]] = []
+        self.last_decisions: list[Decision | list[Decision]] = []
 
     def init(self, init: clingo.PropagateInit) -> None:
-        """
-        Method to initialize the Decision Order Propagator. Here the literals are added to the Propagator's watch list.
-        """
+        """Initialize the Decision Order Propagator."""
         for atom in init.symbolic_atoms:
             program_literal = atom.literal
             solver_literal = init.solver_literal(program_literal)
@@ -88,17 +82,18 @@ class SolverDecisionPropagator(Propagator):
     def propagate(
         self,
         control: clingo.PropagateControl,
-        changes: Sequence[int],
+        changes: Sequence[int],  # noqa: ARG002
         use_diff: bool = True,
     ) -> None:
         """
-        Propagate method the is called when one the registered literals is propagated by clasp. Here useful information
-        about the decision progress is recorded to be visualized later.
+        Propagate method the is called when one the registered literals is propagated by clasp.
+
+        Here useful information about the decision progress is recorded to be visualized later.
         """
         # pylint: disable=unused-argument
         decisions, entailments = self.get_decisions(control.assignment)
 
-        literal_sequence: List[Union[int, List[int]]] = []
+        literal_sequence: list[int | list[int]] = []
         for d in decisions:
             literal_sequence.append(d)
             if d in entailments:
@@ -107,7 +102,7 @@ class SolverDecisionPropagator(Propagator):
         decision_sequence = self.literal_to_decision_sequence(literal_sequence)
 
         if use_diff:
-            decision_diff: List[Union[Decision, List[Decision]]] = []
+            decision_diff: list[Decision | list[Decision]] = []
             for i, decision in enumerate(decision_sequence):
                 if i < len(self.last_decisions):
                     if self.last_decisions[i] != decision:
@@ -119,30 +114,25 @@ class SolverDecisionPropagator(Propagator):
         else:
             self.callback_propagate(decision_sequence)
 
-    def undo(self, thread_id: int, assignment: clingo.Assignment, changes: Sequence[int]) -> None:
-        """
-        This function is called when one of the solvers decisions is undone.
-        """
+    def undo(self, thread_id: int, assignment: clingo.Assignment, changes: Sequence[int]) -> None:  # noqa: ARG002
+        """Run when solvers decisions is undone."""
         # pylint: disable=unused-argument
 
         self.callback_undo()
 
     def literal_to_decision(self, literal: int) -> Decision:
-        """
-        Converts a literal integer to a `Decision` object.
-        """
+        """Convert a literal integer to a `Decision` object."""
         is_positive = literal >= 0
         symbol = self.literal_symbol_lookup.get(abs(literal))
         return Decision(literal=abs(literal), positive=is_positive, symbol=symbol)
 
-    def literal_to_decision_sequence(
-        self, literal_sequence: List[Union[int, List[int]]]
-    ) -> List[Union[Decision, List[Decision]]]:
+    def literal_to_decision_sequence(self, literal_sequence: list[int | list[int]]) -> list[Decision | list[Decision]]:
         """
-        Converts a literal sequence into a decision sequence. These sequences are made up of their respective types or
-        lists of these types.
+        Convert a literal sequence into a decision sequence.
+
+        These sequences are made up of their respective types or lists of these types.
         """
-        new_decision_sequence: List[Union[Decision, List[Decision]]] = []
+        new_decision_sequence: list[Decision | list[Decision]] = []
         for element in literal_sequence:
             if isinstance(element, int):
                 new_decision_sequence.append(self.literal_to_decision(element))
@@ -153,10 +143,8 @@ class SolverDecisionPropagator(Propagator):
     @staticmethod
     def get_decisions(
         assignment: clingo.Assignment,
-    ) -> Tuple[List[int], Dict[int, List[int]]]:
-        """
-        Helper function to extract a list of decisions and entailments from a clingo propagator assignment.
-        """
+    ) -> tuple[list[int], dict[int, list[int]]]:
+        """Extract a list of decisions and entailments from a clingo propagator assignment."""
         level = 0
         decisions = []
         entailments = {}

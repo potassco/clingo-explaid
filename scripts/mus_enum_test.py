@@ -1,5 +1,7 @@
-from clingexplaid.mus import SubsetComputer
+"""Test script to enumerate all MUSs of a program."""
+
 from clingexplaid.preprocessors import AssumptionPreprocessor
+from clingexplaid.unsat import SubsetComputer
 
 PROGRAM = """
 a(1..3).

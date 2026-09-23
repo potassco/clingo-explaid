@@ -1,7 +1,10 @@
-import time
+"""Test script to enumerate one MUS of a program."""
 
-from clingexplaid.mus import SubsetComputer
+import time
+from collections.abc import Sequence
+
 from clingexplaid.preprocessors import AssumptionPreprocessor, FilterSignature
+from clingexplaid.unsat import SubsetComputer
 
 PROGRAM = """
 a(1..3).
@@ -19,12 +22,12 @@ ap.control.ground([("base", [])])
 sc = SubsetComputer(ap.control, ap.assumptions)
 
 
-def shrink_on_core(core) -> None:
+def _shrink_on_core(core: Sequence[int]) -> None:
     mus = sc.mus(core)
     print(mus)
 
 
-ap.control.solve(assumptions=list(ap.assumptions), on_core=shrink_on_core)
+ap.control.solve(assumptions=list(ap.assumptions), on_core=_shrink_on_core)
 end_t = time.perf_counter()
 
 print(f"Time: {end_t - start_t}")
