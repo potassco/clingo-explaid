@@ -231,6 +231,8 @@ for i, subset in enumerate(sc.multiple(types)):
 
 ### Unsatisfiable Constraints
 
+<!-- --8<-- [start:example-constraints] -->
+
 ```python
 from clingexplaid.unsat_constraints import UnsatConstraintComputer
 
@@ -250,3 +252,5 @@ unsat_constraints = ucc.get_unsat_constraints()
 for uc_id, unsat_constraint in unsat_constraints.items():
     print(f"Unsat Constraint {uc_id}:", unsat_constraint)
 ```
+
+<!-- --8<-- [end:example-constraints] -->
