@@ -1,9 +1,7 @@
-<h1>
-  💡 clingexplaid
-  <a href="LICENSE"><img align="right" hspace="2" src="https://img.shields.io/github/license/potassco/clingo-explaid" alt="License"></a>
-  <a href="https://pypi.org/project/clingexplaid/"><img align="right" hspace="2" src="https://img.shields.io/pypi/v/clingexplaid" alt="PyPI"></a>
-  <a href="https://docs.potassco.org/clingo-explaid/"><img align="right" hspace="2" src="https://img.shields.io/badge/docs-potassco.org-blue" alt="Docs"></a>
-</h1>
+[![badge-docs]][text-docs] [![badge-license]][text-license]
+[![badge-pypi]][text-pypi]
+
+# 💡 clingexplaid
 
 <!-- --8<-- [start:description] -->
 
@@ -256,3 +254,10 @@ for uc_id, unsat_constraint in unsat_constraints.items():
 ```
 
 <!-- --8<-- [end:example-constraints] -->
+
+[badge-docs]: https://img.shields.io/badge/docs-potassco.org-blue
+[badge-license]: https://img.shields.io/github/license/potassco/clingo-explaid
+[badge-pypi]: https://img.shields.io/pypi/v/clingexplaid
+[text-docs]: https://docs.potassco.org/clingo-explaid/
+[text-license]: LICENSE
+[text-pypi]: https://pypi.org/project/clingexplaid/
