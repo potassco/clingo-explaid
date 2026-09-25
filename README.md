@@ -2,17 +2,19 @@
 [![PyPI version](https://img.shields.io/pypi/v/clingexplaid)](https://pypi.org/project/clingexplaid/)
 [![License](https://img.shields.io/github/license/potassco/clingo-explaid)](LICENSE)
 
-# clingexplaid
+# 💡 clingexplaid
 
 <!-- --8<-- [start:description] -->
 
-`clingexplaid` is a python library for explaining why an ASP program is
-unsatisfiable. Its API offers preprocessing, subset computation, and constraint
-analysis tools for building explanation systems on top of clingo.
+This library collects tools for explaining why an ASP program is unsatisfiable.
+We build on top of the [clingo](https://potassco.org/clingo/) API to offer
+preprocessing, subset computation, and constraint analysis helpers for building
+explanation systems. This repository is part of the
+[Potassco](https://potassco.org/) suite.
 
 <!-- --8<-- [end:description] -->
 
-## Installation
+## 📦 Installation
 
 <!-- --8<-- [start:installation] -->
 
@@ -22,18 +24,16 @@ Clingo-Explaid can easily be installed with `pip`:
 pip install clingexplaid
 ```
 
-### Requirements
-
-- `python >= 3.11`
-- `clingo >= 5.7.1`
+Requirements : _python_ >= `3.11` & _clingo_ >= `5.7.1`
 
 <!-- --8<-- [end:installation] -->
 
 ### Building from Source
 
-Please refer to [DEVELOPEMENT](DEVELOPMENT.md)
+Please refer to
+[DEVELOPEMENT](https://github.com/potassco/clingo-explaid/blob/master/DEPLOYMENT.md)
 
-## API Usage
+## 🚀 Getting Started
 
 The following Examples show use-cases for `clingexplaid`'s API.
 
