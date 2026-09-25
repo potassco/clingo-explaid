@@ -1,8 +1,5 @@
 # clingexplaid
 
-> [!CAUTION] This version uses a local dependency of `musclingo` for
-> development purposes. This should be fixed before it is released!
-
 <!-- --8<-- [start:description] -->
 
 `clingexplaid` is a python library for explaining why an ASP program is
