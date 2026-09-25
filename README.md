@@ -1,3 +1,7 @@
+[![Documentation](https://img.shields.io/badge/docs-potassco.org-blue)](https://docs.potassco.org/clingo-explaid/)
+[![PyPI version](https://img.shields.io/pypi/v/clingo-explaid)](https://pypi.org/project/clingexplaid/)
+[![License](https://img.shields.io/github/license/potassco/clingo-explaid)](LICENSE)
+
 # clingexplaid
 
 <!-- --8<-- [start:description] -->
