@@ -1,10 +1,7 @@
-"""
-Transformer Module: Split Rules into dedicated body and head parts
-"""
+"""Transformer Module: Split Rules into dedicated body and head parts."""
 
 import base64
 from pathlib import Path
-from typing import List, Union
 
 import clingo
 import clingo.ast as _ast
@@ -12,7 +9,9 @@ import clingo.ast as _ast
 
 class RuleSplitter(_ast.Transformer):
     """
-    A transformer that is used to split rules into two. This is done using an intermediate predicate called `_body`,
+    A transformer that is used to split rules into two.
+
+    This is done using an intermediate predicate called `_body`,
     which contains a base64 representation of the original rule and all body variable assignments for explanation
     purposes. This intermediate predicate replaces the head of the original rule and a new rule with the old head and
     the newly generated `_body` predicate as the body is also inserted. Use the `parse_string` method to apply this
@@ -20,12 +19,11 @@ class RuleSplitter(_ast.Transformer):
     """
 
     def __init__(self) -> None:
-        self.head_rules: List[clingo.ast.AST] = []
+        self.head_rules: list[clingo.ast.AST] = []
 
     def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
         """
-        Replaces the head of every rule with the intermediate `_body` predicate and stores all new head rules using this
-        intermediary predicate in `self.head_rules`
+        Replace the head of every rule with a `_body` predicate and stores all new head rules in `self.head_rules`.
         """
         head = node.head
         body = node.body
@@ -81,20 +79,15 @@ class RuleSplitter(_ast.Transformer):
         return node
 
     def parse_string(self, string: str) -> str:
-        """
-        Function that applies the transformation to the `program_string` it's called with and returns the transformed
-        program string.
-        """
+        """Apply the transformer to the provided string."""
         self.head_rules = []
         out = []
-        _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
+        _ast.parse_string(string, lambda stm: out.append(str(self(stm))))
         out += [str(r) for r in self.head_rules]
 
         return "\n".join(out)
 
-    def parse_file(self, path: Union[str, Path], encoding: str = "utf-8") -> str:
-        """
-        Parses the file at path and returns a string with the transformed program.
-        """
+    def parse_file(self, path: str | Path, encoding: str = "utf-8") -> str:
+        """Apply the transformer to the provided file."""
         with open(path, "r", encoding=encoding) as f:
             return self.parse_string(f.read())

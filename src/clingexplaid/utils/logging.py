@@ -44,12 +44,13 @@ class SingleLevelFilter(logging.Filter):
     passlevel: int
     reject: bool
 
-    def __init__(self, passlevel: int, reject: bool):
+    def __init__(self, passlevel: int, reject: bool) -> None:
         # pylint: disable=super-init-not-called
         self.passlevel = passlevel
         self.reject = reject
 
     def filter(self, record: logging.LogRecord) -> bool:
+        """Test if a `LogRecord` will be filtered."""
         if self.reject:
             return record.levelno != self.passlevel  # nocoverage
 

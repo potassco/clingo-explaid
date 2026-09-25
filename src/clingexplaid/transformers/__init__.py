@@ -1,6 +1,4 @@
-"""
-Transformers for Explanation
-"""
+"""Transformers for Explanation."""
 
 from .transformer_constraint import ConstraintTransformer
 from .transformer_fact import FactTransformer

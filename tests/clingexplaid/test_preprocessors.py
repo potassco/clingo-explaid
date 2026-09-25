@@ -1,6 +1,4 @@
-"""
-Tests for the preprocessors package
-"""
+"""Tests for the preprocessors package."""
 
 from unittest import TestCase
 
@@ -13,16 +11,12 @@ from .test_main import TEST_DIR, read_file
 
 
 class TestPreprocessors(TestCase):
-    """
-    Test cases for preprocessors.
-    """
+    """Test cases for preprocessors."""
 
     # ASSUMPTION PREPROCESSOR
 
     def test_assumption_preprocessor_parse_file(self) -> None:
-        """
-        Test the AssumptionPreprocessor's `parse_file` method.
-        """
+        """Test the AssumptionPreprocessor's `parse_file` method."""
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_certain_signatures.lp")
         filters = [FilterSignature(c, 1) for c in "abcdef"]
@@ -32,9 +26,7 @@ class TestPreprocessors(TestCase):
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
     def test_assumption_preprocessor_parse_file_no_signatures(self) -> None:
-        """
-        Test the AssumptionPreprocessor's `parse_file` method with no signatures provided.
-        """
+        """Test the AssumptionPreprocessor's `parse_file` method with no signatures provided."""
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_assumptions_all.lp")
         ap = AssumptionPreprocessor()
@@ -43,9 +35,7 @@ class TestPreprocessors(TestCase):
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
     def test_assumption_preprocessor_parse_nothing(self) -> None:
-        """
-        Test the AssumptionPreprocessor's `process` method with an empty filters list.
-        """
+        """Test the AssumptionPreprocessor's `process` method with an empty filters list."""
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_nothing_transformed.lp")
         ap = AssumptionPreprocessor(filters=[])
@@ -54,9 +44,7 @@ class TestPreprocessors(TestCase):
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
     def test_assumption_preprocessor_parse_pattern_filter(self) -> None:
-        """
-        Test the AssumptionPreprocessor's `parse_file` method with no signatures provided.
-        """
+        """Test the AssumptionPreprocessor's `parse_file` method with no signatures provided."""
         program_path = TEST_DIR.joinpath("res/test_program_pattern.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_pattern.lp")
         filters = {FilterPattern("a(_,value,_)")}
@@ -66,16 +54,12 @@ class TestPreprocessors(TestCase):
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
     def test_assumption_preprocessor_get_assumptions_before_transformation(self) -> None:
-        """
-        Test the AssumptionPreprocessor's behavior when get_assumptions is called before transformation.
-        """
+        """Test the AssumptionPreprocessor's behavior when get_assumptions is called before transformation."""
         ap = AssumptionPreprocessor()
         self.assertRaises(UnprocessedException, lambda: ap.assumptions)
 
     def test_assumption_preprocessor_visit_definition(self) -> None:
-        """
-        Test the AssumptionPreprocessor's detection of constant definitions.
-        """
+        """Test the AssumptionPreprocessor's detection of constant definitions."""
         program_path = TEST_DIR.joinpath("res/test_program_constants.lp")
         ap = AssumptionPreprocessor()
         with open(program_path, "r", encoding="utf-8") as file:
@@ -88,7 +72,6 @@ class TestPreprocessors(TestCase):
 
     def test_assumption_preprocessor_parse_files(self) -> None:
         """Test the AssumptionPreprocessor's `parse_files` method."""
-
         program_path = TEST_DIR.joinpath("res/test_includes.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_includes.lp")
         ap = AssumptionPreprocessor()
@@ -96,15 +79,13 @@ class TestPreprocessors(TestCase):
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
     def test_assumption_preprocessor_parse_files_none(self) -> None:
-        """Test the AssumptionPreprocessor's `parse_files` method on files=None"""
-
+        """Test the AssumptionPreprocessor's `parse_files` method on files=None."""
         ap = AssumptionPreprocessor()
         result = ap.process_files()
         self.assertEqual(result.strip(), "")
 
     def test_assumption_preprocessor_with_constant(self) -> None:
-        """Test the AssumptionPreprocessor's `parse_files` method on with a constant definition in the program"""
-
+        """Test the AssumptionPreprocessor's `parse_files` method on with a constant definition in the program."""
         program_path = TEST_DIR.joinpath("res/test_constant.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_constant.lp")
         ap = AssumptionPreprocessor()

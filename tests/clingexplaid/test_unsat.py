@@ -1,0 +1,275 @@
+"""Tests for the unsat package."""
+
+import random
+from collections.abc import Iterable, Sequence
+from unittest import TestCase
+
+import clingo
+
+from clingexplaid.preprocessors import AssumptionPreprocessor, FilterPattern, FilterSignature
+from clingexplaid.unsat import Subset, SubsetComputer
+from clingexplaid.unsat.lattice import AssumptionLatticeFactory, LatticeFactory
+from clingexplaid.unsat.sets import UnsatisfiableSubset
+
+from .test_main import TEST_DIR
+
+LATTICE_FACTORIES = (AssumptionLatticeFactory(bias=False),)
+
+
+def get_mus_of_program(
+    program_string: str,
+    assumption_filters: Iterable[FilterPattern | FilterSignature] | None = None,
+    control: clingo.Control | None = None,
+    timeout: float | None = None,
+    lattice_factory: LatticeFactory | None = None,
+) -> tuple[Subset, SubsetComputer]:
+    """Get the MUS of a given program string."""
+    assumption_filters = set() if assumption_filters is None else set(assumption_filters)
+
+    ctl = control if control is not None else clingo.Control()
+
+    ap = AssumptionPreprocessor(filters=assumption_filters)
+    transformed_program = ap.process(program_string)
+
+    ctl.add("base", [], transformed_program)
+    ctl.ground([("base", [])])
+
+    sc = SubsetComputer(ctl, ap.assumptions, lattice_factory=lattice_factory)
+
+    def shrink_on_model(core: Sequence[int]) -> None:
+        _ = sc.mus(core, timeout=timeout)
+
+    ctl.solve(assumptions=list(ap.assumptions), on_core=shrink_on_model)
+
+    # if the instance was satisfiable and the on_core function wasn't called an empty set is returned, else the mus.
+    result = sc.last_mus if sc.last_mus is not None else UnsatisfiableSubset(set())
+
+    return result, sc
+
+
+class TestMUS(TestCase):
+    """Test cases for MUS functionality."""
+
+    def _assert_mus(
+        self,
+        mus: set[str],
+        valid_mus_string_lists: list[set[str]],
+    ) -> None:
+        """Assert if a MUS is one of several valid MUS's."""
+        valid_mus_list = [{clingo.parse_term(s) for s in lit_strings} for lit_strings in valid_mus_string_lists]
+        parsed_mus = {clingo.parse_term(s) for s in mus}
+        self.assertIn(parsed_mus, valid_mus_list)
+
+    def test_core_computer_shrink_single_mus(self) -> None:
+        """Test the CoreComputer's `shrink` function with a single MUS."""
+        ctl = clingo.Control()
+
+        program = """
+            a(1..5).
+            :- a(1), a(4), a(5).
+            """
+        filters = {FilterSignature("a", 1)}
+
+        mus, sc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
+
+        if sc.last_mus is None:
+            self.fail()
+        self._assert_mus(mus.symbol_strings, [{"a(1)", "a(4)", "a(5)"}])
+
+    def test_core_computer_shrink_single_atomic_mus(self) -> None:
+        """Test the CoreComputer's `shrink` function with a single atomic MUS."""
+        ctl = clingo.Control()
+
+        program = """
+            a(1..5).
+            :- a(3).
+            """
+        filters = {FilterSignature("a", 1)}
+
+        mus, sc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
+
+        if sc.last_mus is None:
+            self.fail()
+        self._assert_mus(mus.symbol_strings, [{"a(3)"}])
+
+    def test_core_computer_shrink_multiple_atomic_mus(self) -> None:
+        """Test the CoreComputer's `shrink` function with multiple atomic MUS's."""
+        for lattice_factory in LATTICE_FACTORIES:
+            ctl = clingo.Control()
+
+            program = """
+                a(1..10).
+                :- a(3).
+                :- a(5).
+                :- a(9).
+                """
+            filters = {FilterSignature("a", 1)}
+
+            mus, sc = get_mus_of_program(
+                program_string=program, assumption_filters=filters, control=ctl, lattice_factory=lattice_factory
+            )
+
+            if sc.last_mus is None:
+                self.fail()
+            self._assert_mus(mus.symbol_strings, [{"a(3)"}, {"a(5)"}, {"a(9)"}])
+
+    def test_core_computer_shrink_multiple_mus(self) -> None:
+        """Test the CoreComputer's `shrink` function with multiple MUS's."""
+        for lattice_factory in LATTICE_FACTORIES:
+            ctl = clingo.Control()
+
+            program = """
+                a(1..10).
+                :- a(3), a(9), a(5).
+                :- a(5), a(1), a(2).
+                :- a(9), a(2), a(7).
+                """
+            filters = {FilterSignature("a", 1)}
+
+            mus, sc = get_mus_of_program(
+                program_string=program, assumption_filters=filters, control=ctl, lattice_factory=lattice_factory
+            )
+
+            if sc.last_mus is None:
+                self.fail()
+            self._assert_mus(
+                mus.symbol_strings,
+                [
+                    {"a(3)", "a(9)", "a(5)"},
+                    {"a(5)", "a(1)", "a(2)"},
+                    {"a(9)", "a(2)", "a(7)"},
+                ],
+            )
+
+    def test_core_computer_shrink_large_instance_random(self) -> None:
+        """Test the CoreComputer's `shrink` function with a large random assumption set."""
+        ctl = clingo.Control()
+
+        n_assumptions = 1000
+        random_core = random.choices(range(1, n_assumptions), k=10)
+        program = f"""
+            a(1..{n_assumptions}).
+            :- {", ".join([f"a({i})" for i in random_core])}.
+            """
+        filters = {FilterSignature("a", 1)}
+
+        mus, sc = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
+
+        if sc.last_mus is None:
+            self.fail()
+        self._assert_mus(mus.symbol_strings, [{f"a({i})" for i in random_core}])
+
+    def test_core_computer_shrink_timeout(self) -> None:
+        """Test the CoreComputer's `shrink` function with a satisfiable assumption set."""
+        ctl = clingo.Control()
+
+        n_assumptions = 3000
+        random_core = random.choices(range(1, n_assumptions), k=500)
+        program = f"""
+                    a(1..{n_assumptions}).
+                    :- {", ".join([f"a({i})" for i in random_core])}.
+                    """
+        filters = {FilterSignature("a", 1)}
+
+        mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl, timeout=0)
+
+        self.assertIsInstance(mus, UnsatisfiableSubset)
+
+    def test_core_computer_shrink_satisfiable(self) -> None:
+        """Test the CoreComputer's `shrink` function with a satisfiable assumption set."""
+        ctl = clingo.Control()
+
+        program = """
+            a(1..5).
+            """
+        filters = {FilterSignature("a", 1)}
+
+        mus, _ = get_mus_of_program(program_string=program, assumption_filters=filters, control=ctl)
+
+        self.assertEqual(mus, UnsatisfiableSubset(set()))
+
+    def test_core_computer_get_multiple_minimal(self) -> None:
+        """Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's."""
+        for lattice_factory in LATTICE_FACTORIES:
+            ctl = clingo.Control()
+
+            program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
+            ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
+            with open(program_path, "r", encoding="utf-8") as file:
+                parsed = ap.process(file.read())
+            ctl.add("base", [], parsed)
+            ctl.ground([("base", [])])
+            sc = SubsetComputer(ctl, ap.assumptions, lattice_factory=lattice_factory)
+
+            mus_generator = sc.multiple()
+
+            mus_string_sets = [mus.symbol_strings for mus in list(mus_generator)]
+            for mus_string_set in mus_string_sets:
+                self.assertIn(
+                    mus_string_set,
+                    [{"a(1)", "a(2)"}, {"a(1)", "a(9)"}, {"a(3)", "a(5)", "a(8)"}],
+                )
+
+    def test_core_computer_get_multiple_minimal_max_mus_2(self) -> None:
+        """Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's."""
+        for lattice_factory in LATTICE_FACTORIES:
+            ctl = clingo.Control()
+
+            program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
+            ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
+            with open(program_path, "r", encoding="utf-8") as file:
+                parsed = ap.process(file.read())
+            ctl.add("base", [], parsed)
+            ctl.ground([("base", [])])
+            sc = SubsetComputer(ctl, ap.assumptions, lattice_factory=lattice_factory)
+
+            mus_generator = sc.multiple(maximum=2)
+
+            mus_string_sets = [mus.symbol_strings for mus in list(mus_generator)]
+            for mus_string_set in mus_string_sets:
+                self.assertIn(
+                    mus_string_set,
+                    [{"a(1)", "a(2)"}, {"a(1)", "a(9)"}, {"a(3)", "a(5)", "a(8)"}],
+                )
+
+            self.assertEqual(len(mus_string_sets), 2)
+
+    def test_core_computer_get_multiple_minimal_timeout(self) -> None:
+        """Test the CoreComputer's `get_multiple_minimal` function to get multiple MUS's."""
+        for lattice_factory in LATTICE_FACTORIES:
+            ctl = clingo.Control()
+
+            program_path = TEST_DIR.joinpath("res/test_program_multi_mus.lp")
+            ap = AssumptionPreprocessor(filters={FilterSignature("a", 1)})
+            with open(program_path, "r", encoding="utf-8") as file:
+                parsed = ap.process(file.read())
+            ctl.add("base", [], parsed)
+            ctl.ground([("base", [])])
+            sc = SubsetComputer(ctl, ap.assumptions, lattice_factory=lattice_factory)
+
+            mus_generator = sc.multiple(timeout=0)
+
+            mus_string_sets = [mus.symbol_strings for mus in list(mus_generator)]
+
+            self.assertEqual(len(mus_string_sets), 0)
+
+    # INTERNAL
+
+    def test_core_computer_internal_compute_single_minimal_satisfiable(self) -> None:
+        """Test the CoreComputer's `_compute_single_minimal` function with a satisfiable assumption set."""
+        control = clingo.Control()
+        program = "a.b.c."
+        control.add("base", [], program)
+        control.ground([("base", [])])
+        assumptions = {(clingo.parse_term(c), True) for c in "abc"}
+        sc = SubsetComputer(control, assumptions)
+        mus = sc.mus()  # pylint: disable=W0212
+        self.assertEqual(mus, UnsatisfiableSubset(set()))
+
+    def test_core_computer_internal_compute_single_minimal_no_assumptions(self) -> None:
+        """Test the CoreComputer's `_compute_single_minimal` function with no assumptions."""
+        control = clingo.Control()
+        sc = SubsetComputer(control, set())
+        # Disabled exception assertion due to change in error handling
+        mus = sc.mus(assumptions=None)  # pylint: disable=W0212
+        self.assertEqual(mus, UnsatisfiableSubset(set()))

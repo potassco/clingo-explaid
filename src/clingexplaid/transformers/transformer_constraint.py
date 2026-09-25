@@ -1,9 +1,7 @@
-"""
-Transformer Module: Adding atoms to constraint heads to retrace the ones firing in the case of an unsatisfiable program.
-"""
+"""Transformer adding atoms to constraint heads to retrace the ones firing in the case of an unsatisfiable program."""
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, Sequence, Union
 
 import clingo
 import clingo.ast as _ast
@@ -14,17 +12,15 @@ class ConstraintTransformer(_ast.Transformer):
     A Transformer that takes all constraint rules and adds an atom to their head to avoid deriving false through them.
     """
 
-    def __init__(self, constraint_head_symbol: str, include_id: bool = False):
+    def __init__(self, constraint_head_symbol: str, include_id: bool = False) -> None:
         self._constraint_head_symbol = constraint_head_symbol
         self._include_id = include_id
         self._constraint_id = 1
 
-        self.constraint_location_lookup: Dict[int, clingo.ast.Location] = {}
+        self.constraint_location_lookup: dict[int, clingo.ast.Location] = {}
 
     def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103
-        """
-        Adds a constraint_head_symbol atom to the head of every constraint.
-        """
+        """Add a constraint_head_symbol atom to the head of every constraint."""
         if node.head.ast_type != _ast.ASTType.Literal:
             return node
         if node.head.atom.ast_type != _ast.ASTType.BooleanConstant:
@@ -54,19 +50,14 @@ class ConstraintTransformer(_ast.Transformer):
         return node.update(**self.visit_children(node))
 
     def parse_string(self, string: str) -> str:
-        """
-        Function that applies the transformation to the `program_string` it's called with and returns the transformed
-        program string.
-        """
+        """Apply the transformer to the provided string."""
         out = []
-        _ast.parse_string(string, lambda stm: out.append((str(self(stm)))))
+        _ast.parse_string(string, lambda stm: out.append(str(self(stm))))
 
         return "\n".join(out)
 
-    def parse_files(self, paths: Sequence[Union[str, Path]]) -> str:
-        """
-        Parses the files and returns a string with the transformed program.
-        """
+    def parse_files(self, paths: Sequence[str | Path]) -> str:
+        """Apply the transformer to the provided file."""
         out = []
-        _ast.parse_files([str(p) for p in paths], lambda stm: out.append((str(self(stm)))))
+        _ast.parse_files([str(p) for p in paths], lambda stm: out.append(str(self(stm))))
         return "\n".join(out)

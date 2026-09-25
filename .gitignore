@@ -38,3 +38,6 @@ build
 .coverage
 _build
 _autosummary
+
+# uv
+uv.lock
