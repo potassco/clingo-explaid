@@ -18,6 +18,14 @@ class UnsatConstraintComputer:
         self,
         control: clingo.Control | None = None,
     ) -> None:
+        """
+        Construct an UnsatConstraintComputer with the given control object.
+
+        Parameters
+        ----------
+        control
+            The clingo control object.
+        """
         self.control = control if control is not None else clingo.Control()
         self.program_transformed: str | None = None
         self.initialized: bool = False

@@ -9,9 +9,6 @@ class LatticeFactory(ABC):
     """Factory for creating Lattice instances."""
 
     @abstractmethod
-    def __init__(self) -> None: ...
-
-    @abstractmethod
     def new(self, literals: set[int]) -> Lattice:
         """
         Create a new Lattice instance.
@@ -31,6 +28,14 @@ class AssumptionLatticeFactory(LatticeFactory):
     """Factory for creating AssumptionLattice instances."""
 
     def __init__(self, bias: bool) -> None:
+        """
+        Construct an AssumptionLatticeFactory with the given bias.
+
+        Parameters
+        ----------
+        bias
+            The bias to use for the lattice.
+        """
         super().__init__()
         self._bias = bias
 

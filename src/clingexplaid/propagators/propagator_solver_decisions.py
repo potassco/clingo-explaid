@@ -50,6 +50,18 @@ class SolverDecisionPropagator(Propagator):
         callback_propagate: Callable[[list[Decision | list[Decision]]], None] | None = None,
         callback_undo: Callable[[], None] | None = None,
     ) -> None:
+        """
+        Construct a SolverDecisionPropagator watching decisions for the given signatures with the provided callbacks.
+
+        Parameters
+        ----------
+        signatures
+            The set of fact signatures to match.
+        callback_propagate
+            The callback to invoke during propagation.
+        callback_undo
+            The callback to invoke during undo.
+        """
         # pylint: disable=missing-function-docstring
         self.literal_symbol_lookup: dict[int, clingo.Symbol] = {}
         self.signatures = signatures if signatures is not None else set()

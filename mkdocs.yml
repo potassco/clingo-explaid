@@ -117,6 +117,7 @@ plugins:
             - https://docs.python.org/3/objects.inv
           options:
             docstring_style: numpy
+            merge_init_into_class: true
             docstring_section_style: "spacy"
             show_symbol_type_heading: true
             show_symbol_type_toc: true

@@ -10,3 +10,9 @@ icon: "material/cancel"
     options:
       members: true
       show_submodules: true
+
+::: clingexplaid.unsat_constraints
+    handler: python
+    options:
+      members: true
+      show_submodules: true

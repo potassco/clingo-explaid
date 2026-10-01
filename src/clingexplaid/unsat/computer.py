@@ -34,6 +34,18 @@ class SubsetComputer:
         assumptions: Iterable[int | tuple[Symbol, bool]],
         lattice_factory: LatticeFactory | None = None,
     ) -> None:
+        """
+        Construct the SubsetComputer with the given control, assumptions, and optional lattice factory.
+
+        Parameters
+        ----------
+        control
+            The clingo control object.
+        assumptions
+            The assumptions to use for computing relevant subsets.
+        lattice_factory
+            The lattice factory to use for choosing the next subset to check, by default `None`.
+        """
         self.control = control
         self.literal_lookup: dict[int, Symbol] = {}
         self.symbol_lookup: dict[Symbol, int] = {}

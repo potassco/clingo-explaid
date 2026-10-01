@@ -19,6 +19,9 @@ class RuleSplitter(_ast.Transformer):
     """
 
     def __init__(self) -> None:
+        """
+        Construct a RuleSplitter.
+        """
         self.head_rules: list[clingo.ast.AST] = []
 
     def visit_Rule(self, node: clingo.ast.AST) -> clingo.ast.AST:  # pylint: disable=C0103

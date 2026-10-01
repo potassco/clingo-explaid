@@ -13,6 +13,16 @@ class ConstraintTransformer(_ast.Transformer):
     """
 
     def __init__(self, constraint_head_symbol: str, include_id: bool = False) -> None:
+        """
+        Construct a ConstraintTransformer with the given head symbol and option to include an id per constraint.
+
+        Parameters
+        ----------
+        constraint_head_symbol
+            The symbol to use for the constraint head atom.
+        include_id
+            Whether to include the constraint ID is included in the head atom.
+        """
         self._constraint_head_symbol = constraint_head_symbol
         self._include_id = include_id
         self._constraint_id = 1

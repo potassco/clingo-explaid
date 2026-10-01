@@ -19,6 +19,14 @@ class RuleIDTransformer(_ast.Transformer):
     """
 
     def __init__(self, rule_id_signature: str = RULE_ID_SIGNATURE) -> None:
+        """
+        Construct a RuleIDTransformer with the given rule ID signature.
+
+        Parameters
+        ----------
+        rule_id_signature
+            The signature to use for the rule ID atom.
+        """
         self.rule_id = 1
         self.rule_id_signature = rule_id_signature
 

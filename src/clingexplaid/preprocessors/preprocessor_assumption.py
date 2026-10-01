@@ -59,6 +59,18 @@ class AssumptionPreprocessor:
         control: clingo.Control | None = None,
         fail_on_unprocessed: bool = True,
     ) -> None:
+        """
+        Construct an AssumptionPreprocessor for the provided control, transforming facts matching the provided filters.
+
+        Parameters
+        ----------
+        filters
+            The set of filters matching facts to transform.
+        control
+            The clingo Control object to use.
+        fail_on_unprocessed
+            Whether to fail if assumptions are accessed before a program is processed.
+        """
         self.control = control if control is not None else clingo.Control()
         self.filters: set[FilterPattern | FilterSignature] = set(filters) if filters is not None else set()
         self._filters_convert_nothing = bool(filters is not None and len(list(filters)) == 0)

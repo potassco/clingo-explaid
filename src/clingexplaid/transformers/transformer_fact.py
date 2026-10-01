@@ -15,6 +15,14 @@ class FactTransformer(Transformer):
     # pylint: disable=duplicate-code
 
     def __init__(self, signatures: set[tuple[str, int]] | None = None) -> None:
+        """
+        Construct a FactTransformer for the given fact signatures.
+
+        Parameters
+        ----------
+        signatures
+            The set of signatures to match facts against.
+        """
         self.signatures = signatures if signatures is not None else set()
 
     def visit_Rule(self, node: AST) -> AST:  # pylint: disable=C0103
