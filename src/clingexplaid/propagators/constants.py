@@ -1,6 +1,4 @@
-"""
-Constant definitions for the propagators package
-"""
+"""Constant definitions for the propagators package."""
 
 from ..utils.logging import COLORS
 

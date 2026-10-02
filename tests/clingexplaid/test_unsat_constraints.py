@@ -1,8 +1,5 @@
-"""
-Tests for the unsat_constraints package
-"""
+"""Tests for the unsat_constraints package."""
 
-from typing import Dict, Optional
 from unittest import TestCase
 
 from clingexplaid.unsat_constraints import UnsatConstraintComputer
@@ -19,14 +16,12 @@ class TestUnsatConstraints(TestCase):
 
     def unsat_constraint_computer_helper(
         self,
-        constraint_strings: Dict[int, str],
-        constraint_lines: Dict[int, int],
-        constraint_files: Dict[int, str],
-        assumption_string: Optional[str] = None,
+        constraint_strings: dict[int, str],
+        constraint_lines: dict[int, int],
+        constraint_files: dict[int, str],
+        assumption_string: str | None = None,
     ) -> None:
-        """
-        Helper function for testing the UnsatConstraintComputer
-        """
+        """Test the UnsatConstraintComputer."""
         for method in ["from_files", "from_string"]:
             program_path = TEST_DIR.joinpath("res/test_program_unsat_constraints.lp")
             ucc = UnsatConstraintComputer()
@@ -46,9 +41,7 @@ class TestUnsatConstraints(TestCase):
                 self.assertEqual(loc.begin.line, constraint_lines[c_id])  # type: ignore
 
     def test_unsat_constraint_computer(self) -> None:
-        """
-        Testing the UnsatConstraintComputer without assumptions.
-        """
+        """Testing the UnsatConstraintComputer without assumptions."""
         self.unsat_constraint_computer_helper(
             constraint_strings={2: ":- not a."},
             constraint_lines={2: 4},
@@ -56,9 +49,7 @@ class TestUnsatConstraints(TestCase):
         )
 
     def test_unsat_constraint_computer_with_assumptions(self) -> None:
-        """
-        Testing the UnsatConstraintComputer with assumptions.
-        """
+        """Testing the UnsatConstraintComputer with assumptions."""
         self.unsat_constraint_computer_helper(
             constraint_strings={1: ":- a."},
             constraint_lines={1: 3},
@@ -67,8 +58,6 @@ class TestUnsatConstraints(TestCase):
         )
 
     def test_unsat_constraint_computer_not_initialized(self) -> None:
-        """
-        Testing the UnsatConstraintComputer without initializing it.
-        """
+        """Testing the UnsatConstraintComputer without initializing it."""
         ucc = UnsatConstraintComputer()
         self.assertRaises(ValueError, ucc.get_unsat_constraints)

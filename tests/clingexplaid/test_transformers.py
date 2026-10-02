@@ -1,6 +1,4 @@
-"""
-Tests for the transformers package
-"""
+"""Tests for the transformers package."""
 
 from unittest import TestCase
 
@@ -18,16 +16,12 @@ from .test_main import TEST_DIR, read_file
 
 
 class TestTransformers(TestCase):
-    """
-    Test cases for transformers.
-    """
+    """Test cases for transformers."""
 
     # RULE ID TRANSFORMER
 
     def test_rule_id_transformer(self) -> None:
-        """
-        Test the RuleIDTransformer's `parse_file` and `get_assumptions` methods.
-        """
+        """Test the RuleIDTransformer's `parse_file` and `get_assumptions` methods."""
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_rule_ids.lp")
         rt = RuleIDTransformer()
@@ -50,9 +44,7 @@ class TestTransformers(TestCase):
     # CONSTRAINT TRANSFORMER
 
     def test_constraint_transformer(self) -> None:
-        """
-        Test the ConstraintTransformer's `parse_file` method.
-        """
+        """Test the ConstraintTransformer's `parse_file` method."""
         program_path = TEST_DIR.joinpath("res/test_program_constraints.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_constraints.lp")
         ct = ConstraintTransformer(constraint_head_symbol="unsat")
@@ -60,9 +52,7 @@ class TestTransformers(TestCase):
         self.assertEqual(result.strip(), read_file(program_path_transformed).strip())
 
     def test_constraint_transformer_include_id(self) -> None:
-        """
-        Test the ConstraintTransformer's `parse_file` method.
-        """
+        """Test the ConstraintTransformer's `parse_file` method."""
         program_path = TEST_DIR.joinpath("res/test_program_constraints.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_constraints_id.lp")
         ct = ConstraintTransformer(constraint_head_symbol="unsat", include_id=True)
@@ -73,10 +63,7 @@ class TestTransformers(TestCase):
     # RULE SPLITTER
 
     def test_rule_splitter(self) -> None:
-        """
-        Test the RuleSplitter's `parse_file` method.
-        """
-
+        """Test the RuleSplitter's `parse_file` method."""
         program_path = TEST_DIR.joinpath("res/test_program_rules.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_rules_split.lp")
         rs = RuleSplitter()
@@ -86,10 +73,7 @@ class TestTransformers(TestCase):
     # OPTIMIZATION REMOVER
 
     def test_optimization_remover(self) -> None:
-        """
-        Test the OptimizationRemover's `parse_file` and `parse_string_method` method.
-        """
-
+        """Test the OptimizationRemover's `parse_file` and `parse_string_method` method."""
         program_path = TEST_DIR.joinpath("res/test_program_optimization.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_optimization.lp")
         optrm = OptimizationRemover()
@@ -102,10 +86,7 @@ class TestTransformers(TestCase):
     # FACT TRANSFORMER
 
     def test_fact_transformer(self) -> None:
-        """
-        Test the FactTransformer's `parse_files` and `parse_string_method` method.
-        """
-
+        """Test the FactTransformer's `parse_files` and `parse_string_method` method."""
         program_path = TEST_DIR.joinpath("res/test_program.lp")
         program_path_transformed = TEST_DIR.joinpath("res/transformed_program_facts.lp")
         ft = FactTransformer(signatures={("a", 1), ("d", 1), ("e", 1)})
