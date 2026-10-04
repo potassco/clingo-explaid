@@ -19,7 +19,7 @@ dynamic = [ "version" ]
 readme = "README.md"
 dependencies = [
 	"clingo>=5.7.1",
-    "musclingo @ git+https://github.com/potassco/musclingo.git@master",
+    "musclingo>=0.1",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
