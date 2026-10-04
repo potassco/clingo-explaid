@@ -38,6 +38,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/potassco/clingo-explaid"
+Documentation = "https://docs.potassco.org/clingo-explaid"
 Source = "https://github.com/potassco/clingo-explaid"
 "Issues" = "https://github.com/potassco/clingo-explaid/issues"
 
